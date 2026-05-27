@@ -1,0 +1,242 @@
+<script>
+	import { enhance } from '$app/forms';
+
+	let { data, form } = $props();
+	let toggling = $state(false);
+	let processing = $state(/** @type {string | null} */ (null));
+</script>
+
+<svelte:head><title>Admin — Office Chess Club</title></svelte:head>
+
+<div class="admin-page">
+	<h1>Admin Panel</h1>
+
+	{#if form?.error}
+		<p class="error">{form.error}</p>
+	{/if}
+
+	<!-- Honor System Toggle -->
+	<section class="card">
+		<div class="section-header">
+			<h2>Honor System</h2>
+			<div class="toggle-status" class:on={data.honorSystemEnabled}>
+				{data.honorSystemEnabled ? 'Enabled' : 'Disabled'}
+			</div>
+		</div>
+		<p class="description">
+			When <strong>enabled</strong>, match results are applied immediately without review.
+			When <strong>disabled</strong>, every match requires admin approval before ratings update.
+		</p>
+		<form
+			method="POST"
+			action="?/toggleHonorSystem"
+			use:enhance={() => {
+				toggling = true;
+				return async ({ update }) => {
+					await update();
+					toggling = false;
+				};
+			}}
+		>
+			<button type="submit" disabled={toggling} class="toggle-btn" class:danger={data.honorSystemEnabled}>
+				{toggling ? 'Updating…' : data.honorSystemEnabled ? 'Disable Honor System' : 'Enable Honor System'}
+			</button>
+		</form>
+	</section>
+
+	<!-- Pending Matches Queue -->
+	<section class="card">
+		<h2>
+			Pending Matches
+			{#if data.pendingMatches.length > 0}
+				<span class="count-badge">{data.pendingMatches.length}</span>
+			{/if}
+		</h2>
+
+		{#if data.pendingMatches.length === 0}
+			<p class="empty">No matches awaiting approval.</p>
+		{:else}
+			<div class="match-queue">
+				{#each data.pendingMatches as match}
+					{@const isDraw = match.isDraw}
+					{@const result = isDraw ? 'Draw'
+						: match.winnerId === match.whitePlayerId
+							? `${match.whiteName} wins`
+							: `${match.blackName} wins`}
+					{@const wd = match.eloChange.white.after - match.eloChange.white.before}
+					{@const bd = match.eloChange.black.after - match.eloChange.black.before}
+					<div class="queue-item">
+						<div class="match-summary">
+							<div class="matchup">
+								<span class="player-name">⬜ {match.whiteName}</span>
+								<span class="vs">vs</span>
+								<span class="player-name">⬛ {match.blackName}</span>
+							</div>
+							<div class="match-meta">
+								<span class="result-label">{result}</span>
+								<span class="date">{new Date(match.playedAt).toLocaleDateString()}</span>
+								<a href="/matches/{match._id}" class="view-link">View →</a>
+							</div>
+							<div class="elo-preview">
+								<span class="elo-label">Est. Elo change:</span>
+								<span class="elo-val" class:pos={wd > 0} class:neg={wd < 0}>
+									{match.whiteName}: {wd >= 0 ? '+' : ''}{wd}
+								</span>
+								<span class="elo-val" class:pos={bd > 0} class:neg={bd < 0}>
+									{match.blackName}: {bd >= 0 ? '+' : ''}{bd}
+								</span>
+							</div>
+						</div>
+						<div class="actions">
+							<form
+								method="POST"
+								action="?/approveMatch"
+								use:enhance={() => {
+									processing = match._id;
+									return async ({ update }) => {
+										await update();
+										processing = null;
+									};
+								}}
+							>
+								<input type="hidden" name="matchId" value={match._id} />
+								<button
+									type="submit"
+									class="approve-btn"
+									disabled={processing === match._id}
+								>
+									{processing === match._id ? '…' : '✓ Approve'}
+								</button>
+							</form>
+							<form
+								method="POST"
+								action="?/rejectMatch"
+								use:enhance={() => {
+									processing = match._id;
+									return async ({ update }) => {
+										await update();
+										processing = null;
+									};
+								}}
+							>
+								<input type="hidden" name="matchId" value={match._id} />
+								<button
+									type="submit"
+									class="reject-btn"
+									disabled={processing === match._id}
+								>
+									✗ Reject
+								</button>
+							</form>
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
+	</section>
+</div>
+
+<style>
+	.admin-page { display: flex; flex-direction: column; gap: 1.5rem; max-width: 700px; }
+	h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
+	h2 { margin: 0; font-size: 1rem; font-weight: 600; color: #e0e0e0; }
+
+	.card {
+		background: #141414;
+		border: 1px solid #222;
+		border-radius: 12px;
+		padding: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.section-header { display: flex; align-items: center; gap: 1rem; justify-content: space-between; }
+	.toggle-status {
+		font-size: 0.78rem;
+		font-weight: 600;
+		padding: 3px 10px;
+		border-radius: 20px;
+		border: 1px solid #333;
+		color: #666;
+	}
+	.toggle-status.on { color: #60c060; border-color: #1a4a1a; background: #0a1a0a; }
+
+	.description { font-size: 0.85rem; color: #666; margin: 0; line-height: 1.5; }
+
+	.toggle-btn {
+		background: #1e1e1e;
+		border: 1px solid #333;
+		color: #ccc;
+		border-radius: 6px;
+		padding: 8px 16px;
+		font-size: 0.88rem;
+		cursor: pointer;
+		transition: all 0.15s;
+		align-self: flex-start;
+	}
+	.toggle-btn:hover:not(:disabled) { border-color: #555; color: #fff; }
+	.toggle-btn.danger { border-color: #4a2020; color: #e06060; }
+	.toggle-btn.danger:hover:not(:disabled) { background: #200a0a; }
+	.toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+	.count-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 20px;
+		height: 20px;
+		background: #e0a020;
+		color: #000;
+		border-radius: 50%;
+		font-size: 0.72rem;
+		font-weight: 700;
+		margin-left: 6px;
+	}
+
+	.empty { color: #555; font-size: 0.9rem; margin: 0; }
+	.error { color: #f06060; background: #1a0000; border: 1px solid #330000; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
+
+	.match-queue { display: flex; flex-direction: column; gap: 10px; }
+	.queue-item {
+		background: #0f0f0f;
+		border: 1px solid #2a2a2a;
+		border-radius: 8px;
+		padding: 12px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+	.match-summary { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+	.matchup { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
+	.player-name { font-weight: 600; color: #e0e0e0; }
+	.vs { color: #444; font-size: 0.8rem; }
+	.match-meta { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: #666; }
+	.result-label { color: #aaa; }
+	.view-link { color: #555; text-decoration: none; }
+	.view-link:hover { color: #aaa; }
+
+	.elo-preview { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; flex-wrap: wrap; }
+	.elo-label { color: #444; }
+	.elo-val { font-weight: 600; }
+	.elo-val.pos { color: #60c060; }
+	.elo-val.neg { color: #e06060; }
+
+	.actions { display: flex; gap: 8px; }
+	.approve-btn, .reject-btn {
+		border: none;
+		border-radius: 5px;
+		padding: 6px 12px;
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: opacity 0.15s;
+	}
+	.approve-btn { background: #1a4a1a; color: #60c060; border: 1px solid #2a6a2a; }
+	.approve-btn:hover:not(:disabled) { background: #1f5a1f; }
+	.reject-btn { background: #2a1010; color: #e06060; border: 1px solid #4a2020; }
+	.reject-btn:hover:not(:disabled) { background: #351515; }
+	.approve-btn:disabled, .reject-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+</style>
