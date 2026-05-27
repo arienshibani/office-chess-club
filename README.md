@@ -49,3 +49,13 @@ To run locally.
 3. Point `MONGODB_URI` at your Atlas cluster. (You can create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
 4. Run `npm run dev`.
 5. Set your first admin by toggling `isAdmin: true` directly in MongoDB Atlas. (You can find the MongoDB Atlas connection string in the "Connect" section of your cluster.)
+
+## Deploy to Vercel
+
+1. `vercel login`
+2. `./scripts/deploy-vercel.sh` (sets env vars and deploys production)
+3. In Slack → **OAuth & Permissions**, add redirect URL:  
+   `https://YOUR-APP.vercel.app/auth/callback/slack`
+4. In MongoDB Atlas → **Network Access**, allow Vercel (or `0.0.0.0/0` for dev).
+
+Or import this repo at [vercel.com/new](https://vercel.com/new) and set the same env vars in the project settings.
