@@ -1,5 +1,4 @@
 import { redirect } from '@sveltejs/kit';
-import { SLACK_REDIRECT_URI } from '$env/static/private';
 import { getPlayers } from '$lib/db.js';
 import { createSessionToken, COOKIE_NAME, MAX_AGE } from '$lib/session.js';
 import { exchangeSlackUserToken, identityFromTokenResponse } from '$lib/slack-token.js';
@@ -24,15 +23,21 @@ export async function GET({ url, cookies }) {
 		redirect(302, '/login?error=state_mismatch');
 	}
 
-	const tokenData = await exchangeSlackUserToken({
-		code,
-		redirectUri: SLACK_REDIRECT_URI,
-		codeVerifier
-	});
+	let tokenData;
+	try {
+		tokenData = await exchangeSlackUserToken({ code, codeVerifier });
+	} catch (err) {
+		const msg = err instanceof Error ? err.message : 'config_error';
+		redirect(302, `/login?error=${encodeURIComponent(msg)}`);
+	}
 
 	if (!tokenData.ok) {
 		const detail = typeof tokenData.error === 'string' ? tokenData.error : 'oauth_failed';
-		redirect(302, `/login?error=${encodeURIComponent(detail)}`);
+		const params = new URLSearchParams({ error: detail });
+		if (typeof tokenData.error_description === 'string') {
+			params.set('desc', tokenData.error_description);
+		}
+		redirect(302, `/login?${params}`);
 	}
 
 	let identity = identityFromTokenResponse(tokenData);

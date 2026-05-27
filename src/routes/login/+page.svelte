@@ -8,7 +8,8 @@
 		upsert_failed: 'Could not save your player record.',
 		no_token: 'Slack did not return an access token.',
 		internal_error:
-			'Slack token exchange failed. Check Vercel env: SLACK_REDIRECT_URI must exactly match your production callback URL.',
+			'Slack token exchange failed. Set ORIGIN to your Vercel URL (e.g. https://your-app.vercel.app) and redeploy.',
+		config_error: 'Server misconfiguration — missing Slack or ORIGIN env vars on Vercel.',
 		bad_redirect_uri:
 			'Redirect URI mismatch. In Slack and Vercel, use the same URL (e.g. https://your-app.vercel.app/auth/callback/slack).',
 		invalid_code: 'Authorization code expired. Sign in again from /login.',
@@ -27,7 +28,13 @@
 		<p>Track your Elo, review games, and dominate the leaderboard.</p>
 		{#if $page.url.searchParams.get('error')}
 			{@const code = $page.url.searchParams.get('error')}
-			<p class="error">{errorMessages[code] ?? `Sign-in failed (${code}).`}</p>
+			{@const desc = $page.url.searchParams.get('desc')}
+			<p class="error">
+				{errorMessages[code] ?? `Sign-in failed (${code}).`}
+				{#if desc}
+					<br /><span class="error-detail">{desc}</span>
+				{/if}
+			</p>
 		{/if}
 		{#if import.meta.env.DEV}
 			<p class="hint">
@@ -74,6 +81,7 @@
 	h1 { margin: 0 0 0.5rem; font-size: 1.5rem; font-weight: 700; }
 	p { color: #888; margin: 0 0 1rem; font-size: 0.95rem; }
 	.error { color: #f87171; font-size: 0.9rem; margin: 0 0 1rem; }
+	.error-detail { color: #aaa; font-size: 0.8rem; }
 	.hint { font-size: 0.8rem; color: #666; margin: 0 0 1.5rem; }
 	.hint code { color: #aaa; font-size: 0.85em; }
 	form { margin: 0; }
