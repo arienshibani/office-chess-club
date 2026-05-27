@@ -42,9 +42,9 @@ To run locally.
    - **OAuth & Permissions → User Token Scopes:** `openid`, `profile`, `email` (Sign in with Slack only).
    - **OAuth & Permissions → Bot Token Scopes:** leave **empty** — bot scopes trigger a second “install app” step that breaks localhost + PKCE.
    - **App Home → Bot User:** turn **off** if you only need sign-in (no bot).
-   - **Basic Information:** copy **Client ID** and **Client Secret** into `.env` as `SLACK_CLIENT_ID` and `SLACK_CLIENT_SECRET`.
+   - **Basic Information:** copy **Client ID** into `.env` as `SLACK_CLIENT_ID` (PKCE token exchange does not use a client secret).
    - Optional: **Incoming Webhooks** for match notifications → `SLACK_WEBHOOK_URL`.
-   - **PKCE:** Required for this app (one-way in Slack). Uses Sign in with Slack at `/openid/connect/authorize` with `scope=openid profile email`, exchanged via `openid.connect.token` with `code_verifier`. The verifier is carried in signed `state` so it survives the Slack redirect. Keep **zero** bot scopes.
+   - **PKCE:** Enable in **OAuth & Permissions** (one-way in Slack). Sign in with Slack at `/openid/connect/authorize` with `code_challenge`, `code_challenge_method=S256`, and `scope=openid profile email`; exchange via `openid.connect.token` with `code` + `code_verifier` only (no `client_secret`). The verifier is carried in signed `state` so it survives the redirect. Keep **zero** bot scopes.
    - Remove any non-`http(s)://` redirect URLs (e.g. `myapp://`) from the app.
 3. Point `MONGODB_URI` at your Atlas cluster. (You can create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
 4. Run `npm run dev`.

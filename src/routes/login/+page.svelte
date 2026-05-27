@@ -16,7 +16,7 @@
 		bad_redirect_uri:
 			'Redirect URI mismatch. In Slack and Vercel, use the same URL (e.g. https://your-app.vercel.app/auth/callback/slack).',
 		invalid_code: 'Authorization code expired. Sign in again from /login.',
-		invalid_client: 'Wrong SLACK_CLIENT_ID or SLACK_CLIENT_SECRET in Vercel env vars.'
+		invalid_client: 'Wrong SLACK_CLIENT_ID in Vercel env vars.'
 	};
 
 </script>

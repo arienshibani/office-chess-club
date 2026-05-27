@@ -1,9 +1,5 @@
 import { createHash } from 'crypto';
-import {
-	getSlackClientId,
-	getSlackClientSecret,
-	getSlackRedirectUri
-} from '$lib/slack-config.js';
+import { getSlackClientId, getSlackRedirectUri } from '$lib/slack-config.js';
 
 /** @param {string} jwt */
 export const decodeJwtPayload = (jwt) => {
@@ -27,14 +23,22 @@ const postOpenIdToken = async (body) => {
 export const exchangeSlackUserToken = async ({ code, codeVerifier, codeChallenge }) => {
 	const redirectUri = getSlackRedirectUri();
 	const clientId = getSlackClientId();
-	const clientSecret = getSlackClientSecret();
 
 	const derivedChallenge = createHash('sha256').update(codeVerifier).digest('base64url');
 	const pkceSelfCheck = codeChallenge ? derivedChallenge === codeChallenge : true;
+	if (!pkceSelfCheck) {
+		return {
+			ok: false,
+			redirectUri,
+			error: 'invalid_grant',
+			error_description: 'PKCE code_verifier does not match code_challenge',
+			pkceSelfCheck: false
+		};
+	}
 
+	// PKCE public client: no client_secret (https://docs.slack.dev/authentication/using-pkce)
 	const body = new URLSearchParams({
 		client_id: clientId,
-		client_secret: clientSecret,
 		code,
 		redirect_uri: redirectUri,
 		grant_type: 'authorization_code',

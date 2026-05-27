@@ -49,6 +49,11 @@ export async function GET({ url, cookies }) {
 		redirect(302, '/login?error=state_mismatch');
 	}
 
+	if (!parsedState.pkceValid) {
+		logOAuth('pkce_invalid', { redirectUri });
+		redirect(302, '/login?error=invalid_grant');
+	}
+
 	const codeVerifier = parsedState.codeVerifier;
 
 	let exchangeResult;

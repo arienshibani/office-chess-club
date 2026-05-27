@@ -17,9 +17,3 @@ export const getSlackClientId = () => {
 	if (!id) throw new Error('SLACK_CLIENT_ID is not set');
 	return id;
 };
-
-export const getSlackClientSecret = () => {
-	const secret = env.SLACK_CLIENT_SECRET?.trim();
-	if (!secret) throw new Error('SLACK_CLIENT_SECRET is not set');
-	return secret;
-};
