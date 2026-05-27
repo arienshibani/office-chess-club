@@ -52,7 +52,8 @@ export async function load({ locals }) {
 
 	return {
 		pendingMatches: enriched,
-		honorSystemEnabled: config?.honorSystemEnabled ?? true
+		honorSystemEnabled: config?.honorSystemEnabled ?? true,
+		clubName: typeof config?.clubName === 'string' && config.clubName.trim() ? config.clubName.trim() : 'Office'
 	};
 }
 
@@ -68,6 +69,27 @@ export const actions = {
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { honorSystemEnabled: !current } }
+		);
+
+		return { success: true };
+	},
+
+	updateClubName: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const rawClubName = String(form.get('clubName') ?? '').trim();
+		const clubName = rawClubName || 'Office';
+
+		if (clubName.length > 40) {
+			return fail(400, { error: 'Club name must be 40 characters or less.' });
+		}
+
+		const cfgCol = await getConfig();
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { clubName } },
+			{ upsert: true }
 		);
 
 		return { success: true };

@@ -1,14 +1,22 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { setSessionCookie } from '$lib/auth.js';
-import { getPlayers } from '$lib/db.js';
+import { getConfig, getPlayers } from '$lib/db.js';
 import { hashPassword, normalizeUsername, verifyPassword } from '$lib/password.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export function load({ locals, url }) {
+export async function load({ locals, url }) {
 	if (locals.user) {
 		const next = url.searchParams.get('next');
 		redirect(302, next?.startsWith('/') ? next : '/');
 	}
+
+	const cfgCol = await getConfig();
+	const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
+	const clubNameRaw = typeof config?.clubName === 'string' ? config.clubName.trim() : '';
+
+	return {
+		clubName: clubNameRaw || 'Office'
+	};
 }
 
 /** @param {string} username @param {string} name @param {string} passwordHash */

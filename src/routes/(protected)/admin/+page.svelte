@@ -3,6 +3,7 @@
 
 	let { data, form } = $props();
 	let toggling = $state(false);
+let savingName = $state(false);
 	let processing = $state(/** @type {string | null} */ (null));
 </script>
 
@@ -42,6 +43,34 @@
 				{toggling ? 'Updating…' : data.honorSystemEnabled ? 'Disable Honor System' : 'Enable Honor System'}
 			</button>
 		</form>
+	</section>
+
+	<section class="card">
+		<h2>Club Name</h2>
+		<p class="description">
+			Used across the app header and login screen. Defaults to <strong>Office</strong> when empty.
+		</p>
+		<form
+			method="POST"
+			action="?/updateClubName"
+			class="name-form"
+			use:enhance={() => {
+				savingName = true;
+				return async ({ update }) => {
+					await update();
+					savingName = false;
+				};
+			}}
+		>
+			<label>
+				Club name
+				<input name="clubName" type="text" maxlength="40" value={data.clubName} placeholder="Office" />
+			</label>
+			<button type="submit" class="toggle-btn" disabled={savingName}>
+				{savingName ? 'Saving…' : 'Save club name'}
+			</button>
+		</form>
+		<p class="preview">Preview: <strong>{data.clubName} Chess Club</strong></p>
 	</section>
 
 	<!-- Pending Matches Queue -->
@@ -163,6 +192,17 @@
 	.toggle-status.on { color: var(--color-success); border-color: var(--color-badge-win-border); background: var(--color-admin-toggle-on-bg); }
 
 	.description { font-size: 0.85rem; color: var(--color-text-faint); margin: 0; line-height: 1.5; }
+	.name-form { display: flex; flex-direction: column; gap: 0.65rem; }
+	.name-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--color-text-subtle); }
+	.name-form input {
+		background: var(--color-input-bg);
+		border: 1px solid var(--color-border-strong);
+		border-radius: 6px;
+		color: var(--color-text);
+		padding: 8px 10px;
+		font-size: 0.9rem;
+	}
+	.preview { margin: 0; font-size: 0.82rem; color: var(--color-text-faint); }
 
 	.toggle-btn {
 		background: var(--color-surface-muted);

@@ -11,7 +11,7 @@ const user = $derived(data.user);
 </svelte:head>
 
 <nav class="">
-	<a href="/" class="brand">Nordlo Chess Club ♟️ </a>
+	<a href="/" class="brand">{data.clubName} Chess Club ♟️</a>
 	<div class="nav-links">
 		<a href="/" class:active={$page.url.pathname === '/'}>Home</a>
 		<a href="/matches" class:active={$page.url.pathname.startsWith('/matches')}>Match History</a>

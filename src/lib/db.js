@@ -71,7 +71,13 @@ export async function ensureIndexes() {
 
 	await db.collection('config').updateOne(
 		/** @type {any} */ ({ _id: 'global_settings' }),
-		{ $setOnInsert: /** @type {any} */ ({ _id: 'global_settings', honorSystemEnabled: true }) },
+		{
+			$setOnInsert: /** @type {any} */ ({
+				_id: 'global_settings',
+				honorSystemEnabled: true,
+				clubName: 'Office'
+			})
+		},
 		{ upsert: true }
 	);
 }
