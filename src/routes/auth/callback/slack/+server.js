@@ -4,7 +4,6 @@ import { getPlayers } from '$lib/db.js';
 import { createSessionToken, COOKIE_NAME, MAX_AGE } from '$lib/session.js';
 import { parseOAuthState } from '$lib/slack-oauth-state.js';
 import { exchangeSlackUserToken, identityFromTokenResponse } from '$lib/slack-token.js';
-import { debugLog } from '$lib/debug-log.js';
 
 /** @param {Record<string, string | undefined>} fields */
 const logOAuth = (event, fields) => {
@@ -52,22 +51,6 @@ export async function GET({ url, cookies }) {
 
 	const codeVerifier = parsedState.codeVerifier;
 
-	// #region agent log
-	debugLog({
-		hypothesisId: 'H5',
-		location: 'callback/slack:GET',
-		message: 'callback_parsed_state',
-		data: {
-			redirectUri,
-			hasStoredNonce: Boolean(storedNonce),
-			nonceMatch: !storedNonce || storedNonce === parsedState.nonce,
-			pkceValid: parsedState.pkceValid,
-			verifierLen: codeVerifier.length,
-			codeLen: code.length
-		}
-	});
-	// #endregion
-
 	let exchangeResult;
 	try {
 		exchangeResult = await exchangeSlackUserToken({
@@ -82,35 +65,20 @@ export async function GET({ url, cookies }) {
 	}
 
 	if (!exchangeResult.ok) {
-		const primary =
-			exchangeResult.attempts.find((a) => a.error && a.error !== 'internal_error') ??
-			exchangeResult.attempts.at(-1);
-		const detail = primary?.error ?? 'oauth_failed';
-
 		logOAuth('token_exchange_failed', {
 			redirectUri,
 			pkceSelfCheck: exchangeResult.pkceSelfCheck,
-			attempts: exchangeResult.attempts
+			error: exchangeResult.error,
+			error_description: exchangeResult.error_description
 		});
-		// #region agent log
-		debugLog({
-			hypothesisId: 'H3',
-			location: 'callback/slack:GET',
-			message: 'token_exchange_failed',
-			data: {
-				redirectUri,
-				pkceSelfCheck: exchangeResult.pkceSelfCheck,
-				attempts: exchangeResult.attempts
-			}
-		});
-		// #endregion
 
 		const params = new URLSearchParams({
-			error: detail,
-			redirect_uri: redirectUri,
-			debug: JSON.stringify(exchangeResult.attempts)
+			error: exchangeResult.error,
+			redirect_uri: redirectUri
 		});
-		if (primary?.error_description) params.set('desc', primary.error_description);
+		if (exchangeResult.error_description) {
+			params.set('desc', exchangeResult.error_description);
+		}
 
 		redirect(302, `/login?${params}`);
 	}

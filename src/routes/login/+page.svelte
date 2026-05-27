@@ -8,8 +8,10 @@
 		upsert_failed: 'Could not save your player record.',
 		db_error: 'Signed in with Slack but MongoDB failed. Check MONGODB_URI and Atlas network access.',
 		no_token: 'Slack did not return an access token.',
-		internal_error:
-			'Slack returned internal_error on every token endpoint (see details below).',
+		internal_error: 'Slack returned an internal error during token exchange. Try again in a minute.',
+		oauth_authorization_url_mismatch:
+			'OAuth started on the wrong Slack URL. Redeploy and sign in again from /login.',
+		invalid_grant: 'PKCE or authorization code mismatch — sign in again from /login.',
 		config_error: 'Server misconfiguration — missing Slack or ORIGIN env vars on Vercel.',
 		bad_redirect_uri:
 			'Redirect URI mismatch. In Slack and Vercel, use the same URL (e.g. https://your-app.vercel.app/auth/callback/slack).',
@@ -17,16 +19,6 @@
 		invalid_client: 'Wrong SLACK_CLIENT_ID or SLACK_CLIENT_SECRET in Vercel env vars.'
 	};
 
-	/** @param {string | null} raw */
-	const parseAttempts = (raw) => {
-		if (!raw) return null;
-		try {
-			const data = JSON.parse(raw);
-			return Array.isArray(data) ? data : null;
-		} catch {
-			return null;
-		}
-	};
 </script>
 
 <svelte:head>
@@ -42,7 +34,6 @@
 			{@const code = $page.url.searchParams.get('error')}
 			{@const desc = $page.url.searchParams.get('desc')}
 			{@const redirectUri = $page.url.searchParams.get('redirect_uri')}
-			{@const attempts = parseAttempts($page.url.searchParams.get('debug'))}
 			<div class="error-box">
 				<p class="error">{errorMessages[code ?? ''] ?? `Sign-in failed (${code}).`}</p>
 				{#if desc}
@@ -50,20 +41,6 @@
 				{/if}
 				{#if redirectUri}
 					<p class="error-detail">Callback used: <code>{redirectUri}</code></p>
-				{/if}
-				{#if attempts?.length}
-					<p class="error-detail">Token exchange attempts:</p>
-					<ul class="attempts">
-						{#each attempts as attempt}
-							<li>
-								<code>{attempt.endpoint}</code> ({attempt.variant}):
-								<strong>{attempt.error ?? 'unknown'}</strong>
-								{#if attempt.error_description}
-									— {attempt.error_description}
-								{/if}
-							</li>
-						{/each}
-					</ul>
 				{/if}
 				<p class="error-detail">Vercel → Logs → filter <code>[slack-oauth]</code></p>
 			</div>
@@ -124,8 +101,6 @@
 	.error { color: #f87171; font-size: 0.9rem; margin: 0 0 0.5rem; }
 	.error-detail { color: #aaa; font-size: 0.8rem; margin: 0.35rem 0; }
 	.error-detail code { color: #ccc; font-size: 0.85em; word-break: break-all; }
-	.attempts { margin: 0.35rem 0 0; padding-left: 1.2rem; color: #bbb; font-size: 0.78rem; }
-	.attempts li { margin: 0.25rem 0; }
 	.hint { font-size: 0.8rem; color: #666; margin: 0 0 1.5rem; }
 	.hint code { color: #aaa; font-size: 0.85em; }
 	form { margin: 0; }
