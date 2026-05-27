@@ -6,6 +6,11 @@ import { exchangeSlackUserToken, identityFromTokenResponse } from '$lib/slack-to
 
 /** @type {import('./$types').RequestHandler} */
 export async function GET({ url, cookies }) {
+	const slackError = url.searchParams.get('error');
+	if (slackError) {
+		redirect(302, `/login?error=${encodeURIComponent(slackError)}`);
+	}
+
 	const code = url.searchParams.get('code');
 	const state = url.searchParams.get('state');
 	const storedState = cookies.get('oauth_state');

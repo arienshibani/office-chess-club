@@ -1,12 +1,25 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { MONGODB_URI } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 
 const globalWithMongo = /** @type {typeof globalThis & { _mongoClient?: MongoClient }} */ (globalThis);
+
+const getMongoUri = () => {
+	const uri = env.MONGODB_URI?.trim();
+	if (!uri) throw new Error('MONGODB_URI is not set');
+	return uri;
+};
+
+const getDbName = () => env.MONGODB_DB_NAME?.trim() || 'chess-club';
 
 /** @returns {Promise<MongoClient>} */
 async function getClient() {
 	if (globalWithMongo._mongoClient) return globalWithMongo._mongoClient;
-	const client = new MongoClient(MONGODB_URI);
+
+	const client = new MongoClient(getMongoUri(), {
+		maxPoolSize: 10,
+		serverSelectionTimeoutMS: 10_000,
+		connectTimeoutMS: 10_000
+	});
 	await client.connect();
 	globalWithMongo._mongoClient = client;
 	return client;
@@ -15,7 +28,7 @@ async function getClient() {
 /** @returns {Promise<import('mongodb').Db>} */
 export async function getDb() {
 	const c = await getClient();
-	return c.db();
+	return c.db(getDbName());
 }
 
 /** @returns {Promise<import('mongodb').Collection>} */

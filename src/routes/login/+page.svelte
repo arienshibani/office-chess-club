@@ -6,7 +6,13 @@
 		oauth_failed: 'Slack rejected the token exchange.',
 		identity_failed: 'Could not read your Slack profile.',
 		upsert_failed: 'Could not save your player record.',
-		no_token: 'Slack did not return an access token.'
+		no_token: 'Slack did not return an access token.',
+		internal_error:
+			'Slack token exchange failed. Check Vercel env: SLACK_REDIRECT_URI must exactly match your production callback URL.',
+		bad_redirect_uri:
+			'Redirect URI mismatch. In Slack and Vercel, use the same URL (e.g. https://your-app.vercel.app/auth/callback/slack).',
+		invalid_code: 'Authorization code expired. Sign in again from /login.',
+		invalid_client: 'Wrong SLACK_CLIENT_ID or SLACK_CLIENT_SECRET in Vercel env vars.'
 	};
 </script>
 

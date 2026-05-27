@@ -56,6 +56,8 @@ To run locally.
 2. `./scripts/deploy-vercel.sh` (sets env vars and deploys production)
 3. In Slack → **OAuth & Permissions**, add redirect URL:  
    `https://YOUR-APP.vercel.app/auth/callback/slack`
-4. In MongoDB Atlas → **Network Access**, allow Vercel (or `0.0.0.0/0` for dev).
+4. In MongoDB Atlas → **Network Access** → **Add IP Address** → **Allow Access from Anywhere** (`0.0.0.0/0`). Required for Vercel serverless (dynamic IPs).
+5. Use a database name in the URI (`/chess-club`) or set `MONGODB_DB_NAME`. URL-encode special characters in the password.
+6. After changing Vercel env vars, **redeploy** (Project → Deployments → Redeploy).
 
 Or import this repo at [vercel.com/new](https://vercel.com/new) and set the same env vars in the project settings.

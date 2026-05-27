@@ -7,35 +7,26 @@ export const decodeJwtPayload = (jwt) => {
 };
 
 /**
- * User-only token exchange (no bot install). PKCE: omit client_secret first.
+ * Exchange OAuth code from Sign in with Slack (openid_connect authorize flow).
  * @param {{ code: string, redirectUri: string, codeVerifier: string }} args
  */
 export const exchangeSlackUserToken = async ({ code, redirectUri, codeVerifier }) => {
-	const base = {
+	const body = new URLSearchParams({
 		client_id: SLACK_CLIENT_ID,
+		client_secret: SLACK_CLIENT_SECRET,
 		code,
 		redirect_uri: redirectUri,
-		grant_type: 'authorization_code'
-	};
-	if (codeVerifier) base.code_verifier = codeVerifier;
+		grant_type: 'authorization_code',
+		code_verifier: codeVerifier
+	});
 
-	let res = await fetch('https://slack.com/api/oauth.v2.user.access', {
+	const res = await fetch('https://slack.com/api/openid.connect.token', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-		body: new URLSearchParams(base)
+		body
 	});
-	let data = await res.json();
 
-	if (!data.ok && SLACK_CLIENT_SECRET) {
-		res = await fetch('https://slack.com/api/oauth.v2.user.access', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-			body: new URLSearchParams({ ...base, client_secret: SLACK_CLIENT_SECRET })
-		});
-		data = await res.json();
-	}
-
-	return data;
+	return res.json();
 };
 
 /** @param {Record<string, unknown>} tokenData */
