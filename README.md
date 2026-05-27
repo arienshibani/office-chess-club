@@ -4,7 +4,8 @@ Self-hosted chess tracking and rating website.
 
 ## Features ✨
 
-- Slack-powered authentication and notifications.
+- Username/password accounts (passwords stored as scrypt hashes in MongoDB).
+- Optional Slack webhook notifications for matches.
 - Elo rating system.
 - Match logging and approval workflow.
 - Match history and statistics.
@@ -17,13 +18,12 @@ Self-hosted chess tracking and rating website.
   ├── lib/
   │   ├── db.js                # MongoDB singleton + ensureIndexes()
   │   ├── elo.js               # computeElo() using elo-rank (K=32)
+  │   ├── password.js          # scrypt hash + verify
   │   ├── session.js           # HMAC-signed session tokens
-  │   ├── slack.js             # Outbound webhook notifications
+  │   ├── slack.js             # Outbound webhook notifications (optional)
   │   └── ChessBoard.svelte    # Unicode piece board driven by FEN prop
   └── routes/
-      ├── login/               # Public Slack OAuth entry point
-      ├── auth/slack/          # OAuth initiator (CSRF state cookie)
-      ├── auth/callback/slack/ # Code exchange → player upsert → session
+      ├── login/               # Sign in + create account
       ├── logout/              # Clears session cookie
       └── (protected)/         # Auth-gated layout group
           ├── +page            # Dashboard: leaderboard + log match + activity feed
@@ -34,30 +34,20 @@ Self-hosted chess tracking and rating website.
 
 ## Local Setup
 
-To run locally.
-
-1. Copy `.env.example` → `.env` and fill in your real values. 
-2. Create a Slack app at [api.slack.com/apps](https://api.slack.com/apps) and configure Sign in with Slack:
-   - **OAuth & Permissions → Redirect URLs:** `http://localhost:5173/auth/callback/slack` (add your production URL when you deploy).
-   - **OAuth & Permissions → User Token Scopes:** `openid`, `profile`, `email` (Sign in with Slack only).
-   - **OAuth & Permissions → Bot Token Scopes:** leave **empty** — bot scopes trigger a second “install app” step that breaks localhost + PKCE.
-   - **App Home → Bot User:** turn **off** if you only need sign-in (no bot).
-   - **Basic Information:** copy **Client ID** into `.env` as `SLACK_CLIENT_ID` (PKCE token exchange does not use a client secret).
-   - Optional: **Incoming Webhooks** for match notifications → `SLACK_WEBHOOK_URL`.
-   - **PKCE:** Enable in **OAuth & Permissions** (one-way in Slack). Sign in with Slack at `/openid/connect/authorize` with `code_challenge`, `code_challenge_method=S256`, and `scope=openid profile email`; exchange via `openid.connect.token` with `code` + `code_verifier` only (no `client_secret`). The verifier is carried in signed `state` so it survives the redirect. Keep **zero** bot scopes.
-   - Remove any non-`http(s)://` redirect URLs (e.g. `myapp://`) from the app.
-3. Point `MONGODB_URI` at your Atlas cluster. (You can create a free cluster on [MongoDB Atlas](https://www.mongodb.com/cloud/atlas))
+1. Copy `.env.example` → `.env` and fill in your values.
+2. Point `MONGODB_URI` at your Atlas cluster.
+3. Set `SESSION_SECRET` to a long random string (32+ characters).
 4. Run `npm run dev`.
-5. Set your first admin by toggling `isAdmin: true` directly in MongoDB Atlas. (You can find the MongoDB Atlas connection string in the "Connect" section of your cluster.)
+5. Open `/login`, create an account for each player.
+6. Set your first admin by toggling `isAdmin: true` on that user in MongoDB Atlas.
+
+Optional: add `SLACK_WEBHOOK_URL` for match notifications in Slack.
 
 ## Deploy to Vercel
 
 1. `vercel login`
 2. `./scripts/deploy-vercel.sh` (sets env vars and deploys production)
-3. In Slack → **OAuth & Permissions**, add redirect URL:  
-   `https://YOUR-APP.vercel.app/auth/callback/slack`
-4. In MongoDB Atlas → **Network Access** → **Allow Access from Anywhere** (`0.0.0.0/0`).
-5. On Vercel set **`ORIGIN`** to your production URL (e.g. `https://office-chess-club.vercel.app`). The OAuth callback is derived as `{ORIGIN}/auth/callback/slack` — add that exact URL in Slack.
-6. After env changes, **redeploy** production (env is read at runtime, not only at build).
+3. In MongoDB Atlas → **Network Access** → **Allow Access from Anywhere** (`0.0.0.0/0`).
+4. Create accounts at `https://YOUR-APP.vercel.app/login`.
 
-Or import this repo at [vercel.com/new](https://vercel.com/new) and set the same env vars in the project settings.
+Or import this repo at [vercel.com/new](https://vercel.com/new) and set `MONGODB_URI`, `MONGODB_DB_NAME`, and `SESSION_SECRET` in project settings.

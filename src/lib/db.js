@@ -51,7 +51,7 @@ export async function getConfig() {
 
 export async function ensureIndexes() {
 	const db = await getDb();
-	await db.collection('players').createIndex({ slackId: 1 }, { unique: true });
+	await db.collection('players').createIndex({ username: 1 }, { unique: true });
 	await db.collection('players').createIndex({ rating: -1 });
 	await db.collection('matches').createIndex({ whitePlayerId: 1 });
 	await db.collection('matches').createIndex({ blackPlayerId: 1 });

@@ -22,9 +22,9 @@ export async function handle({ event, resolve }) {
 				if (user) {
 					event.locals.user = {
 						_id: user._id.toString(),
-						slackId: user.slackId,
+						username: typeof user.username === 'string' ? user.username : '',
 						name: user.name,
-						avatarUrl: user.avatarUrl,
+						avatarUrl: user.avatarUrl ?? '',
 						rating: user.rating,
 						isAdmin: user.isAdmin,
 						stats: user.stats

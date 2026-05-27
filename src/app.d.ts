@@ -5,7 +5,7 @@ declare global {
 		interface Locals {
 			user: {
 				_id: string;
-				slackId: string;
+				username: string;
 				name: string;
 				avatarUrl: string;
 				rating: number;

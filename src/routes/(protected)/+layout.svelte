@@ -1,16 +1,16 @@
 <script>
-	import { page } from '$app/stores';
+import { page } from "$app/stores";
 
-	let { data, children } = $props();
-	let user = $derived(data.user);
+const { data, children } = $props();
+const user = $derived(data.user);
 </script>
 
 <svelte:head>
 	<meta name="viewport" content="width=device-width, initial-scale=1" />
 </svelte:head>
 
-<nav>
-	<a href="/" class="brand">♟ Chess Club</a>
+<nav class="">
+	<a href="/" class="brand">Nordlo Chess Club ♟️ </a>
 	<div class="nav-links">
 		<a href="/" class:active={$page.url.pathname === '/'}>Leaderboard</a>
 		{#if user?.isAdmin}
@@ -49,7 +49,7 @@
 		gap: 1.5rem;
 		padding: 0 1.5rem;
 		height: 56px;
-		background: #141414;
+		background: #ffffff;
 		border-bottom: 1px solid #222;
 		position: sticky;
 		top: 0;
@@ -59,7 +59,7 @@
 		font-weight: 700;
 		font-size: 1.1rem;
 		text-decoration: none;
-		color: #f0f0f0;
+		color: #000000;
 		white-space: nowrap;
 	}
 	.nav-links {
@@ -69,15 +69,15 @@
 	}
 	.nav-links a {
 		text-decoration: none;
-		color: #888;
+		color: #000000;
 		font-size: 0.9rem;
 		padding: 4px 0;
 		border-bottom: 2px solid transparent;
 		transition: color 0.15s, border-color 0.15s;
 	}
 	.nav-links a:hover, .nav-links a.active {
-		color: #f0f0f0;
-		border-color: #f0f0f0;
+		color: #000000;
+		border-color: #000000;
 	}
 	.user-area {
 		display: flex;
@@ -94,13 +94,13 @@
 	.name { font-size: 0.85rem; color: #aaa; }
 	.logout-btn {
 		font-size: 0.8rem;
-		color: #666;
+		color: #000000;
 		text-decoration: none;
 		padding: 4px 8px;
 		border: 1px solid #333;
 		border-radius: 4px;
 		transition: border-color 0.15s, color 0.15s;
 	}
-	.logout-btn:hover { color: #f0f0f0; border-color: #555; }
+	.logout-btn:hover { color: #000000; border-color: #555; }
 	main { padding: 2rem 1.5rem; max-width: 1100px; margin: 0 auto; }
 </style>
