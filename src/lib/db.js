@@ -51,8 +51,19 @@ export async function getConfig() {
 
 export async function ensureIndexes() {
 	const db = await getDb();
-	await db.collection('players').createIndex({ username: 1 }, { unique: true });
-	await db.collection('players').createIndex({ rating: -1 });
+	const players = db.collection('players');
+	const existing = await players.indexes();
+	for (const idx of existing) {
+		const indexName = typeof idx.name === 'string' ? idx.name : '';
+		const isLegacySlackId =
+			indexName === 'slackId_1' || (idx.unique === true && Object.keys(idx.key).join(',') === 'slackId');
+		if (isLegacySlackId) {
+			await players.dropIndex(indexName);
+		}
+	}
+
+	await players.createIndex({ username: 1 }, { unique: true });
+	await players.createIndex({ rating: -1 });
 	await db.collection('matches').createIndex({ whitePlayerId: 1 });
 	await db.collection('matches').createIndex({ blackPlayerId: 1 });
 	await db.collection('matches').createIndex({ status: 1 });

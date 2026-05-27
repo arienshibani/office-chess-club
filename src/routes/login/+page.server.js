@@ -7,7 +7,7 @@ import { hashPassword, normalizeUsername, verifyPassword } from '$lib/password.j
 export function load({ locals, url }) {
 	if (locals.user) {
 		const next = url.searchParams.get('next');
-		redirect(302, next && next.startsWith('/') ? next : '/');
+		redirect(302, next?.startsWith('/') ? next : '/');
 	}
 }
 
@@ -46,7 +46,7 @@ export const actions = {
 
 		setSessionCookie(cookies, user._id.toString());
 		const next = url.searchParams.get('next');
-		redirect(302, next && next.startsWith('/') ? next : '/');
+		redirect(302, next?.startsWith('/') ? next : '/');
 	},
 
 	register: async ({ request, cookies }) => {
@@ -68,7 +68,17 @@ export const actions = {
 		}
 
 		const passwordHash = await hashPassword(password);
-		const { insertedId } = await players.insertOne(newPlayerDoc(username, name, passwordHash));
+		let insertedId;
+		try {
+			const inserted = await players.insertOne(newPlayerDoc(username, name, passwordHash));
+			insertedId = inserted.insertedId;
+		} catch (err) {
+			const maybeCode = /** @type {{ code?: number }} */ (err).code;
+			if (maybeCode === 11000) {
+				return fail(409, { error: 'Username already taken.', action: 'register' });
+			}
+			throw err;
+		}
 		setSessionCookie(cookies, insertedId.toString());
 		redirect(302, '/');
 	}
