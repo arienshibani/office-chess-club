@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 
 	const errorMessages = {
-		state_mismatch: 'Sign-in expired, PKCE cookie missing, or cookies blocked. Try again.',
+		state_mismatch: 'Invalid or expired sign-in state. Try again from /login (avoid back button).',
 		oauth_failed: 'Slack rejected the token exchange.',
 		identity_failed: 'Could not read your Slack profile.',
 		upsert_failed: 'Could not save your player record.',

@@ -12,9 +12,9 @@ export const decodeJwtPayload = (jwt) => {
 
 /** @typedef {{ endpoint: string, variant: string, ok: boolean, error?: string, error_description?: string, warning?: string }} TokenAttempt */
 
-/** @param {string} endpoint @param {URLSearchParams} body */
-const postToken = async (endpoint, body) => {
-	const res = await fetch(`https://slack.com/api/${endpoint}`, {
+/** @param {URLSearchParams} body */
+const postOpenIdToken = async (body) => {
+	const res = await fetch('https://slack.com/api/openid.connect.token', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 		body
@@ -23,8 +23,8 @@ const postToken = async (endpoint, body) => {
 };
 
 /** @param {Record<string, unknown>} data */
-const attemptFrom = (endpoint, variant, data) => ({
-	endpoint,
+const attemptFrom = (variant, data) => ({
+	endpoint: 'openid.connect.token',
 	variant,
 	ok: Boolean(data.ok),
 	error: typeof data.error === 'string' ? data.error : undefined,
@@ -34,8 +34,8 @@ const attemptFrom = (endpoint, variant, data) => ({
 });
 
 /**
+ * Sign in with Slack token exchange (PKCE required).
  * @param {{ code: string, codeVerifier: string }} args
- * @returns {Promise<{ ok: true, data: Record<string, unknown> } | { ok: false, redirectUri: string, attempts: TokenAttempt[] }>}
  */
 export const exchangeSlackUserToken = async ({ code, codeVerifier }) => {
 	const redirectUri = getSlackRedirectUri();
@@ -44,49 +44,25 @@ export const exchangeSlackUserToken = async ({ code, codeVerifier }) => {
 	/** @type {TokenAttempt[]} */
 	const attempts = [];
 
-	const tryExchange = async (endpoint, variant, body) => {
-		const data = await postToken(endpoint, body);
-		const attempt = attemptFrom(endpoint, variant, data);
-		attempts.push(attempt);
-		if (data.ok) return { ok: true, data };
-		return null;
+	const base = {
+		client_id: clientId,
+		code,
+		redirect_uri: redirectUri,
+		grant_type: 'authorization_code',
+		code_verifier: codeVerifier
 	};
 
-	const userAccessBase = new URLSearchParams({
-		client_id: clientId,
-		code,
-		redirect_uri: redirectUri,
-		grant_type: 'authorization_code',
-		code_verifier: codeVerifier
-	});
-
-	let result = await tryExchange('oauth.v2.user.access', 'pkce_no_secret', userAccessBase);
-	if (result) return { ok: true, data: result.data };
-
-	result = await tryExchange(
-		'oauth.v2.user.access',
-		'with_secret',
-		new URLSearchParams({ ...Object.fromEntries(userAccessBase), client_secret: clientSecret })
+	// Documented OpenID token exchange (with secret).
+	let data = await postOpenIdToken(
+		new URLSearchParams({ ...base, client_secret: clientSecret })
 	);
-	if (result) return { ok: true, data: result.data };
+	attempts.push(attemptFrom('with_secret', data));
+	if (data.ok) return { ok: true, data };
 
-	const openidPkce = new URLSearchParams({
-		client_id: clientId,
-		code,
-		redirect_uri: redirectUri,
-		grant_type: 'authorization_code',
-		code_verifier: codeVerifier
-	});
-
-	result = await tryExchange('openid.connect.token', 'pkce_no_secret', openidPkce);
-	if (result) return { ok: true, data: result.data };
-
-	result = await tryExchange(
-		'openid.connect.token',
-		'with_secret',
-		new URLSearchParams({ ...Object.fromEntries(openidPkce), client_secret: clientSecret })
-	);
-	if (result) return { ok: true, data: result.data };
+	// PKCE public-client style (no secret).
+	data = await postOpenIdToken(new URLSearchParams(base));
+	attempts.push(attemptFrom('pkce_no_secret', data));
+	if (data.ok) return { ok: true, data };
 
 	return { ok: false, redirectUri, attempts };
 };

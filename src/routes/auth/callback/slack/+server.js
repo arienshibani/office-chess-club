@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import { getSlackRedirectUri } from '$lib/slack-config.js';
 import { getPlayers } from '$lib/db.js';
 import { createSessionToken, COOKIE_NAME, MAX_AGE } from '$lib/session.js';
+import { parseOAuthState } from '$lib/slack-oauth-state.js';
 import { exchangeSlackUserToken, identityFromTokenResponse } from '$lib/slack-token.js';
 
 /** @param {Record<string, string | undefined>} fields */
@@ -18,9 +19,9 @@ export async function GET({ url, cookies }) {
 	}
 
 	const code = url.searchParams.get('code');
-	const state = url.searchParams.get('state');
-	const storedState = cookies.get('oauth_state');
-	const codeVerifier = cookies.get('oauth_code_verifier');
+	const stateParam = url.searchParams.get('state');
+	const parsedState = parseOAuthState(stateParam);
+	const storedNonce = cookies.get('oauth_nonce');
 
 	let redirectUri = '';
 	try {
@@ -31,20 +32,24 @@ export async function GET({ url, cookies }) {
 		redirect(302, `/login?error=${encodeURIComponent(msg)}`);
 	}
 
-	cookies.delete('oauth_state', { path: '/' });
 	cookies.delete('oauth_nonce', { path: '/' });
-	cookies.delete('oauth_code_verifier', { path: '/' });
 
-	if (!code || !state || state !== storedState || !codeVerifier) {
+	if (!code || !parsedState) {
 		logOAuth('state_mismatch', {
 			hasCode: Boolean(code),
-			hasState: Boolean(state),
-			stateMatch: state === storedState,
-			hasCodeVerifier: Boolean(codeVerifier),
+			hasSignedState: Boolean(parsedState),
+			hasStoredNonce: Boolean(storedNonce),
 			redirectUri
 		});
 		redirect(302, '/login?error=state_mismatch');
 	}
+
+	if (storedNonce && storedNonce !== parsedState.nonce) {
+		logOAuth('nonce_mismatch', { redirectUri });
+		redirect(302, '/login?error=state_mismatch');
+	}
+
+	const codeVerifier = parsedState.codeVerifier;
 
 	let exchangeResult;
 	try {
