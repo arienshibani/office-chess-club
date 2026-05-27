@@ -95,7 +95,7 @@ export const exchangeSlackUserToken = async ({ code, codeVerifier, codeChallenge
 	result = await tryExchange(
 		'oauth.v2.user.access',
 		'with_secret',
-		new URLSearchParams({ ...Object.fromEntries(base), client_secret: clientSecret })
+		new URLSearchParams({ ...base, client_secret: clientSecret })
 	);
 	if (result) return { ok: true, data: result.data };
 
