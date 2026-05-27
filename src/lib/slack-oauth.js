@@ -1,6 +1,7 @@
 import { createPkcePair } from '$lib/pkce.js';
 import { getSlackClientId, getSlackRedirectUri } from '$lib/slack-config.js';
 import { createOAuthState } from '$lib/slack-oauth-state.js';
+import { debugLog } from '$lib/debug-log.js';
 
 export const oauthCookieOpts = {
 	path: '/',
@@ -13,22 +14,41 @@ export const oauthCookieOpts = {
 /** @param {import('@sveltejs/kit').Cookies} cookies */
 export const beginSlackOAuth = (cookies) => {
 	const { codeVerifier, codeChallenge } = createPkcePair();
-	const { state, nonce } = createOAuthState(codeVerifier);
+	const { state, nonce } = createOAuthState(codeVerifier, codeChallenge);
+	const redirectUri = getSlackRedirectUri();
 
-	// Backup nonce check (PKCE verifier lives in signed `state`, not a separate cookie).
 	cookies.set('oauth_nonce', nonce, oauthCookieOpts);
 
+	// H1: openid/connect/authorize redirects to oauth/v2 and DROPS code_challenge (curl-proven).
+	// Use oauth/v2/authorize directly so PKCE params reach Slack.
 	const params = new URLSearchParams({
-		response_type: 'code',
 		client_id: getSlackClientId(),
-		scope: 'openid profile',
-		redirect_uri: getSlackRedirectUri(),
+		user_scope: 'openid,profile',
+		redirect_uri: redirectUri,
+		response_type: 'code',
+		openid_connect: '1',
 		state,
 		nonce,
 		code_challenge: codeChallenge,
 		code_challenge_method: 'S256'
 	});
 
-	// Canonical Sign in with Slack + PKCE (required for this app).
-	return `https://slack.com/openid/connect/authorize?${params}`;
+	const authorizeUrl = `https://slack.com/oauth/v2/authorize?${params}`;
+
+	// #region agent log
+	debugLog({
+		hypothesisId: 'H1',
+		location: 'slack-oauth.js:beginSlackOAuth',
+		message: 'authorize_built',
+		data: {
+			endpoint: 'oauth/v2/authorize',
+			redirectUri,
+			hasCodeChallenge: authorizeUrl.includes('code_challenge='),
+			verifierLen: codeVerifier.length,
+			challengeLen: codeChallenge.length
+		}
+	});
+	// #endregion
+
+	return authorizeUrl;
 };

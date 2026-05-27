@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import { env } from '$env/dynamic/private';
 
 const getSecret = () => {
@@ -7,10 +7,10 @@ const getSecret = () => {
 	return secret;
 };
 
-/** @param {string} codeVerifier */
-export const createOAuthState = (codeVerifier) => {
+/** @param {string} codeVerifier @param {string} codeChallenge */
+export const createOAuthState = (codeVerifier, codeChallenge) => {
 	const nonce = randomBytes(16).toString('hex');
-	const payload = `${nonce}:${codeVerifier}`;
+	const payload = `${nonce}:${codeVerifier}:${codeChallenge}`;
 	const sig = createHmac('sha256', getSecret()).update(payload).digest('hex');
 	return {
 		state: Buffer.from(`${payload}.${sig}`).toString('base64url'),
@@ -18,7 +18,7 @@ export const createOAuthState = (codeVerifier) => {
 	};
 };
 
-/** @param {string | null} stateParam @returns {{ nonce: string, codeVerifier: string } | null} */
+/** @param {string | null} stateParam */
 export const parseOAuthState = (stateParam) => {
 	if (!stateParam) return null;
 	try {
@@ -33,12 +33,13 @@ export const parseOAuthState = (stateParam) => {
 		if (sigBuf.length !== expectedBuf.length || !timingSafeEqual(sigBuf, expectedBuf)) {
 			return null;
 		}
-		const colon = payload.indexOf(':');
-		if (colon === -1) return null;
-		const nonce = payload.slice(0, colon);
-		const codeVerifier = payload.slice(colon + 1);
-		if (!nonce || !codeVerifier) return null;
-		return { nonce, codeVerifier };
+		const parts = payload.split(':');
+		if (parts.length !== 3) return null;
+		const [nonce, codeVerifier, codeChallenge] = parts;
+		if (!nonce || !codeVerifier || !codeChallenge) return null;
+		const derived = createHash('sha256').update(codeVerifier).digest('base64url');
+		const pkceValid = derived === codeChallenge;
+		return { nonce, codeVerifier, codeChallenge, pkceValid };
 	} catch {
 		return null;
 	}
