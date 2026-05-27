@@ -12,6 +12,7 @@ declare global {
 				rating: number;
 				isAdmin: boolean;
 				stats: { wins: number; losses: number; draws: number };
+				theme: 'light' | 'dark';
 			} | null;
 		}
 		interface PageData {
