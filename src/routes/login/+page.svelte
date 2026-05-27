@@ -55,12 +55,6 @@
 </div>
 
 <style>
-	:global(body) {
-		margin: 0;
-		font-family: system-ui, sans-serif;
-		background: #0f0f0f;
-		color: #f0f0f0;
-	}
 	.login-wrap {
 		min-height: 100vh;
 		display: flex;
@@ -69,8 +63,8 @@
 		padding: 1.5rem;
 	}
 	.login-card {
-		background: #1a1a1a;
-		border: 1px solid #2a2a2a;
+		background: var(--color-surface-raised);
+		border: 1px solid var(--color-border-strong);
 		border-radius: 16px;
 		padding: 2.5rem 2rem;
 		max-width: 400px;
@@ -87,7 +81,7 @@
 		text-align: center;
 	}
 	.login-card > p {
-		color: #888;
+		color: var(--color-text-subtle);
 		font-size: 0.9rem;
 		text-align: center;
 		margin: 0 0 1.5rem;
@@ -102,7 +96,7 @@
 		font-size: 0.85rem;
 		text-transform: uppercase;
 		letter-spacing: 0.05em;
-		color: #666;
+		color: var(--color-text-faint);
 		margin: 0 0 0.75rem;
 	}
 	form {
@@ -115,44 +109,44 @@
 		flex-direction: column;
 		gap: 0.35rem;
 		font-size: 0.85rem;
-		color: #aaa;
+		color: var(--color-text-muted);
 	}
 	input {
 		padding: 10px 12px;
 		border-radius: 8px;
-		border: 1px solid #333;
-		background: #111;
-		color: #f0f0f0;
+		border: 1px solid var(--color-login-input-border);
+		background: var(--color-login-input-bg);
+		color: var(--color-text);
 		font-size: 0.95rem;
 	}
 	input:focus {
 		outline: none;
-		border-color: #555;
+		border-color: var(--color-text-dim);
 	}
 	button {
 		margin-top: 0.25rem;
 		padding: 12px;
 		border: none;
 		border-radius: 8px;
-		background: #fff;
-		color: #1d1c1d;
+		background: var(--color-btn-primary-bg);
+		color: var(--color-btn-primary-text);
 		font-weight: 600;
 		cursor: pointer;
 	}
 	button.secondary {
-		background: #2a2a2a;
-		color: #f0f0f0;
-		border: 1px solid #444;
+		background: var(--color-btn-secondary-bg);
+		color: var(--color-btn-secondary-text);
+		border: 1px solid var(--color-border-focus);
 	}
 	button:hover {
 		opacity: 0.9;
 	}
 	.error {
-		background: #2a1515;
-		border: 1px solid #4a2020;
+		background: var(--color-error-bg-soft);
+		border: 1px solid var(--color-error-border-soft);
 		border-radius: 8px;
 		padding: 0.75rem 1rem;
-		color: #f87171;
+		color: var(--color-error-soft);
 		font-size: 0.9rem;
 		margin: 0 0 1rem;
 	}

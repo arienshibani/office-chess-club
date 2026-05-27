@@ -139,11 +139,11 @@
 <style>
 	.admin-page { display: flex; flex-direction: column; gap: 1.5rem; max-width: 700px; }
 	h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
-	h2 { margin: 0; font-size: 1rem; font-weight: 600; color: #e0e0e0; }
+	h2 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--color-heading); }
 
 	.card {
-		background: #141414;
-		border: 1px solid #222;
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
 		border-radius: 12px;
 		padding: 1.25rem;
 		display: flex;
@@ -157,17 +157,17 @@
 		font-weight: 600;
 		padding: 3px 10px;
 		border-radius: 20px;
-		border: 1px solid #333;
-		color: #666;
+		border: 1px solid var(--color-border-nav);
+		color: var(--color-text-faint);
 	}
-	.toggle-status.on { color: #60c060; border-color: #1a4a1a; background: #0a1a0a; }
+	.toggle-status.on { color: var(--color-success); border-color: var(--color-badge-win-border); background: var(--color-admin-toggle-on-bg); }
 
-	.description { font-size: 0.85rem; color: #666; margin: 0; line-height: 1.5; }
+	.description { font-size: 0.85rem; color: var(--color-text-faint); margin: 0; line-height: 1.5; }
 
 	.toggle-btn {
-		background: #1e1e1e;
-		border: 1px solid #333;
-		color: #ccc;
+		background: var(--color-surface-muted);
+		border: 1px solid var(--color-border-nav);
+		color: var(--color-text-soft);
 		border-radius: 6px;
 		padding: 8px 16px;
 		font-size: 0.88rem;
@@ -175,9 +175,9 @@
 		transition: all 0.15s;
 		align-self: flex-start;
 	}
-	.toggle-btn:hover:not(:disabled) { border-color: #555; color: #fff; }
-	.toggle-btn.danger { border-color: #4a2020; color: #e06060; }
-	.toggle-btn.danger:hover:not(:disabled) { background: #200a0a; }
+	.toggle-btn:hover:not(:disabled) { border-color: var(--color-text-dim); color: var(--color-link-hover); }
+	.toggle-btn.danger { border-color: var(--color-admin-reject-border); color: var(--color-error); }
+	.toggle-btn.danger:hover:not(:disabled) { background: var(--color-admin-danger-hover-bg); }
 	.toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
 	.count-badge {
@@ -186,21 +186,21 @@
 		justify-content: center;
 		width: 20px;
 		height: 20px;
-		background: #e0a020;
-		color: #000;
+		background: var(--color-warning);
+		color: var(--color-nav-text);
 		border-radius: 50%;
 		font-size: 0.72rem;
 		font-weight: 700;
 		margin-left: 6px;
 	}
 
-	.empty { color: #555; font-size: 0.9rem; margin: 0; }
-	.error { color: #f06060; background: #1a0000; border: 1px solid #330000; border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
+	.empty { color: var(--color-text-dim); font-size: 0.9rem; margin: 0; }
+	.error { color: var(--color-error); background: var(--color-error-bg); border: 1px solid var(--color-error-border); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
 
 	.match-queue { display: flex; flex-direction: column; gap: 10px; }
 	.queue-item {
-		background: #0f0f0f;
-		border: 1px solid #2a2a2a;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border-strong);
 		border-radius: 8px;
 		padding: 12px;
 		display: flex;
@@ -211,18 +211,18 @@
 	}
 	.match-summary { display: flex; flex-direction: column; gap: 4px; flex: 1; }
 	.matchup { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
-	.player-name { font-weight: 600; color: #e0e0e0; }
-	.vs { color: #444; font-size: 0.8rem; }
-	.match-meta { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: #666; }
-	.result-label { color: #aaa; }
-	.view-link { color: #555; text-decoration: none; }
-	.view-link:hover { color: #aaa; }
+	.player-name { font-weight: 600; color: var(--color-heading); }
+	.vs { color: var(--color-text-extra-dim); font-size: 0.8rem; }
+	.match-meta { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--color-text-faint); }
+	.result-label { color: var(--color-text-muted); }
+	.view-link { color: var(--color-text-dim); text-decoration: none; }
+	.view-link:hover { color: var(--color-text-muted); }
 
 	.elo-preview { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; flex-wrap: wrap; }
-	.elo-label { color: #444; }
+	.elo-label { color: var(--color-text-extra-dim); }
 	.elo-val { font-weight: 600; }
-	.elo-val.pos { color: #60c060; }
-	.elo-val.neg { color: #e06060; }
+	.elo-val.pos { color: var(--color-success); }
+	.elo-val.neg { color: var(--color-error); }
 
 	.actions { display: flex; gap: 8px; }
 	.approve-btn, .reject-btn {
@@ -234,9 +234,9 @@
 		cursor: pointer;
 		transition: opacity 0.15s;
 	}
-	.approve-btn { background: #1a4a1a; color: #60c060; border: 1px solid #2a6a2a; }
-	.approve-btn:hover:not(:disabled) { background: #1f5a1f; }
-	.reject-btn { background: #2a1010; color: #e06060; border: 1px solid #4a2020; }
-	.reject-btn:hover:not(:disabled) { background: #351515; }
+	.approve-btn { background: var(--color-admin-approve-bg); color: var(--color-success); border: 1px solid var(--color-admin-approve-border); }
+	.approve-btn:hover:not(:disabled) { background: var(--color-admin-approve-hover-bg); }
+	.reject-btn { background: var(--color-admin-reject-bg); color: var(--color-error); border: 1px solid var(--color-admin-reject-border); }
+	.reject-btn:hover:not(:disabled) { background: var(--color-admin-reject-hover-bg); }
 	.approve-btn:disabled, .reject-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>

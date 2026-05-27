@@ -1,5 +1,6 @@
 import { getPlayers, ObjectId, ensureIndexes } from '$lib/db.js';
 import { verifySessionToken, COOKIE_NAME } from '$lib/session.js';
+import { normalizeTheme } from '$lib/theme.js';
 
 let indexesEnsured = false;
 
@@ -24,10 +25,12 @@ export async function handle({ event, resolve }) {
 						_id: user._id.toString(),
 						username: typeof user.username === 'string' ? user.username : '',
 						name: user.name,
+						icon: typeof user.icon === 'string' ? user.icon : '',
 						avatarUrl: user.avatarUrl ?? '',
 						rating: user.rating,
 						isAdmin: user.isAdmin,
-						stats: user.stats
+						stats: user.stats,
+						theme: normalizeTheme(user.theme)
 					};
 				}
 			} catch {

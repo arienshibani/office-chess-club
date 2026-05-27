@@ -16,6 +16,7 @@ const newPlayerDoc = (username, name, passwordHash) => ({
 	username,
 	passwordHash,
 	name,
+	icon: '',
 	avatarUrl: '',
 	rating: 1200,
 	isAdmin: false,

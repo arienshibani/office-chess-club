@@ -1,8 +1,18 @@
 import { getPlayers, getMatches, ObjectId } from '$lib/db.js';
-import { error } from '@sveltejs/kit';
+import { normalizePlayerIcon } from '$lib/player-icon.js';
+import { hashPassword, verifyPassword } from '$lib/password.js';
+import { normalizeTheme } from '$lib/theme.js';
+import { error, fail } from '@sveltejs/kit';
+
+/** @param {import('@sveltejs/kit').RequestEvent} event */
+const assertOwnProfile = ({ locals, params }) => {
+	if (!locals.user) return fail(401, { error: 'Not authenticated.' });
+	if (locals.user._id !== params.id) return fail(403, { error: 'Forbidden.' });
+	return null;
+};
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ params }) {
+export async function load({ params, locals }) {
 	let oid;
 	try {
 		oid = new ObjectId(params.id);
@@ -58,6 +68,7 @@ export async function load({ params }) {
 			_id: m._id.toString(),
 			opponentId,
 			opponentName: opponent?.name ?? 'Unknown',
+			opponentIcon: opponent?.icon ?? '',
 			opponentAvatar: opponent?.avatarUrl ?? '',
 			isWhite,
 			isDraw: m.isDraw,
@@ -75,12 +86,81 @@ export async function load({ params }) {
 		player: {
 			_id: player._id.toString(),
 			name: /** @type {string} */ (player.name),
+			icon: typeof player.icon === 'string' ? player.icon : '',
 			avatarUrl: /** @type {string} */ (player.avatarUrl ?? ''),
 			rating: /** @type {number} */ (player.rating),
 			isAdmin: /** @type {boolean} */ (player.isAdmin),
-			stats: /** @type {{ wins: number, losses: number, draws: number }} */ (player.stats)
+			stats: /** @type {{ wins: number, losses: number, draws: number }} */ (player.stats),
+			theme: normalizeTheme(player.theme)
 		},
 		matches: enriched,
-		rank
+		rank,
+		isOwnProfile: locals.user?._id === params.id
 	};
 }
+
+/** @type {import('./$types').Actions} */
+export const actions = {
+	updateProfile: async (event) => {
+		const denied = assertOwnProfile(event);
+		if (denied) return denied;
+
+		const data = await event.request.formData();
+		const name = String(data.get('name') ?? '').trim();
+		const icon = normalizePlayerIcon(String(data.get('icon') ?? ''));
+		const theme = normalizeTheme(String(data.get('theme') ?? ''));
+
+		if (!name) return fail(400, { profileError: 'Display name is required.', action: 'updateProfile' });
+		if (name.length > 80) {
+			return fail(400, { profileError: 'Display name is too long.', action: 'updateProfile' });
+		}
+
+		const playersCol = await getPlayers();
+		await playersCol.updateOne(
+			{ _id: new ObjectId(event.params.id) },
+			{ $set: { name, icon, theme } }
+		);
+
+		return { profileSuccess: true, action: 'updateProfile' };
+	},
+
+	changePassword: async (event) => {
+		const denied = assertOwnProfile(event);
+		if (denied) return denied;
+
+		const data = await event.request.formData();
+		const currentPassword = String(data.get('currentPassword') ?? '');
+		const newPassword = String(data.get('newPassword') ?? '');
+		const confirmPassword = String(data.get('confirmPassword') ?? '');
+
+		if (!currentPassword || !newPassword) {
+			return fail(400, {
+				passwordError: 'Current and new password are required.',
+				action: 'changePassword'
+			});
+		}
+		if (newPassword.length < 4) {
+			return fail(400, {
+				passwordError: 'New password must be at least 4 characters.',
+				action: 'changePassword'
+			});
+		}
+		if (confirmPassword && newPassword !== confirmPassword) {
+			return fail(400, { passwordError: 'New passwords do not match.', action: 'changePassword' });
+		}
+
+		const playersCol = await getPlayers();
+		const player = await playersCol.findOne({ _id: new ObjectId(event.params.id) });
+		if (!player || typeof player.passwordHash !== 'string') {
+			return fail(400, { passwordError: 'Unable to change password.', action: 'changePassword' });
+		}
+		if (!(await verifyPassword(currentPassword, player.passwordHash))) {
+			return fail(401, { passwordError: 'Current password is incorrect.', action: 'changePassword' });
+		}
+
+		const passwordHash = await hashPassword(newPassword);
+		await playersCol.updateOne({ _id: player._id }, { $set: { passwordHash } });
+
+		return { passwordSuccess: true, action: 'changePassword' };
+	}
+};

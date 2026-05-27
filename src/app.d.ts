@@ -7,6 +7,7 @@ declare global {
 				_id: string;
 				username: string;
 				name: string;
+				icon: string;
 				avatarUrl: string;
 				rating: number;
 				isAdmin: boolean;
