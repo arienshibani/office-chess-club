@@ -1,10 +1,10 @@
-import { getPlayers, getMatches, getConfig, ObjectId } from '$lib/db.js';
-import { computeElo } from '$lib/elo.js';
+import { getPlayers, getConfig } from '$lib/db.js';
 import { fail } from '@sveltejs/kit';
-import { notifyMatchApproved, notifyPendingMatch } from '$lib/slack.js';
+import { createMatch } from '$lib/match-submit.js';
+import { env } from '$env/dynamic/private';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load() {
+export async function load({ url }) {
 	const [playersCol, cfgCol] = await Promise.all([getPlayers(), getConfig()]);
 
 	const [players, config] = await Promise.all([
@@ -14,7 +14,10 @@ export async function load() {
 
 	return {
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
-		allPlayers: players.map((p) => ({ _id: p._id.toString(), name: p.name, rating: p.rating }))
+		allPlayers: players.map((p) => ({ _id: p._id.toString(), name: p.name, rating: p.rating })),
+		apiSubmitEnabled: !!env.SUBMIT_API_KEY?.trim(),
+		apiSubmitUrl: `${url.origin}/api/matches`,
+		apiSubmitKey: env.SUBMIT_API_KEY?.trim() ?? ''
 	};
 }
 
@@ -27,7 +30,7 @@ export const actions = {
 		const whiteId = data.get('whiteId')?.toString();
 		const blackId = data.get('blackId')?.toString();
 		const resultRaw = data.get('result')?.toString();
-		const notation = data.get('notation')?.toString() || null;
+		const notation = data.get('notation')?.toString();
 
 		if (!whiteId || !blackId || !resultRaw) {
 			return fail(400, { error: 'Missing required fields' });
@@ -40,96 +43,22 @@ export const actions = {
 		}
 		const result = /** @type {'white' | 'black' | 'draw'} */ (resultRaw);
 
-		const [playersCol, matchesCol, cfgCol] = await Promise.all([
-			getPlayers(),
-			getMatches(),
-			getConfig()
-		]);
-
-		const [white, black, config] = await Promise.all([
-			playersCol.findOne({ _id: new ObjectId(whiteId) }),
-			playersCol.findOne({ _id: new ObjectId(blackId) }),
-			cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }))
-		]);
-
-		if (!white || !black) return fail(400, { error: 'Player not found' });
-
-		const eloChange = computeElo(white.rating, black.rating, result);
-		const isDraw = result === 'draw';
-		const winnerId = isDraw ? null : result === 'white' ? white._id : black._id;
-
-		const honorSystem = config?.honorSystemEnabled ?? true;
-		const status = honorSystem ? 'approved' : 'pending';
-
-		const match = {
-			whitePlayerId: white._id,
-			blackPlayerId: black._id,
-			winnerId,
-			isDraw,
-			status,
-			eloChange,
-			notation: notation || null,
-			reportedBy: new ObjectId(locals.user._id),
-			playedAt: new Date()
-		};
-
-		const inserted = await matchesCol.insertOne(match);
-		const matchId = inserted.insertedId.toString();
-
-		if (honorSystem) {
-			await Promise.all([
-				playersCol.updateOne(
-					{ _id: white._id },
-					{
-						$set: { rating: eloChange.white.after },
-						$inc: {
-							'stats.wins': result === 'white' ? 1 : 0,
-							'stats.losses': result === 'black' ? 1 : 0,
-							'stats.draws': isDraw ? 1 : 0
-						}
-					}
-				),
-				playersCol.updateOne(
-					{ _id: black._id },
-					{
-						$set: { rating: eloChange.black.after },
-						$inc: {
-							'stats.wins': result === 'black' ? 1 : 0,
-							'stats.losses': result === 'white' ? 1 : 0,
-							'stats.draws': isDraw ? 1 : 0
-						}
-					}
-				)
-			]);
-
-			const winnerEloChange = isDraw
-				? eloChange.white.after - eloChange.white.before
-				: result === 'white'
-					? eloChange.white.after - eloChange.white.before
-					: eloChange.black.after - eloChange.black.before;
-
-			const loserEloChange = isDraw
-				? eloChange.black.after - eloChange.black.before
-				: result === 'white'
-					? eloChange.black.after - eloChange.black.before
-					: eloChange.white.after - eloChange.white.before;
-
-			await notifyMatchApproved({
-				winnerName: isDraw ? white.name : result === 'white' ? white.name : black.name,
-				loserName: isDraw ? black.name : result === 'white' ? black.name : white.name,
-				isDraw,
-				winnerEloChange,
-				loserEloChange,
-				matchId
+		try {
+			const { matchId, status } = await createMatch({
+				whitePlayerId: whiteId,
+				blackPlayerId: blackId,
+				result,
+				notation,
+				reportedBy: locals.user._id,
+				reporterName: locals.user.name
 			});
-		} else {
-			await notifyPendingMatch({
-				reporterName: locals.user.name,
-				opponentName: locals.user._id === whiteId ? black.name : white.name,
-				matchId
-			});
+
+			return { success: true, matchId, status };
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), { error: /** @type {string} */ (err.message) });
+			}
+			throw err;
 		}
-
-		return { success: true, matchId, status };
 	}
 };

@@ -9,6 +9,35 @@
 	let notation = $state('');
 	let submitting = $state(false);
 	let successMsg = $state('');
+	let copyMsg = $state('');
+	let sampleWhiteId = $derived(whiteId || data.allPlayers[0]?._id || 'WHITE_PLAYER_ID');
+	let sampleBlackId = $derived(blackId || data.allPlayers[1]?._id || 'BLACK_PLAYER_ID');
+	let sampleResult = $derived(result || 'white');
+	let sampleNotation = $derived(notation.trim() || '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6');
+	let payloadPreview = $derived(`{
+  "whitePlayerId": "${sampleWhiteId}",
+  "blackPlayerId": "${sampleBlackId}",
+  "result": "${sampleResult}",
+  "notation": "${sampleNotation.replaceAll('"', '\\"')}"
+}`);
+	let sampleCurl = $derived(
+		`curl -X POST ${data.apiSubmitUrl} \\
+  -H "Authorization: Bearer ${data.apiSubmitKey}" \\
+  -H "Content-Type: application/json" \\
+  -d '${payloadPreview}'`
+	);
+
+	const copyCurl = async () => {
+		try {
+			await navigator.clipboard.writeText(sampleCurl);
+			copyMsg = 'Copied curl command';
+			setTimeout(() => {
+				copyMsg = '';
+			}, 1800);
+		} catch {
+			copyMsg = 'Copy failed';
+		}
+	};
 
 	$effect(() => {
 		if (form?.success) {
@@ -90,6 +119,46 @@
 			</button>
 		</form>
 	</section>
+
+	<section class="http-submit">
+		<h2>Submit via HTTP</h2>
+		{#if data.apiSubmitEnabled}
+			<p class="http-help">You can also log a match from scripts or third-party tools.</p>
+			<details>
+				<summary>API details</summary>
+				<div class="http-body">
+					<p><strong>Endpoint:</strong> <code>POST {data.apiSubmitUrl}</code></p>
+					<p><strong>Header:</strong> <code>Authorization: Bearer {data.apiSubmitKey}</code></p>
+					<p><strong>Body (all required):</strong></p>
+					<pre>{`{
+  "whitePlayerId": "PLAYER_ID",
+  "blackPlayerId": "PLAYER_ID",
+  "result": "white|black|draw",
+  "notation": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6"
+}`}</pre>
+					<p class="http-note">
+						You can also send FEN, for example:
+						<code>rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</code>
+					</p>
+					<p class="http-note">
+						Invalid player IDs return <code>404</code>. Invalid notation returns <code>400</code>.
+					</p>
+					<p><strong>Example:</strong></p>
+					<pre>{sampleCurl}</pre>
+					<div class="copy-row">
+						<button type="button" class="copy-btn" onclick={copyCurl}>Copy curl</button>
+						{#if copyMsg}
+							<span class="copy-msg">{copyMsg}</span>
+						{/if}
+					</div>
+				</div>
+			</details>
+		{:else}
+			<p class="http-disabled">
+				Ask your admin to set <code>SUBMIT_API_KEY</code> to enable HTTP submissions.
+			</p>
+		{/if}
+	</section>
 </div>
 
 <style>
@@ -138,4 +207,44 @@
 	.notice { font-size: 0.82rem; color: var(--color-warning); background: var(--color-notice-bg); border: 1px solid var(--color-notice-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
 	.error { font-size: 0.82rem; color: var(--color-error); background: var(--color-error-bg); border: 1px solid var(--color-error-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
 	.success { font-size: 0.82rem; color: var(--color-success); background: var(--color-success-bg); border: 1px solid var(--color-success-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
+	.http-submit {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 12px;
+		padding: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+	}
+	h2 { margin: 0; font-size: 1rem; color: var(--color-heading); }
+	.http-help, .http-disabled, .http-note {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--color-text-subtle);
+	}
+	details { border: 1px solid var(--color-border); border-radius: 8px; padding: 8px 10px; }
+	summary { cursor: pointer; font-size: 0.85rem; color: var(--color-text); }
+	.http-body { margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+	pre {
+		margin: 0;
+		background: var(--color-input-bg);
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		padding: 8px 10px;
+		font-size: 0.78rem;
+		overflow-x: auto;
+	}
+	.copy-row { display: flex; align-items: center; gap: 10px; }
+	.copy-btn {
+		background: var(--color-btn-primary-bg);
+		color: var(--color-btn-primary-text);
+		border: none;
+		border-radius: 6px;
+		padding: 6px 10px;
+		font-size: 0.78rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.copy-btn:hover { opacity: 0.9; }
+	.copy-msg { font-size: 0.78rem; color: var(--color-text-subtle); }
 </style>

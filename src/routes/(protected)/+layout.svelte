@@ -15,7 +15,7 @@ const user = $derived(data.user);
 	<div class="nav-links">
 		<a href="/" class:active={$page.url.pathname === '/'}>Home</a>
 		<a href="/matches" class:active={$page.url.pathname.startsWith('/matches')}>Match History</a>
-		<a href="/submit" class:active={$page.url.pathname === '/submit'}>Submit results</a>
+		<a href="/submit" class:active={$page.url.pathname === '/submit'}>Submit Result</a>
 		{#if user?.isAdmin}
 			<a href="/admin" class:active={$page.url.pathname.startsWith('/admin')}>Admin</a>
 		{/if}
