@@ -95,6 +95,8 @@ There's two ways to submit matches:
 
 1. Manually by any user via the "Submit Match" button on the top of the navigation bar. This is useful for quick matches or when you don't have a programmatic way to submit matches.
 
+<img width="531" height="515" alt="image" src="https://github.com/user-attachments/assets/84232911-3fe1-48dc-845e-bf8738ed9b3e" />
+
 2. Via HTTP POST request to the `/api/matches` endpoint. This is useful for programs, third-party services, smart chessboards or jank web-cam + raspberri pi setups. If you are using the HTTP submission feature, you will need to generate an API key in the admin panel, and use it to submit matches to the `/api/matches` endpoint.
 
 ### Example HTTP POST request
@@ -109,6 +111,9 @@ curl -X POST https://your-app.vercel.app/api/matches \
 ### PGN Notation and Stockfish Analysis
 
 If you submit a PGN notation, the match will be analyzed by Stockfish. The app uses the latest version of Stockfish (17.1) compiled with the `popcnt` instruction set.
+
+<img width="1073" height="927" alt="image" src="https://github.com/user-attachments/assets/6dddc9ec-3f89-4941-b5b3-d500730aeeac" />
+
 
 ## Local development
 
