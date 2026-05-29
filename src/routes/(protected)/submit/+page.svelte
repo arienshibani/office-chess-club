@@ -1,55 +1,49 @@
 <script>
-	import { enhance } from '$app/forms';
+import { enhance } from "$app/forms";
+import { withActionToast } from "$lib/action-toast.js";
 
-	let { data, form } = $props();
+const { data, form } = $props();
 
-	let whiteId = $state('');
-	let blackId = $state('');
-	let result = $state('white');
-	let notation = $state('');
-	let submitting = $state(false);
-	let successMsg = $state('');
-	let copyMsg = $state('');
-	let sampleWhiteId = $derived(whiteId || data.allPlayers[0]?._id || 'WHITE_PLAYER_ID');
-	let sampleBlackId = $derived(blackId || data.allPlayers[1]?._id || 'BLACK_PLAYER_ID');
-	let sampleResult = $derived(result || 'white');
-	let sampleNotation = $derived(notation.trim() || '1. e4 e5 2. Nf3 Nc6 3. Bb5 a6');
-	let payloadPreview = $derived(`{
+let whiteId = $state("");
+let blackId = $state("");
+let result = $state("white");
+let notation = $state("");
+let submitting = $state(false);
+let copyMsg = $state("");
+const sampleWhiteId = $derived(
+	whiteId || data.allPlayers[0]?._id || "WHITE_PLAYER_ID",
+);
+const sampleBlackId = $derived(
+	blackId || data.allPlayers[1]?._id || "BLACK_PLAYER_ID",
+);
+const sampleResult = $derived(result || "white");
+const sampleNotation = $derived(
+	notation.trim() || "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6",
+);
+const payloadPreview = $derived(`{
   "whitePlayerId": "${sampleWhiteId}",
   "blackPlayerId": "${sampleBlackId}",
   "result": "${sampleResult}",
   "notation": "${sampleNotation.replaceAll('"', '\\"')}"
 }`);
-	let sampleCurl = $derived(
-		`curl -X POST ${data.apiSubmitUrl} \\
+const sampleCurl = $derived(
+	`curl -X POST ${data.apiSubmitUrl} \\
   -H "Authorization: Bearer ${data.apiSubmitKey}" \\
   -H "Content-Type: application/json" \\
-  -d '${payloadPreview}'`
-	);
+  -d '${payloadPreview}'`,
+);
 
-	const copyCurl = async () => {
-		try {
-			await navigator.clipboard.writeText(sampleCurl);
-			copyMsg = 'Copied curl command';
-			setTimeout(() => {
-				copyMsg = '';
-			}, 1800);
-		} catch {
-			copyMsg = 'Copy failed';
-		}
-	};
-
-	$effect(() => {
-		if (form?.success) {
-			successMsg = form.status === 'approved'
-				? 'Match logged and ratings updated!'
-				: 'Match submitted — pending admin approval.';
-			whiteId = '';
-			blackId = '';
-			result = 'white';
-			notation = '';
-		}
-	});
+const copyCurl = async () => {
+	try {
+		await navigator.clipboard.writeText(sampleCurl);
+		copyMsg = "Copied curl command";
+		setTimeout(() => {
+			copyMsg = "";
+		}, 1800);
+	} catch {
+		copyMsg = "Copy failed";
+	}
+};
 </script>
 
 <svelte:head><title>Submit results — Office Chess Club</title></svelte:head>
@@ -65,23 +59,25 @@
 		{#if form?.error}
 			<p class="error">{form.error}</p>
 		{/if}
-		{#if successMsg}
-			<p class="success">{successMsg}</p>
-		{/if}
 		<form
 			method="POST"
 			action="?/logMatch"
 			use:enhance={() => {
 				submitting = true;
-				successMsg = '';
-				return async ({ update }) => {
-					await update();
+				return async ({ result: actionResult, update }) => {
+					if (actionResult.type === 'success') {
+						whiteId = '';
+						blackId = '';
+						result = 'white';
+						notation = '';
+					}
+					await withActionToast()({ result: actionResult, update });
 					submitting = false;
 				};
 			}}
 		>
 			<label>
-				White
+				Who played white?  ⚪️
 				<select name="whiteId" bind:value={whiteId} required>
 					<option value="">Select player…</option>
 					{#each data.allPlayers as p}
@@ -90,7 +86,7 @@
 				</select>
 			</label>
 			<label>
-				Black
+				Who played black? ⚫️
 				<select name="blackId" bind:value={blackId} required>
 					<option value="">Select player…</option>
 					{#each data.allPlayers as p}
@@ -99,7 +95,7 @@
 				</select>
 			</label>
 			<fieldset>
-				<legend>Result</legend>
+				<legend>Result 🏆</legend>
 				<label class="radio">
 					<input type="radio" name="result" value="white" bind:group={result} /> White wins
 				</label>
@@ -123,7 +119,7 @@
 	<section class="http-submit">
 		<h2>Submit via HTTP</h2>
 		{#if data.apiSubmitEnabled}
-			<p class="http-help">You can also log a match from scripts or third-party tools.</p>
+			<p class="http-help">You can also log matches programatically from scripts, third-party services, smart chessboards or jank web-cam + raspberri pi setups</p>
 			<details>
 				<summary>API details</summary>
 				<div class="http-body">
@@ -155,14 +151,20 @@
 			</details>
 		{:else}
 			<p class="http-disabled">
-				Ask your admin to set <code>SUBMIT_API_KEY</code> to enable HTTP submissions.
+				Ask your admin to enable HTTP submissions in the admin panel.
 			</p>
 		{/if}
 	</section>
 </div>
 
 <style>
-	.submit-page { max-width: 480px; display: flex; flex-direction: column; gap: 1rem; }
+	.submit-page {
+		max-width: 480px;
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
 	h1 { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--color-heading); }
 	.subtitle { margin: 0; font-size: 0.9rem; color: var(--color-text-faint); }
 
@@ -247,4 +249,29 @@
 	}
 	.copy-btn:hover { opacity: 0.9; }
 	.copy-msg { font-size: 0.78rem; color: var(--color-text-subtle); }
+
+	@media (max-width: 640px) {
+		.log-match,
+		.http-submit {
+			padding: 1rem;
+		}
+
+		pre {
+			font-size: 0.72rem;
+		}
+
+		.http-body code {
+			word-break: break-all;
+		}
+
+		.copy-row {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.copy-btn {
+			width: 100%;
+			padding: 10px;
+		}
+	}
 </style>

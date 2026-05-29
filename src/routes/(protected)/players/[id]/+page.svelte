@@ -1,6 +1,7 @@
 <script>
 	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
+	import { withActionToast } from '$lib/action-toast.js';
 	import ColorWinRateChart from '$lib/ColorWinRateChart.svelte';
 	import EmojiPicker from '$lib/EmojiPicker.svelte';
 	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
@@ -131,17 +132,16 @@
 					{#if form?.action === 'updateProfile' && form?.profileError}
 						<p class="error">{form.profileError}</p>
 					{/if}
-					{#if form?.action === 'updateProfile' && form?.profileSuccess}
-						<p class="success">Profile updated.</p>
-					{/if}
 					<form
 						method="POST"
 						action="?/updateProfile"
 						class="settings-form"
 						use:enhance={() => {
 							savingProfile = true;
-							return async ({ update }) => {
-								await update();
+							return async (ctx) => {
+								await withActionToast({
+									invalidate: ['app:session', `app:player:${player._id}`]
+								})(ctx);
 								savingProfile = false;
 							};
 						}}
@@ -185,6 +185,7 @@
 		{:else if activeTab === 'history'}
 			<div class="tab-panel" role="tabpanel">
 				<section class="match-history">
+					<div class="table-scroll">
 					<table class="match-table">
 						<thead>
 							<tr>
@@ -232,6 +233,7 @@
 							{/each}
 						</tbody>
 					</table>
+					</div>
 				</section>
 			</div>
 		{:else}
@@ -241,17 +243,14 @@
 					{#if form?.action === 'changePassword' && form?.passwordError}
 						<p class="error">{form.passwordError}</p>
 					{/if}
-					{#if form?.action === 'changePassword' && form?.passwordSuccess}
-						<p class="success">Password updated.</p>
-					{/if}
 					<form
 						method="POST"
 						action="?/changePassword"
 						class="settings-form"
 						use:enhance={() => {
 							savingPassword = true;
-							return async ({ update }) => {
-								await update();
+							return async (ctx) => {
+								await withActionToast({ invalidate: ['app:session'] })(ctx);
 								savingPassword = false;
 							};
 						}}
@@ -306,6 +305,7 @@
 
 		<section class="match-history">
 			<h2>Match History</h2>
+			<div class="table-scroll">
 			<table class="match-table">
 				<thead>
 					<tr>
@@ -353,6 +353,7 @@
 					{/each}
 				</tbody>
 			</table>
+			</div>
 		</section>
 	{/if}
 </div>
@@ -572,4 +573,49 @@
 	.loss-badge { background: var(--color-badge-loss-bg); color: var(--color-error); border: 1px solid var(--color-badge-loss-border); }
 	.draw-badge { background: var(--color-badge-draw-bg); color: var(--color-text-muted); border: 1px solid var(--color-badge-draw-border); }
 	.pending-badge { background: var(--color-badge-pending-bg); color: var(--color-warning); border: 1px solid var(--color-badge-pending-border); }
+
+	@media (max-width: 640px) {
+		.header-card {
+			flex-direction: column;
+			align-items: flex-start;
+			padding: 1.25rem;
+			gap: 1rem;
+		}
+
+		h1 { font-size: 1.2rem; }
+
+		.tabs {
+			overflow-x: auto;
+			-webkit-overflow-scrolling: touch;
+			scrollbar-width: none;
+		}
+
+		.tabs::-webkit-scrollbar {
+			display: none;
+		}
+
+		.tabs button {
+			flex-shrink: 0;
+		}
+
+		.stats-grid {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 0.65rem;
+		}
+
+		.stat-card {
+			min-width: 0;
+			padding: 0.85rem;
+		}
+
+		.stat-val {
+			font-size: 1.25rem;
+		}
+
+		button[type="submit"] {
+			width: 100%;
+			align-self: stretch;
+		}
+	}
 </style>

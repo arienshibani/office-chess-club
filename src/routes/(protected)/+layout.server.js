@@ -2,7 +2,10 @@ import { redirect } from '@sveltejs/kit';
 import { getConfig } from '$lib/db.js';
 
 /** @type {import('./$types').LayoutServerLoad} */
-export async function load({ locals, url }) {
+export async function load({ locals, url, depends }) {
+	depends('app:session');
+	depends('app:config');
+
 	if (!locals.user) {
 		redirect(302, `/login?next=${encodeURIComponent(url.pathname)}`);
 	}

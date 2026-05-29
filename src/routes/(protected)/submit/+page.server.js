@@ -1,23 +1,24 @@
 import { getPlayers, getConfig } from '$lib/db.js';
+import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
 import { fail } from '@sveltejs/kit';
 import { createMatch } from '$lib/match-submit.js';
-import { env } from '$env/dynamic/private';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ url }) {
 	const [playersCol, cfgCol] = await Promise.all([getPlayers(), getConfig()]);
 
-	const [players, config] = await Promise.all([
+	const [players, config, httpSubmit] = await Promise.all([
 		playersCol.find({}).sort({ rating: -1 }).toArray(),
-		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }))
+		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' })),
+		getHttpSubmitConfig()
 	]);
 
 	return {
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
 		allPlayers: players.map((p) => ({ _id: p._id.toString(), name: p.name, rating: p.rating })),
-		apiSubmitEnabled: !!env.SUBMIT_API_KEY?.trim(),
+		apiSubmitEnabled: httpSubmit.enabled && !!httpSubmit.apiKey,
 		apiSubmitUrl: `${url.origin}/api/matches`,
-		apiSubmitKey: env.SUBMIT_API_KEY?.trim() ?? ''
+		apiSubmitKey: httpSubmit.apiKey
 	};
 }
 
@@ -53,7 +54,15 @@ export const actions = {
 				reporterName: locals.user.name
 			});
 
-			return { success: true, matchId, status };
+			return {
+				success: true,
+				matchId,
+				status,
+				message:
+					status === 'approved'
+						? 'Match logged and ratings updated!'
+						: 'Match submitted — pending admin approval.'
+			};
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), { error: /** @type {string} */ (err.message) });

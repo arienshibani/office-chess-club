@@ -12,7 +12,9 @@ const assertOwnProfile = ({ locals, params }) => {
 };
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ params, locals }) {
+export async function load({ params, locals, depends }) {
+	depends(`app:player:${params.id}`);
+
 	let oid;
 	try {
 		oid = new ObjectId(params.id);
@@ -121,7 +123,7 @@ export const actions = {
 			{ $set: { name, icon, theme } }
 		);
 
-		return { profileSuccess: true, action: 'updateProfile' };
+		return { profileSuccess: true, action: 'updateProfile', message: 'Profile updated.' };
 	},
 
 	changePassword: async (event) => {
@@ -161,6 +163,6 @@ export const actions = {
 		const passwordHash = await hashPassword(newPassword);
 		await playersCol.updateOne({ _id: player._id }, { $set: { passwordHash } });
 
-		return { passwordSuccess: true, action: 'changePassword' };
+		return { passwordSuccess: true, action: 'changePassword', message: 'Password updated.' };
 	}
 };
