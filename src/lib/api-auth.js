@@ -1,5 +1,5 @@
-import { env } from '$env/dynamic/private';
 import { timingSafeEqual } from 'node:crypto';
+import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
 
 /**
  * @param {string} expected
@@ -13,15 +13,19 @@ const safeEqual = (expected, actual) => {
 };
 
 /** @param {Request} request */
-export const assertApiKey = (request) => {
-	const configuredKey = env.SUBMIT_API_KEY?.trim();
-	if (!configuredKey) {
+export const assertApiKey = async (request) => {
+	const { enabled, apiKey } = await getHttpSubmitConfig();
+
+	if (!enabled) {
+		return { ok: false, status: 503, message: 'HTTP submission API is disabled' };
+	}
+	if (!apiKey) {
 		return { ok: false, status: 503, message: 'HTTP submission API is not configured' };
 	}
 
 	const authorization = request.headers.get('authorization') ?? '';
 	const token = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
-	if (!token || !safeEqual(configuredKey, token)) {
+	if (!token || !safeEqual(apiKey, token)) {
 		return { ok: false, status: 401, message: 'Invalid API key' };
 	}
 

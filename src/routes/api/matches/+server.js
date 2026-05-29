@@ -49,7 +49,7 @@ const parsePayload = (payload) => {
 
 /** @type {import('./$types').RequestHandler} */
 export const POST = async ({ request }) => {
-	const auth = assertApiKey(request);
+	const auth = await assertApiKey(request);
 	if (!auth.ok) return json({ error: auth.message }, { status: auth.status });
 
 	let body;

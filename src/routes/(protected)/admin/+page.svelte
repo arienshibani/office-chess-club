@@ -1,10 +1,32 @@
 <script>
 	import { enhance } from '$app/forms';
+	import { ADMIN_INVALIDATE, withActionToast } from '$lib/action-toast.js';
 
 	let { data, form } = $props();
 	let toggling = $state(false);
-let savingName = $state(false);
+	let savingName = $state(false);
+	let togglingHttp = $state(false);
+	let generatingKey = $state(false);
+	let savingSlack = $state(false);
+	let clearingSlack = $state(false);
+	let testingSlack = $state(false);
 	let processing = $state(/** @type {string | null} */ (null));
+	let clubNameDraft = $state('');
+	let slackWebhookDraft = $state('');
+
+	$effect(() => {
+		clubNameDraft = data.clubName;
+	});
+
+	const copyApiKey = async (key) => {
+		try {
+			await navigator.clipboard.writeText(key);
+		} catch {
+			// clipboard may be unavailable
+		}
+	};
+
+	const adminToast = (extra = {}) => withActionToast({ invalidate: ADMIN_INVALIDATE, ...extra });
 </script>
 
 <svelte:head><title>Admin — Office Chess Club</title></svelte:head>
@@ -33,8 +55,8 @@ let savingName = $state(false);
 			action="?/toggleHonorSystem"
 			use:enhance={() => {
 				toggling = true;
-				return async ({ update }) => {
-					await update();
+				return async (ctx) => {
+					await adminToast()(ctx);
 					toggling = false;
 				};
 			}}
@@ -56,21 +78,168 @@ let savingName = $state(false);
 			class="name-form"
 			use:enhance={() => {
 				savingName = true;
-				return async ({ update }) => {
-					await update();
+				return async (ctx) => {
+					await adminToast()(ctx);
 					savingName = false;
 				};
 			}}
 		>
 			<label>
 				Club name
-				<input name="clubName" type="text" maxlength="40" value={data.clubName} placeholder="Office" />
+				<input name="clubName" type="text" maxlength="40" bind:value={clubNameDraft} placeholder="Office" />
 			</label>
 			<button type="submit" class="toggle-btn" disabled={savingName}>
 				{savingName ? 'Saving…' : 'Save club name'}
 			</button>
 		</form>
 		<p class="preview">Preview: <strong>{data.clubName} Chess Club</strong></p>
+	</section>
+
+	<section class="card">
+		<div class="section-header">
+			<h2>Slack Notifications</h2>
+			<div class="toggle-status" class:on={data.slackWebhookConfigured}>
+				{data.slackWebhookConfigured ? 'Configured' : 'Not configured'}
+			</div>
+		</div>
+		<p class="description">
+			Post match results and pending-match alerts to a Slack channel via an
+			<a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer">incoming webhook</a>.
+			You can also set <code>SLACK_WEBHOOK_URL</code> in the environment as a fallback.
+		</p>
+		{#if data.slackWebhookFromEnv && !data.slackWebhookStoredInDb}
+			<p class="hint">Currently using the webhook from your environment variables.</p>
+		{/if}
+		<form
+			method="POST"
+			action="?/updateSlackWebhook"
+			class="name-form"
+			use:enhance={() => {
+				savingSlack = true;
+				return async (ctx) => {
+					await adminToast()(ctx);
+					slackWebhookDraft = '';
+					savingSlack = false;
+				};
+			}}
+		>
+			<label>
+				Slack webhook URL
+				<input
+					name="slackWebhookUrl"
+					type="url"
+					bind:value={slackWebhookDraft}
+					placeholder="https://hooks.slack.com/services/…"
+					autocomplete="off"
+					spellcheck="false"
+				/>
+			</label>
+			<button type="submit" class="toggle-btn" disabled={savingSlack || !slackWebhookDraft.trim()}>
+				{savingSlack ? 'Saving…' : data.slackWebhookStoredInDb ? 'Update webhook' : 'Save webhook'}
+			</button>
+		</form>
+		<div class="http-admin-actions">
+			<form
+				method="POST"
+				action="?/testSlackWebhook"
+				use:enhance={() => {
+					testingSlack = true;
+					return async (ctx) => {
+						await adminToast()(ctx);
+						testingSlack = false;
+					};
+				}}
+			>
+				<button type="submit" class="toggle-btn" disabled={testingSlack || !data.slackWebhookConfigured}>
+					{testingSlack ? 'Sending…' : 'Send test notification'}
+				</button>
+			</form>
+			{#if data.slackWebhookStoredInDb}
+				<form
+					method="POST"
+					action="?/clearSlackWebhook"
+					use:enhance={() => {
+						clearingSlack = true;
+						return async (ctx) => {
+							await adminToast()(ctx);
+							slackWebhookDraft = '';
+							clearingSlack = false;
+						};
+					}}
+				>
+					<button type="submit" class="toggle-btn danger" disabled={clearingSlack}>
+						{clearingSlack ? 'Removing…' : 'Remove saved webhook'}
+					</button>
+				</form>
+			{/if}
+		</div>
+	</section>
+
+	<section class="card">
+		<div class="section-header">
+			<h2>HTTP Match Submission</h2>
+			<div class="toggle-status" class:on={data.httpSubmitEnabled}>
+				{data.httpSubmitEnabled ? 'Enabled' : 'Disabled'}
+			</div>
+		</div>
+		<p class="description">
+			When <strong>enabled</strong>, scripts and third-party tools can log matches via
+			<code>POST /api/matches</code> using a bearer token. Off by default — generate a key,
+			then enable when you are ready.
+		</p>
+		{#if form?.apiKey}
+			<div class="api-key-reveal">
+				<p class="api-key-label">New API key (copy now — shown once):</p>
+				<code class="api-key-value">{form.apiKey}</code>
+				<button type="button" class="toggle-btn" onclick={() => copyApiKey(form.apiKey)}>
+					Copy key
+				</button>
+			</div>
+		{/if}
+		<div class="http-admin-actions">
+			<form
+				method="POST"
+				action="?/generateHttpSubmitKey"
+				use:enhance={() => {
+					generatingKey = true;
+					return async (ctx) => {
+						await adminToast()(ctx);
+						generatingKey = false;
+					};
+				}}
+			>
+				<button type="submit" class="toggle-btn" disabled={generatingKey}>
+					{generatingKey ? 'Generating…' : data.httpSubmitHasKey ? 'Regenerate API key' : 'Generate API key'}
+				</button>
+			</form>
+			<form
+				method="POST"
+				action="?/toggleHttpSubmit"
+				use:enhance={() => {
+					togglingHttp = true;
+					return async (ctx) => {
+						await adminToast()(ctx);
+						togglingHttp = false;
+					};
+				}}
+			>
+				<button
+					type="submit"
+					disabled={togglingHttp || (!data.httpSubmitEnabled && !data.httpSubmitHasKey)}
+					class="toggle-btn"
+					class:danger={data.httpSubmitEnabled}
+				>
+					{togglingHttp
+						? 'Updating…'
+						: data.httpSubmitEnabled
+							? 'Disable HTTP submissions'
+							: 'Enable HTTP submissions'}
+				</button>
+			</form>
+		</div>
+		{#if !data.httpSubmitHasKey}
+			<p class="hint">Generate an API key before enabling.</p>
+		{/if}
 	</section>
 
 	<!-- Pending Matches Queue -->
@@ -122,8 +291,8 @@ let savingName = $state(false);
 								action="?/approveMatch"
 								use:enhance={() => {
 									processing = match._id;
-									return async ({ update }) => {
-										await update();
+									return async (ctx) => {
+										await adminToast()(ctx);
 										processing = null;
 									};
 								}}
@@ -142,8 +311,8 @@ let savingName = $state(false);
 								action="?/rejectMatch"
 								use:enhance={() => {
 									processing = match._id;
-									return async ({ update }) => {
-										await update();
+									return async (ctx) => {
+										await adminToast()(ctx);
 										processing = null;
 									};
 								}}
@@ -203,6 +372,40 @@ let savingName = $state(false);
 		font-size: 0.9rem;
 	}
 	.preview { margin: 0; font-size: 0.82rem; color: var(--color-text-faint); }
+
+	.http-admin-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.api-key-reveal {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 10px 12px;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border-strong);
+		border-radius: 8px;
+	}
+
+	.api-key-label {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--color-text-faint);
+	}
+
+	.api-key-value {
+		font-size: 0.78rem;
+		word-break: break-all;
+		color: var(--color-text-muted);
+	}
+
+	.hint {
+		margin: 0;
+		font-size: 0.8rem;
+		color: var(--color-text-extra-dim);
+	}
 
 	.toggle-btn {
 		background: var(--color-surface-muted);
@@ -279,4 +482,50 @@ let savingName = $state(false);
 	.reject-btn { background: var(--color-admin-reject-bg); color: var(--color-error); border: 1px solid var(--color-admin-reject-border); }
 	.reject-btn:hover:not(:disabled) { background: var(--color-admin-reject-hover-bg); }
 	.approve-btn:disabled, .reject-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+	@media (max-width: 640px) {
+		.admin-page {
+			max-width: none;
+		}
+
+		.section-header {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.5rem;
+		}
+
+		.queue-item {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.matchup {
+			flex-wrap: wrap;
+		}
+
+		.match-meta {
+			flex-wrap: wrap;
+			gap: 8px;
+		}
+
+		.actions {
+			width: 100%;
+			flex-direction: column;
+		}
+
+		.actions form {
+			width: 100%;
+		}
+
+		.approve-btn,
+		.reject-btn {
+			width: 100%;
+			padding: 10px;
+		}
+
+		.toggle-btn {
+			width: 100%;
+			text-align: center;
+		}
+	}
 </style>

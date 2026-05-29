@@ -1,11 +1,16 @@
 import { getMatches, getPlayers, getConfig, ObjectId } from '$lib/db.js';
 import { computeElo } from '$lib/elo.js';
 import { deleteMatchById } from '$lib/match-delete.js';
-import { notifyMatchApproved } from '$lib/slack.js';
+import { generateHttpSubmitApiKey } from '$lib/http-submit-config.js';
+import { isValidSlackWebhookUrl, getSlackWebhookStatus } from '$lib/slack-config.js';
+import { notifyMatchApproved, sendSlackTestNotification } from '$lib/slack.js';
 import { error, fail } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ locals }) {
+export async function load({ locals, depends }) {
+	depends('app:admin');
+	depends('app:config');
+
 	if (!locals.user?.isAdmin) error(403, 'Admin access required');
 
 	const [matchesCol, playersCol, cfgCol] = await Promise.all([
@@ -51,10 +56,17 @@ export async function load({ locals }) {
 		blackRating: playerMap[m.blackPlayerId.toString()]?.rating ?? 0
 	}));
 
+	const slackWebhook = await getSlackWebhookStatus();
+
 	return {
 		pendingMatches: enriched,
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
-		clubName: typeof config?.clubName === 'string' && config.clubName.trim() ? config.clubName.trim() : 'Office'
+		clubName: typeof config?.clubName === 'string' && config.clubName.trim() ? config.clubName.trim() : 'Office',
+		httpSubmitEnabled: config?.httpSubmitEnabled === true,
+		httpSubmitHasKey: typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim(),
+		slackWebhookConfigured: slackWebhook.configured,
+		slackWebhookStoredInDb: slackWebhook.storedInDb,
+		slackWebhookFromEnv: slackWebhook.fromEnv
 	};
 }
 
@@ -72,7 +84,10 @@ export const actions = {
 			{ $set: { honorSystemEnabled: !current } }
 		);
 
-		return { success: true };
+		return {
+			success: true,
+			message: !current ? 'Honor system enabled.' : 'Honor system disabled.'
+		};
 	},
 
 	updateClubName: async ({ request, locals }) => {
@@ -93,7 +108,103 @@ export const actions = {
 			{ upsert: true }
 		);
 
-		return { success: true };
+		return { success: true, message: 'Club name saved.' };
+	},
+
+	updateSlackWebhook: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const webhookUrl = String(form.get('slackWebhookUrl') ?? '').trim();
+
+		if (!webhookUrl) {
+			return fail(400, { error: 'Slack webhook URL is required.' });
+		}
+		if (!isValidSlackWebhookUrl(webhookUrl)) {
+			return fail(400, {
+				error: 'Enter a valid Slack incoming webhook URL (https://hooks.slack.com/services/…).'
+			});
+		}
+
+		const cfgCol = await getConfig();
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { slackWebhookUrl: webhookUrl } },
+			{ upsert: true }
+		);
+
+		return { success: true, message: 'Slack webhook saved.' };
+	},
+
+	clearSlackWebhook: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const cfgCol = await getConfig();
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $unset: { slackWebhookUrl: '' } }
+		);
+
+		return { success: true, message: 'Slack webhook removed from admin settings.' };
+	},
+
+	testSlackWebhook: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const ok = await sendSlackTestNotification();
+		if (!ok) {
+			return fail(400, {
+				error: 'Could not send test notification. Check that a webhook URL is configured.'
+			});
+		}
+
+		return { success: true, message: 'Test notification sent to Slack.' };
+	},
+
+	toggleHttpSubmit: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const cfgCol = await getConfig();
+		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
+		const current = config?.httpSubmitEnabled === true;
+		const hasKey =
+			typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim();
+
+		if (!current && !hasKey) {
+			return fail(400, {
+				error: 'Generate an API key before enabling HTTP submissions.'
+			});
+		}
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { httpSubmitEnabled: !current } },
+			{ upsert: true }
+		);
+
+		return {
+			success: true,
+			message: !current ? 'HTTP submissions enabled.' : 'HTTP submissions disabled.'
+		};
+	},
+
+	generateHttpSubmitKey: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const apiKey = generateHttpSubmitApiKey();
+		const cfgCol = await getConfig();
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { httpSubmitApiKey: apiKey } },
+			{ upsert: true }
+		);
+
+		return {
+			success: true,
+			message: 'New API key generated. Copy it now — it will not be shown again.',
+			apiKey
+		};
 	},
 
 	approveMatch: async ({ request, locals }) => {
@@ -176,7 +287,7 @@ export const actions = {
 			matchId
 		});
 
-		return { success: true };
+		return { success: true, message: 'Match approved.' };
 	},
 
 	rejectMatch: async ({ request, locals }) => {
@@ -197,6 +308,6 @@ export const actions = {
 			throw err;
 		}
 
-		return { success: true };
+		return { success: true, message: 'Match rejected.' };
 	}
 };

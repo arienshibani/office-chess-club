@@ -75,7 +75,8 @@ export async function ensureIndexes() {
 			$setOnInsert: /** @type {any} */ ({
 				_id: 'global_settings',
 				honorSystemEnabled: true,
-				clubName: 'Office'
+				clubName: 'Office',
+				httpSubmitEnabled: false
 			})
 		},
 		{ upsert: true }
