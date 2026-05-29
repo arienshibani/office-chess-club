@@ -1,6 +1,8 @@
 <script>
 import { enhance } from "$app/forms";
+import { AlertTriangle, ClipboardPlus, Copy, Minus, Trophy } from "@lucide/svelte";
 import { withActionToast } from "$lib/action-toast.js";
+import PieceColor from "$lib/PieceColor.svelte";
 
 const { data, form } = $props();
 
@@ -54,7 +56,10 @@ const copyCurl = async () => {
 
 	<section class="log-match">
 		{#if !data.honorSystemEnabled}
-			<p class="notice">Honor system is off — matches require admin approval.</p>
+			<p class="notice with-icon">
+				<AlertTriangle size={15} aria-hidden="true" />
+				Honor system is off — matches require admin approval.
+			</p>
 		{/if}
 		{#if form?.error}
 			<p class="error">{form.error}</p>
@@ -76,8 +81,11 @@ const copyCurl = async () => {
 				};
 			}}
 		>
-			<label>
-				Who played white?  ⚪️
+			<label class="with-icon">
+				<span class="label-row">
+					<PieceColor color="white" size={12} />
+					Who played white?
+				</span>
 				<select name="whiteId" bind:value={whiteId} required>
 					<option value="">Select player…</option>
 					{#each data.allPlayers as p}
@@ -85,8 +93,11 @@ const copyCurl = async () => {
 					{/each}
 				</select>
 			</label>
-			<label>
-				Who played black? ⚫️
+			<label class="with-icon">
+				<span class="label-row">
+					<PieceColor color="black" size={12} />
+					Who played black?
+				</span>
 				<select name="blackId" bind:value={blackId} required>
 					<option value="">Select player…</option>
 					{#each data.allPlayers as p}
@@ -95,22 +106,32 @@ const copyCurl = async () => {
 				</select>
 			</label>
 			<fieldset>
-				<legend>Result 🏆</legend>
+				<legend class="with-icon">
+					<Trophy size={14} aria-hidden="true" />
+					Result
+				</legend>
 				<label class="radio">
-					<input type="radio" name="result" value="white" bind:group={result} /> White wins
+					<input type="radio" name="result" value="white" bind:group={result} />
+					<PieceColor color="white" size={10} />
+					White wins
 				</label>
 				<label class="radio">
-					<input type="radio" name="result" value="black" bind:group={result} /> Black wins
+					<input type="radio" name="result" value="black" bind:group={result} />
+					<PieceColor color="black" size={10} />
+					Black wins
 				</label>
 				<label class="radio">
-					<input type="radio" name="result" value="draw" bind:group={result} /> Draw
+					<input type="radio" name="result" value="draw" bind:group={result} />
+					<Minus size={12} aria-hidden="true" />
+					Draw
 				</label>
 			</fieldset>
 			<label>
 				PGN / FEN (optional)
 				<textarea name="notation" bind:value={notation} rows="3" placeholder="Paste PGN moves or FEN position…"></textarea>
 			</label>
-			<button type="submit" disabled={submitting}>
+			<button type="submit" class="with-icon" disabled={submitting}>
+				<ClipboardPlus size={16} aria-hidden="true" />
 				{submitting ? 'Saving…' : 'Log Match'}
 			</button>
 		</form>
@@ -142,7 +163,10 @@ const copyCurl = async () => {
 					<p><strong>Example:</strong></p>
 					<pre>{sampleCurl}</pre>
 					<div class="copy-row">
-						<button type="button" class="copy-btn" onclick={copyCurl}>Copy curl</button>
+						<button type="button" class="copy-btn with-icon" onclick={copyCurl}>
+							<Copy size={14} aria-hidden="true" />
+							Copy curl
+						</button>
 						{#if copyMsg}
 							<span class="copy-msg">{copyMsg}</span>
 						{/if}
@@ -179,6 +203,8 @@ const copyCurl = async () => {
 	}
 	form { display: flex; flex-direction: column; gap: 0.75rem; }
 	label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--color-text-subtle); }
+	.label-row { display: inline-flex; align-items: center; gap: 0.4rem; }
+	legend.with-icon { display: inline-flex; align-items: center; gap: 0.35rem; }
 	select, textarea {
 		background: var(--color-input-bg);
 		border: 1px solid var(--color-border-strong);
@@ -203,10 +229,11 @@ const copyCurl = async () => {
 		font-size: 0.9rem;
 		cursor: pointer;
 		transition: opacity 0.15s;
+		justify-content: center;
 	}
 	button:hover:not(:disabled) { opacity: 0.88; }
 	button:disabled { opacity: 0.4; cursor: not-allowed; }
-	.notice { font-size: 0.82rem; color: var(--color-warning); background: var(--color-notice-bg); border: 1px solid var(--color-notice-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
+	.notice { font-size: 0.82rem; color: var(--color-warning); background: var(--color-notice-bg); border: 1px solid var(--color-notice-border); border-radius: 6px; padding: 8px 10px; margin: 0; align-items: flex-start; }
 	.error { font-size: 0.82rem; color: var(--color-error); background: var(--color-error-bg); border: 1px solid var(--color-error-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
 	.success { font-size: 0.82rem; color: var(--color-success); background: var(--color-success-bg); border: 1px solid var(--color-success-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
 	.http-submit {

@@ -1,4 +1,5 @@
 <script>
+	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
 	import MatchListTable from '$lib/MatchListTable.svelte';
 
 	let { data, form } = $props();
@@ -28,9 +29,15 @@
 	{#if pagination.totalPages > 1}
 		<nav class="pagination" aria-label="Match pages">
 			{#if pagination.hasPrev}
-				<a href={pageHref(pagination.page - 1)} class="page-nav">← Previous</a>
+				<a href={pageHref(pagination.page - 1)} class="page-nav with-icon">
+					<ChevronLeft size={16} aria-hidden="true" />
+					Previous
+				</a>
 			{:else}
-				<span class="page-nav disabled">← Previous</span>
+				<span class="page-nav disabled with-icon">
+					<ChevronLeft size={16} aria-hidden="true" />
+					Previous
+				</span>
 			{/if}
 
 			<div class="page-numbers">
@@ -45,9 +52,15 @@
 			</div>
 
 			{#if pagination.hasNext}
-				<a href={pageHref(pagination.page + 1)} class="page-nav">Next →</a>
+				<a href={pageHref(pagination.page + 1)} class="page-nav with-icon">
+					Next
+					<ChevronRight size={16} aria-hidden="true" />
+				</a>
 			{:else}
-				<span class="page-nav disabled">Next →</span>
+				<span class="page-nav disabled with-icon">
+					Next
+					<ChevronRight size={16} aria-hidden="true" />
+				</span>
 			{/if}
 		</nav>
 	{/if}
@@ -84,6 +97,9 @@
 		border: 1px solid var(--color-border-strong);
 		border-radius: 6px;
 		background: var(--color-surface);
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
 	}
 	.page-nav:hover:not(.disabled) { color: var(--color-link-hover); border-color: var(--color-border-focus); }
 	.page-nav.disabled {

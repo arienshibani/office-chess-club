@@ -1,4 +1,5 @@
 <script>
+	import { ArrowRight } from '@lucide/svelte';
 	import MatchListTable from '$lib/MatchListTable.svelte';
 	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
 
@@ -63,7 +64,10 @@
 		<h2>Recent Matches</h2>
 		<MatchListTable matches={data.recentMatches} isAdmin={!!data.user?.isAdmin} />
 		{#if data.recentMatches.length > 0}
-			<a href="/matches" class="view-all">View all matches →</a>
+			<a href="/matches" class="view-all with-icon">
+				View all matches
+				<ArrowRight size={15} aria-hidden="true" />
+			</a>
 		{/if}
 	</section>
 </div>

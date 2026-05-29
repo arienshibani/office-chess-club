@@ -7,12 +7,12 @@
 
 ## Features 🌟
 
-- **Instant Elo ratings** 📈 Every logged game updates the leaderboard automatically (K=32, starting at 1200).
-- **Match history & stats** 📊 Per-player profiles, win/loss/draw records, and game review (PGN/FEN).
-- **Username/password auth** 🔒 Indiviudal accounts created and managed directly in your MongoDB. passwords are scrypt-hashed.
-- **API submission** 📡 Automate match logging with your own tools and result submission via HTTP POST request.
+- **Instant Elo ratings** 📈 Every logged game updates the leaderboard's internal ELO system automatically (K=32, starting at 1200).
+- **Match history & stats** 📊 Per-player profiles, win/loss/draw records, and game review (Requires submission of PGN/FEN).
+- **Username / Password Auth** 🔒 Indiviudal accounts created and managed directly in your MongoDB. passwords are scrypt-hashed.
+- **API submission** 📡 Automate match logging with your own tools and result submission via secured HTTP POST requests.
 - **Optional match approval** 🧑‍⚖️ Turn off the honor system if you want an admin to approve results first.
-- **Optional Slack alerts** 🔔  Ping your `#chess` channel when matches are logged.
+- **Optional Slack alerts** 🔔  Ping your own `#chess` channel when matches are logged, just setup a slack app have the admin paste in the webhook URL.
 
 ## Quick start 🏁
 
@@ -118,7 +118,7 @@ src/
 │   ├── password.js          # scrypt hash + verify
 │   ├── session.js           # HMAC-signed session tokens
 │   ├── slack.js             # Outbound webhook notifications (optional)
-│   └── ChessBoard.svelte    # Unicode piece board driven by FEN prop
+│   └── ChessBoard.svelte    # Board driven by FEN (Lichess Cburnett SVG pieces)
 └── routes/
     ├── login/               # Sign in + create account
     ├── logout/              # Clears session cookie
@@ -136,3 +136,5 @@ src/
 ## License
 
 Do whatever the hell you want.
+
+**Third-party assets:** Board pieces in `static/pieces/cburnett/` are the [Cburnett](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett) set (Colin M.L. Burnett), used by Lichess under [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.html).

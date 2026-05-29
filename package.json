@@ -23,6 +23,7 @@
 		"vite": "^8.0.7"
 	},
 	"dependencies": {
+		"@lucide/svelte": "^1.17.0",
 		"chess.js": "^1.4.0",
 		"elo-rank": "^1.0.4",
 		"emoji-picker-element": "^1.29.1",

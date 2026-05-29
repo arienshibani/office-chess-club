@@ -1,5 +1,7 @@
 <script>
 import { enhance } from "$app/forms";
+import { ArrowLeft, ArrowRight, LogIn, UserPlus } from "@lucide/svelte";
+import ClubMark from "$lib/ClubMark.svelte";
 
 let { data, form } = $props();
 
@@ -82,7 +84,7 @@ const subheading = $derived(
 <div class="login-wrap">
 	<div class="login-card">
 		<div class="brand">
-			<div class="logo">♟</div>
+			<ClubMark size={36} strokeWidth={2} />
 			<p class="brand-name">{data.clubName} Chess Club</p>
 		</div>
 
@@ -90,19 +92,23 @@ const subheading = $derived(
 			<button
 				type="button"
 				role="tab"
+				class="with-icon"
 				class:active={mode === 'sign-in'}
 				aria-selected={mode === 'sign-in'}
 				onclick={() => switchMode('sign-in')}
 			>
+				<LogIn size={15} aria-hidden="true" />
 				Sign in
 			</button>
 			<button
 				type="button"
 				role="tab"
+				class="with-icon"
 				class:active={mode === 'sign-up'}
 				aria-selected={mode === 'sign-up'}
 				onclick={() => switchMode('sign-up')}
 			>
+				<UserPlus size={15} aria-hidden="true" />
 				Create account
 			</button>
 		</div>
@@ -136,7 +142,10 @@ const subheading = $derived(
 								required
 							/>
 						</label>
-						<button type="submit" class="primary">Continue</button>
+						<button type="submit" class="primary with-icon">
+							Continue
+							<ArrowRight size={16} aria-hidden="true" />
+						</button>
 					</form>
 				{:else}
 					<form
@@ -163,10 +172,14 @@ const subheading = $derived(
 								required
 							/>
 						</label>
-						<button type="submit" class="primary" disabled={submitting}>
+						<button type="submit" class="primary with-icon" disabled={submitting}>
+							<LogIn size={16} aria-hidden="true" />
 							{submitting ? 'Signing in…' : 'Sign in'}
 						</button>
-						<button type="button" class="text-btn" onclick={resetStage}>← Use a different username</button>
+						<button type="button" class="text-btn with-icon" onclick={resetStage}>
+							<ArrowLeft size={14} aria-hidden="true" />
+							Use a different username
+						</button>
 					</form>
 				{/if}
 			{:else if stage === 1}
@@ -187,7 +200,10 @@ const subheading = $derived(
 							required
 						/>
 					</label>
-					<button type="submit" class="primary">Continue</button>
+					<button type="submit" class="primary with-icon">
+						Continue
+						<ArrowRight size={16} aria-hidden="true" />
+					</button>
 				</form>
 			{:else}
 				<form
@@ -226,10 +242,14 @@ const subheading = $derived(
 						/>
 						<span class="hint">At least 4 characters.</span>
 					</label>
-					<button type="submit" class="primary" disabled={submitting}>
+					<button type="submit" class="primary with-icon" disabled={submitting}>
+						<UserPlus size={16} aria-hidden="true" />
 						{submitting ? 'Creating account…' : 'Create account'}
 					</button>
-					<button type="button" class="text-btn" onclick={resetStage}>← Choose a different username</button>
+					<button type="button" class="text-btn with-icon" onclick={resetStage}>
+						<ArrowLeft size={14} aria-hidden="true" />
+						Choose a different username
+					</button>
 				</form>
 			{/if}
 		</div>
@@ -276,9 +296,16 @@ const subheading = $derived(
 		margin-bottom: 1.25rem;
 	}
 
-	.logo {
-		font-size: 2rem;
-		line-height: 1;
+	.mode-tabs button.with-icon {
+		justify-content: center;
+	}
+
+	.primary.with-icon {
+		justify-content: center;
+	}
+
+	.text-btn.with-icon {
+		gap: 0.35rem;
 	}
 
 	.brand-name {
@@ -387,6 +414,11 @@ const subheading = $derived(
 		font-weight: 600;
 		cursor: pointer;
 		transition: opacity 0.15s;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		width: 100%;
 	}
 
 	.primary:hover:not(:disabled) {

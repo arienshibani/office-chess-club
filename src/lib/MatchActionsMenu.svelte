@@ -1,6 +1,7 @@
 <script>
 	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
+	import { Check, EllipsisVertical, PencilLine, Trash2, X } from '@lucide/svelte';
 	import { withActionToast } from '$lib/action-toast.js';
 
 	let {
@@ -102,16 +103,13 @@
 		aria-expanded={menuOpen}
 		disabled={busy}
 	>
-		<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-			<circle cx="8" cy="3" r="1.5" fill="currentColor" />
-			<circle cx="8" cy="8" r="1.5" fill="currentColor" />
-			<circle cx="8" cy="13" r="1.5" fill="currentColor" />
-		</svg>
+		<EllipsisVertical size={16} aria-hidden="true" />
 	</button>
 
 	{#if menuOpen}
 		<div class="menu" role="menu">
-			<button type="button" class="menu-item" role="menuitem" onclick={openCorrectModal}>
+			<button type="button" class="menu-item with-icon" role="menuitem" onclick={openCorrectModal}>
+				<PencilLine size={15} aria-hidden="true" />
 				Correct result
 			</button>
 
@@ -138,7 +136,8 @@
 				{#if returnTo}
 					<input type="hidden" name="returnTo" value={returnTo} />
 				{/if}
-				<button type="submit" class="menu-item danger" disabled={busy} role="menuitem">
+				<button type="submit" class="menu-item danger with-icon" disabled={busy} role="menuitem">
+					<Trash2 size={15} aria-hidden="true" />
 					Delete match
 				</button>
 			</form>
@@ -151,7 +150,9 @@
 	<div class="modal" role="dialog" aria-modal="true" aria-labelledby="correct-result-title">
 		<div class="modal-header">
 			<h2 id="correct-result-title">Correct result</h2>
-			<button type="button" class="modal-close" onclick={closeModal} aria-label="Close">×</button>
+			<button type="button" class="modal-close" onclick={closeModal} aria-label="Close">
+				<X size={18} aria-hidden="true" />
+			</button>
 		</div>
 
 		<p class="modal-hint">
@@ -204,7 +205,8 @@
 				<button type="button" class="btn secondary" onclick={closeModal} disabled={busy}>
 					Cancel
 				</button>
-				<button type="submit" class="btn primary" disabled={busy || !canSave}>
+				<button type="submit" class="btn primary with-icon" disabled={busy || !canSave}>
+					<Check size={15} aria-hidden="true" />
 					{busy ? 'Saving…' : 'Save correction'}
 				</button>
 			</div>

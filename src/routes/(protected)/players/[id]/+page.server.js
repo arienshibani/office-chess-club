@@ -1,4 +1,5 @@
 import { getPlayers, getMatches, ObjectId } from '$lib/db.js';
+import { buildEloHistoryFromDocs } from '$lib/elo-history.js';
 import { normalizePlayerIcon } from '$lib/player-icon.js';
 import { hashPassword, verifyPassword } from '$lib/password.js';
 import { normalizeTheme } from '$lib/theme.js';
@@ -33,13 +34,23 @@ export async function load({ params, locals, depends }) {
 
 	const rank = allPlayers.findIndex((p) => p._id.toString() === params.id) + 1;
 
-	const matches = await matchesCol
-		.find({
-			$or: [{ whitePlayerId: oid }, { blackPlayerId: oid }]
-		})
-		.sort({ playedAt: -1 })
-		.limit(50)
-		.toArray();
+	const [matches, historyDocs] = await Promise.all([
+		matchesCol
+			.find({
+				$or: [{ whitePlayerId: oid }, { blackPlayerId: oid }]
+			})
+			.sort({ playedAt: -1 })
+			.limit(50)
+			.toArray(),
+		matchesCol
+			.find({
+				$or: [{ whitePlayerId: oid }, { blackPlayerId: oid }],
+				status: 'approved'
+			})
+			.project({ playedAt: 1, whitePlayerId: 1, blackPlayerId: 1, eloChange: 1, status: 1 })
+			.sort({ playedAt: 1 })
+			.toArray()
+	]);
 
 	// Collect opponent IDs
 	const opponentIds = [
@@ -96,6 +107,7 @@ export async function load({ params, locals, depends }) {
 			theme: normalizeTheme(player.theme)
 		},
 		matches: enriched,
+		eloHistory: buildEloHistoryFromDocs(historyDocs, params.id),
 		rank,
 		isOwnProfile: locals.user?._id === params.id
 	};

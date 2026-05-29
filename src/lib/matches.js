@@ -1,16 +1,7 @@
-export const WHITE_ICON = '⬜';
-export const BLACK_ICON = '⬛';
-
-/** @param {string} name @param {'white' | 'black'} color */
-export const nameWithColorIcon = (name, color) =>
-	`${name} ${color === 'white' ? WHITE_ICON : BLACK_ICON}`;
-
-/**
- * @param {{ isDraw: boolean, winnerId: string|null, whitePlayerId: string, blackPlayerId: string, whiteName: string, blackName: string }} match
- */
+/** Plain-text match summary (no icons). Prefer MatchSummary.svelte in UI. */
 export const matchSummary = (match) => {
-	const white = nameWithColorIcon(match.whiteName, 'white');
-	const black = nameWithColorIcon(match.blackName, 'black');
+	const white = match.whiteName;
+	const black = match.blackName;
 	if (match.isDraw) return `${white} ½–½ ${black}`;
 	if (match.winnerId === match.whitePlayerId) return `${white} defeated ${black}`;
 	return `${black} defeated ${white}`;

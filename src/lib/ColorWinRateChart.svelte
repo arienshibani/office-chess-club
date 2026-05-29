@@ -1,13 +1,13 @@
 <script>
-	import { BLACK_ICON, WHITE_ICON } from '$lib/matches.js';
+	import PieceColor from '$lib/PieceColor.svelte';
 	import { colorWinRate, pieGradient } from '$lib/player-stats.js';
 
 	/** @type {{ stats: { white: { wins: number, losses: number, draws: number }, black: { wins: number, losses: number, draws: number } } }} */
 	let { stats } = $props();
 
-	/** @param {import('$lib/player-stats.js').ColorRecord} record @param {string} icon @param {string} label */
-	const side = (record, icon, label) => ({
-		icon,
+	/** @param {import('$lib/player-stats.js').ColorRecord} record @param {'white' | 'black'} color @param {string} label */
+	const side = (record, color, label) => ({
+		color,
 		label,
 		record,
 		total: record.wins + record.losses + record.draws,
@@ -16,8 +16,8 @@
 	});
 
 	let sides = $derived([
-		side(stats.white, WHITE_ICON, 'White'),
-		side(stats.black, BLACK_ICON, 'Black')
+		side(stats.white, 'white', 'White'),
+		side(stats.black, 'black', 'Black')
 	]);
 </script>
 
@@ -30,7 +30,10 @@
 					<span class="pie-rate">{s.total > 0 ? `${s.winRate}%` : '—'}</span>
 				</div>
 			</div>
-			<div class="side-label">{s.icon} {s.label}</div>
+			<div class="side-label with-icon">
+				<PieceColor color={s.color} size={12} />
+				{s.label}
+			</div>
 			{#if s.total > 0}
 				<div class="breakdown">
 					<span class="wins">{s.record.wins}W</span>

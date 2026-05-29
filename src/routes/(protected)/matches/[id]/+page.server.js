@@ -9,7 +9,9 @@ const isMatchParticipant = (whiteId, blackId, userId) =>
 	whiteId.toString() === userId || blackId.toString() === userId;
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ params, locals }) {
+export async function load({ params, locals, depends }) {
+	depends(`app:match:${params.id}`);
+
 	let oid;
 	try {
 		oid = new ObjectId(params.id);

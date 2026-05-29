@@ -29,6 +29,7 @@
 	--color-btn-secondary-bg: #2a2a2a;
 	--color-btn-secondary-text: #f0f0f0;
 	--color-accent-gold: #f0c040;
+	--color-suggestion-arrow: #9a9a9a;
 	--color-success: #60c060;
 	--color-error: #f06060;
 	--color-error-soft: #f87171;
@@ -186,4 +187,14 @@ a {
 	.table-scroll > table {
 		min-width: 480px;
 	}
+}
+
+.with-icon {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.with-icon svg {
+	flex-shrink: 0;
 }

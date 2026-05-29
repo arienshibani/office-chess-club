@@ -1,3 +1,8 @@
+import {
+	deleteUserById,
+	resetLadder as resetLadderSystem,
+	resetUserPasswordById
+} from '$lib/admin-users.js';
 import { getMatches, getPlayers, getConfig, ObjectId } from '$lib/db.js';
 import { computeElo } from '$lib/elo.js';
 import { deleteMatchById } from '$lib/match-delete.js';
@@ -19,10 +24,21 @@ export async function load({ locals, depends }) {
 		getConfig()
 	]);
 
-	const [pendingMatches, config] = await Promise.all([
+	const [pendingMatches, config, allPlayers] = await Promise.all([
 		matchesCol.find({ status: 'pending' }).sort({ playedAt: -1 }).toArray(),
-		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }))
+		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' })),
+		playersCol.find({}).sort({ name: 1 }).toArray()
 	]);
+
+	const currentAdminId = locals.user._id;
+	const users = allPlayers.map((p) => ({
+		_id: p._id.toString(),
+		name: p.name,
+		username: p.username,
+		rating: p.rating,
+		isAdmin: !!p.isAdmin,
+		isSelf: p._id.toString() === currentAdminId
+	}));
 
 	const playerIds = [
 		...new Set(
@@ -60,6 +76,8 @@ export async function load({ locals, depends }) {
 
 	return {
 		pendingMatches: enriched,
+		users,
+		currentAdminId,
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
 		clubName: typeof config?.clubName === 'string' && config.clubName.trim() ? config.clubName.trim() : 'Office',
 		httpSubmitEnabled: config?.httpSubmitEnabled === true,
@@ -309,5 +327,67 @@ export const actions = {
 		}
 
 		return { success: true, message: 'Match rejected.' };
+	},
+
+	resetUserPassword: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const playerId = form.get('playerId')?.toString();
+		const newPassword = form.get('newPassword')?.toString() ?? '';
+
+		if (!playerId) return fail(400, { error: 'Missing user ID.' });
+
+		try {
+			await resetUserPasswordById(playerId, newPassword);
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message)
+				});
+			}
+			throw err;
+		}
+
+		return { success: true, message: 'Password reset.' };
+	},
+
+	deleteUser: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const playerId = form.get('playerId')?.toString();
+		if (!playerId) return fail(400, { error: 'Missing user ID.' });
+
+		try {
+			await deleteUserById(playerId, locals.user._id);
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message)
+				});
+			}
+			throw err;
+		}
+
+		return { success: true, message: 'User deleted.' };
+	},
+
+	resetLadder: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const confirmText = String(form.get('confirmText') ?? '').trim();
+
+		if (confirmText !== 'RESET LADDER') {
+			return fail(400, { error: 'Type RESET LADDER to confirm.' });
+		}
+
+		await resetLadderSystem();
+
+		return {
+			success: true,
+			message: 'Ladder reset. All matches deleted and ratings restored to 1200.'
+		};
 	}
 };

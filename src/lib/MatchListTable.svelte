@@ -1,7 +1,9 @@
 <script>
 	import { page } from '$app/stores';
 	import MatchActionsMenu from '$lib/MatchActionsMenu.svelte';
-	import { matchSummary, eloDisplay, formatMatchTimestamp } from '$lib/matches.js';
+	import MatchSummary from '$lib/MatchSummary.svelte';
+	import ResultBadge from '$lib/ResultBadge.svelte';
+	import { eloDisplay, formatMatchTimestamp } from '$lib/matches.js';
 
 	let { matches = [], isAdmin = false } = $props();
 
@@ -26,9 +28,11 @@
 			{#each matches as match}
 				<tr class:pending={match.status === 'pending'}>
 					<td data-label="Match">
-						<a href="/matches/{match._id}" class="match-link">{matchSummary(match)}</a>
+						<a href="/matches/{match._id}" class="match-link"><MatchSummary {match} /></a>
 						{#if match.status === 'pending'}
-							<span class="badge pending-badge">⚠ Pending</span>
+							<div class="pending-wrap">
+								<ResultBadge variant="pending" />
+							</div>
 						{/if}
 					</td>
 					<td class="elo-shift" data-label="Elo">{eloDisplay(match)}</td>
@@ -124,16 +128,9 @@
 		overflow: visible;
 	}
 
-	.pending-badge {
-		display: inline-block;
+	.pending-wrap {
+		display: inline-flex;
 		margin-top: 4px;
-		font-size: 0.72rem;
-		color: var(--color-warning);
-		background: var(--color-badge-pending-bg);
-		border: 1px solid var(--color-badge-pending-border);
-		border-radius: 4px;
-		padding: 2px 6px;
-		vertical-align: middle;
 	}
 
 	@media (max-width: 640px) {
@@ -192,7 +189,7 @@
 			justify-content: flex-end;
 		}
 
-		.pending-badge {
+		.pending-wrap {
 			margin-left: 0;
 		}
 	}

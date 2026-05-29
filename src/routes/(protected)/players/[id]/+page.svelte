@@ -1,15 +1,18 @@
 <script>
 	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
+	import { ExternalLink, History, KeyRound, Moon, Save, Sun, User } from '@lucide/svelte';
 	import { withActionToast } from '$lib/action-toast.js';
-	import ColorWinRateChart from '$lib/ColorWinRateChart.svelte';
+	import ProfileStatsCharts from '$lib/ProfileStatsCharts.svelte';
 	import EmojiPicker from '$lib/EmojiPicker.svelte';
+	import PieceColor from '$lib/PieceColor.svelte';
 	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
+	import ResultBadge from '$lib/ResultBadge.svelte';
 	import { computeColorStats } from '$lib/player-stats.js';
 	import { applyTheme, normalizeTheme } from '$lib/theme.js';
 
 	let { data, form } = $props();
-	let { player, matches, rank, isOwnProfile } = $derived(data);
+	let { player, matches, eloHistory, rank, isOwnProfile } = $derived(data);
 
 	let totalGames = $derived(player.stats.wins + player.stats.losses + player.stats.draws);
 	let winRate = $derived(totalGames > 0 ? Math.round((player.stats.wins / totalGames) * 100) : 0);
@@ -71,28 +74,34 @@
 			<button
 				type="button"
 				role="tab"
+				class="with-icon"
 				class:active={activeTab === 'profile'}
 				aria-selected={activeTab === 'profile'}
 				onclick={() => setTab('profile')}
 			>
+				<User size={15} aria-hidden="true" />
 				Profile
 			</button>
 			<button
 				type="button"
 				role="tab"
+				class="with-icon"
 				class:active={activeTab === 'history'}
 				aria-selected={activeTab === 'history'}
 				onclick={() => setTab('history')}
 			>
+				<History size={15} aria-hidden="true" />
 				Match History
 			</button>
 			<button
 				type="button"
 				role="tab"
+				class="with-icon"
 				class:active={activeTab === 'account'}
 				aria-selected={activeTab === 'account'}
 				onclick={() => setTab('account')}
 			>
+				<KeyRound size={15} aria-hidden="true" />
 				Account
 			</button>
 		</div>
@@ -122,10 +131,7 @@
 					</div>
 				</div>
 
-				<section class="color-stats-card">
-					<h2>Win rate by color</h2>
-					<ColorWinRateChart stats={colorStats} />
-				</section>
+				<ProfileStatsCharts {eloHistory} {colorStats} />
 
 				<section class="settings-card">
 					<h2>Edit profile</h2>
@@ -159,24 +165,29 @@
 							<div class="theme-options" role="group" aria-label="Color theme">
 								<button
 									type="button"
+									class="with-icon"
 									class:active={editTheme === 'dark'}
 									aria-pressed={editTheme === 'dark'}
 									onclick={() => selectTheme('dark')}
 								>
+									<Moon size={14} aria-hidden="true" />
 									Dark
 								</button>
 								<button
 									type="button"
+									class="with-icon"
 									class:active={editTheme === 'light'}
 									aria-pressed={editTheme === 'light'}
 									onclick={() => selectTheme('light')}
 								>
+									<Sun size={14} aria-hidden="true" />
 									Light
 								</button>
 							</div>
 							<input type="hidden" name="theme" value={editTheme} />
 						</fieldset>
-						<button type="submit" disabled={savingProfile}>
+						<button type="submit" class="with-icon" disabled={savingProfile}>
+							<Save size={15} aria-hidden="true" />
 							{savingProfile ? 'Saving…' : 'Save profile'}
 						</button>
 					</form>
@@ -210,23 +221,28 @@
 											{m.opponentName}
 										</a>
 									</td>
-									<td class="color-cell">{m.isWhite ? '⬜ White' : '⬛ Black'}</td>
+									<td class="color-cell">
+										<span class="with-icon">
+											<PieceColor color={m.isWhite ? 'white' : 'black'} size={10} />
+											{m.isWhite ? 'White' : 'Black'}
+										</span>
+									</td>
 									<td>
 										{#if m.status === 'pending'}
-											<span class="badge pending-badge">⚠ Pending</span>
+											<ResultBadge variant="pending" />
 										{:else if m.isDraw}
-											<span class="badge draw-badge">½ Draw</span>
+											<ResultBadge variant="draw" label="½ Draw" />
 										{:else if m.won}
-											<span class="badge win-badge">✓ Win</span>
+											<ResultBadge variant="win" />
 										{:else}
-											<span class="badge loss-badge">✗ Loss</span>
+											<ResultBadge variant="loss" />
 										{/if}
 									</td>
 									<td class="elo-cell" class:pos={m.eloChange > 0} class:neg={m.eloChange < 0}>
 										{m.status === 'pending' ? '~' : ''}{m.eloChange >= 0 ? '+' : ''}{m.eloChange}
 									</td>
 									<td class="date-cell">{new Date(m.playedAt).toLocaleDateString()}</td>
-									<td><a href="/matches/{m._id}" class="view-link">View</a></td>
+									<td><a href="/matches/{m._id}" class="view-link with-icon">View <ExternalLink size={13} aria-hidden="true" /></a></td>
 								</tr>
 							{:else}
 								<tr><td colspan="6" class="empty">No matches yet.</td></tr>
@@ -267,7 +283,8 @@
 							Confirm new password
 							<input type="password" name="confirmPassword" minlength="4" autocomplete="new-password" />
 						</label>
-						<button type="submit" disabled={savingPassword}>
+						<button type="submit" class="with-icon" disabled={savingPassword}>
+							<KeyRound size={15} aria-hidden="true" />
 							{savingPassword ? 'Updating…' : 'Change password'}
 						</button>
 					</form>
@@ -298,10 +315,7 @@
 			</div>
 		</div>
 
-		<section class="color-stats-card">
-			<h2>Win rate by color</h2>
-			<ColorWinRateChart stats={colorStats} />
-		</section>
+		<ProfileStatsCharts {eloHistory} {colorStats} />
 
 		<section class="match-history">
 			<h2>Match History</h2>
@@ -330,23 +344,28 @@
 									{m.opponentName}
 								</a>
 							</td>
-							<td class="color-cell">{m.isWhite ? '⬜ White' : '⬛ Black'}</td>
+							<td class="color-cell">
+								<span class="with-icon">
+									<PieceColor color={m.isWhite ? 'white' : 'black'} size={10} />
+									{m.isWhite ? 'White' : 'Black'}
+								</span>
+							</td>
 							<td>
 								{#if m.status === 'pending'}
-									<span class="badge pending-badge">⚠ Pending</span>
+									<ResultBadge variant="pending" />
 								{:else if m.isDraw}
-									<span class="badge draw-badge">½ Draw</span>
+									<ResultBadge variant="draw" label="½ Draw" />
 								{:else if m.won}
-									<span class="badge win-badge">✓ Win</span>
+									<ResultBadge variant="win" />
 								{:else}
-									<span class="badge loss-badge">✗ Loss</span>
+									<ResultBadge variant="loss" />
 								{/if}
 							</td>
 							<td class="elo-cell" class:pos={m.eloChange > 0} class:neg={m.eloChange < 0}>
 								{m.status === 'pending' ? '~' : ''}{m.eloChange >= 0 ? '+' : ''}{m.eloChange}
 							</td>
 							<td class="date-cell">{new Date(m.playedAt).toLocaleDateString()}</td>
-							<td><a href="/matches/{m._id}" class="view-link">View</a></td>
+							<td><a href="/matches/{m._id}" class="view-link with-icon">View <ExternalLink size={13} aria-hidden="true" /></a></td>
 						</tr>
 					{:else}
 						<tr><td colspan="6" class="empty">No matches yet.</td></tr>
@@ -413,17 +432,6 @@
 		flex-direction: column;
 		gap: 1rem;
 	}
-	.color-stats-card {
-		background: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: 14px;
-		padding: 1.25rem;
-	}
-	.color-stats-card h2 {
-		margin: 0 0 1rem;
-		font-size: 1rem;
-		color: var(--color-text-muted);
-	}
 	.settings-card h2 {
 		margin: 0;
 		font-size: 1rem;
@@ -453,6 +461,9 @@
 	input:focus { outline: 1px solid var(--color-border-focus); }
 	button[type="submit"] {
 		align-self: flex-start;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
 		background: var(--color-btn-primary-bg);
 		color: var(--color-btn-primary-text);
 		border: none;
@@ -499,6 +510,10 @@
 	}
 	.theme-options button {
 		flex: 1;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
 		background: var(--color-input-bg);
 		border: 1px solid var(--color-border-strong);
 		border-radius: 6px;

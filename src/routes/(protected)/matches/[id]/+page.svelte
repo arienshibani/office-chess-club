@@ -1,19 +1,46 @@
 <script>
+	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
+	import {
+		ArrowRight,
+		ChevronFirst,
+		ChevronLast,
+		ChevronLeft,
+		ChevronRight,
+		Lightbulb,
+		Save
+	} from '@lucide/svelte';
+	import { buildSuggestionDisplay } from '$lib/chess-arrows.js';
 	import { withActionToast } from '$lib/action-toast.js';
 	import ChessBoard from '$lib/ChessBoard.svelte';
+	import EvalBar from '$lib/EvalBar.svelte';
 	import MatchActionsMenu from '$lib/MatchActionsMenu.svelte';
+	import { fenAtMoveIndex, INITIAL_FEN } from '$lib/pgn-replay.js';
+	import { analyzeHistory } from '$lib/stockfish/analyze-timeline.js';
+	import { stopEngine } from '$lib/stockfish/engine.js';
+	import PieceColor from '$lib/PieceColor.svelte';
 	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
+	import ResultBadge from '$lib/ResultBadge.svelte';
 	import { detectNotationType } from '$lib/notation.js';
 	import { Chess } from 'chess.js';
 
-	let { data, form } = $props();
+	const props = $props();
+	const data = $derived(props.data);
+	const form = $derived(props.form);
 	let { match, white, black, canEditNotation, isAdmin } = $derived(data);
-
-	const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
 	let notationDraft = $state('');
 	let savingNotation = $state(false);
+	let notationSaveFeedback = $state(/** @type {string | null} */ (null));
+	let notationFormOpen = $state(false);
+
+	$effect(() => {
+		if (form?.error && canEditNotation) notationFormOpen = true;
+	});
+
+	$effect(() => {
+		if (notationSaveFeedback) notationFormOpen = true;
+	});
 
 	$effect(() => {
 		notationDraft = match.notation ?? '';
@@ -21,66 +48,179 @@
 
 	let notationType = $derived(detectNotationType(match.notation));
 
-	// PGN replay state
-	/** @type {Chess} */
-	let chess = $state(new Chess());
-	/** @type {string[]} */
-	let history = $state([]);
-	let moveIndex = $state(-1);
-	let currentFen = $state(INITIAL_FEN);
-	let pgnError = $state('');
-	let fenError = $state('');
-
-	$effect(() => {
-		if (notationType === 'pgn' && match.notation) {
-			try {
-				chess = new Chess();
-				chess.loadPgn(match.notation);
-				history = chess.history();
-				moveIndex = history.length - 1;
-				currentFen = chess.fen();
-				pgnError = '';
-			} catch (e) {
-				pgnError = 'Could not parse PGN notation.';
-				currentFen = INITIAL_FEN;
-			}
-		} else if (notationType === 'fen' && match.notation) {
+	/** @type {{ type: 'pgn', history: string[] } | { type: 'fen', fen: string } | { type: 'error', kind: 'pgn' | 'fen' } | { type: 'none' }} */
+	const replaySource = $derived.by(() => {
+		const notation = match.notation ?? '';
+		const type = detectNotationType(notation);
+		if (type === 'pgn' && notation) {
 			try {
 				const c = new Chess();
-				c.load(match.notation.trim());
-				currentFen = c.fen();
-				fenError = '';
-			} catch (e) {
-				fenError = 'Could not parse FEN string.';
-				currentFen = INITIAL_FEN;
+				c.loadPgn(notation);
+				return { type: /** @type {const} */ ('pgn'), history: c.history() };
+			} catch {
+				return { type: /** @type {const} */ ('error'), kind: /** @type {const} */ ('pgn') };
 			}
+		}
+		if (type === 'fen' && notation) {
+			try {
+				const c = new Chess();
+				c.load(notation.trim());
+				return { type: /** @type {const} */ ('fen'), fen: c.fen() };
+			} catch {
+				return { type: /** @type {const} */ ('error'), kind: /** @type {const} */ ('fen') };
+			}
+		}
+		return { type: /** @type {const} */ ('none') };
+	});
+
+	let history = $derived(replaySource.type === 'pgn' ? replaySource.history : []);
+	let pgnError = $derived(replaySource.type === 'error' && replaySource.kind === 'pgn');
+	let fenError = $derived(replaySource.type === 'error' && replaySource.kind === 'fen');
+
+	/** Index of the current move in SAN history (-1 = starting position). */
+	let viewIndex = $state(-1);
+	let lastReplayKey = $state('');
+
+	$effect(() => {
+		const notation = match.notation ?? '';
+		const key = `${match._id}:${notation}`;
+		if (key === lastReplayKey) return;
+		lastReplayKey = key;
+		if (detectNotationType(notation) === 'pgn' && notation) {
+			try {
+				const c = new Chess();
+				c.loadPgn(notation);
+				viewIndex = c.history().length - 1;
+			} catch {
+				viewIndex = -1;
+			}
+		} else {
+			viewIndex = -1;
 		}
 	});
 
-	/** @param {number} idx */
-	function goToMove(idx) {
-		const c = new Chess();
-		const moves = history.slice(0, idx + 1);
-		for (const move of moves) {
-			c.move(move);
+	const currentFen = $derived.by(() => {
+		if (replaySource.type === 'fen') return replaySource.fen;
+		if (replaySource.type === 'pgn') {
+			return fenAtMoveIndex(replaySource.history, viewIndex);
 		}
-		currentFen = c.fen();
-		moveIndex = idx;
-	}
+		return INITIAL_FEN;
+	});
 
-	function stepBack() {
-		if (moveIndex > -1) goToMove(moveIndex - 1);
-	}
-	function stepForward() {
-		if (moveIndex < history.length - 1) goToMove(moveIndex + 1);
-	}
-	function goToStart() {
-		currentFen = INITIAL_FEN;
-		moveIndex = -1;
-	}
-	function goToEnd() {
-		if (history.length > 0) goToMove(history.length - 1);
-	}
+	/** @type {({ cp?: number, mate?: number } | null)[]} */
+	let evals = $state([]);
+	let analysisLoading = $state(false);
+	let analysisAvailable = $state(true);
+	let analysisProgress = $state(/** @type {{ done: number, total: number } | null} */ (null));
+
+	let currentEval = $derived(evals[viewIndex + 1] ?? null);
+	let showSuggestions = $state(true);
+
+	let activeSuggestion = $derived(
+		showSuggestions ? buildSuggestionDisplay(currentFen, currentEval?.bestMove) : null
+	);
+
+	/** @param {number} idx */
+	const goToMove = (idx) => {
+		viewIndex = idx;
+	};
+
+	const stepBack = () => {
+		if (viewIndex > -1) viewIndex -= 1;
+	};
+	const stepForward = () => {
+		if (viewIndex < history.length - 1) viewIndex += 1;
+	};
+	const goToStart = () => {
+		viewIndex = -1;
+	};
+	const goToEnd = () => {
+		if (history.length > 0) viewIndex = history.length - 1;
+	};
+
+	let replayActive = $derived(notationType === 'pgn' && history.length > 0);
+
+	$effect(() => {
+		if (!browser) return;
+		const key = lastReplayKey;
+		const notation = match.notation ?? '';
+		if (!key || detectNotationType(notation) !== 'pgn' || !notation) return;
+
+		let moves;
+		try {
+			const c = new Chess();
+			c.loadPgn(notation);
+			moves = c.history();
+		} catch {
+			return;
+		}
+		if (!moves.length) return;
+
+		const ac = new AbortController();
+
+		analysisLoading = true;
+		analysisAvailable = true;
+		analysisProgress = null;
+		evals = [];
+
+		analyzeHistory(moves, {
+			signal: ac.signal,
+			onProgress: (point, index, total) => {
+				const next = [...evals];
+				while (next.length < total) next.push(null);
+				next[index] = point;
+				evals = next;
+				analysisProgress = { done: index + 1, total };
+			}
+		})
+			.then((results) => {
+				if (!ac.signal.aborted) evals = results;
+			})
+			.catch((err) => {
+				if (err?.name !== 'AbortError') {
+					console.error('Stockfish analysis failed:', err);
+					analysisAvailable = false;
+				}
+			})
+			.finally(() => {
+				if (!ac.signal.aborted) {
+					analysisLoading = false;
+					analysisProgress = null;
+				}
+			});
+
+		return () => {
+			ac.abort();
+			stopEngine();
+		};
+	});
+
+	$effect(() => {
+		if (!browser || !replayActive) return;
+
+		/** @param {KeyboardEvent} e */
+		const onKeyDown = (e) => {
+			const replayKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
+			if (!replayKeys.includes(e.key)) return;
+			const el = document.activeElement;
+			if (
+				el instanceof HTMLInputElement ||
+				el instanceof HTMLTextAreaElement ||
+				el instanceof HTMLSelectElement ||
+				(el instanceof HTMLElement && el.isContentEditable)
+			) {
+				return;
+			}
+			e.preventDefault();
+			if (e.key === 'ArrowLeft') stepBack();
+			else if (e.key === 'ArrowRight') stepForward();
+			else if (e.key === 'ArrowUp') goToStart();
+			else goToEnd();
+		};
+
+		window.addEventListener('keydown', onKeyDown);
+		return () => window.removeEventListener('keydown', onKeyDown);
+	});
 
 	// Elo display helpers
 	let whiteElo = $derived(match.eloChange.white);
@@ -105,10 +245,13 @@
 
 <div class="match-page">
 	<div class="match-header">
-		<a href="/" class="back">← Back</a>
+		<a href="/" class="back with-icon">
+			<ChevronLeft size={16} aria-hidden="true" />
+			Back
+		</a>
 		<h1>Match Review</h1>
 		{#if pending}
-			<span class="badge pending-badge">⚠ Pending Approval</span>
+			<ResultBadge variant="pending" label="Pending Approval" />
 		{/if}
 		{#if isAdmin}
 			<MatchActionsMenu
@@ -126,23 +269,69 @@
 	<div class="match-layout">
 		<div class="board-section">
 			{#if pgnError}
-				<p class="err">{pgnError}</p>
+				<p class="err">Could not parse PGN notation.</p>
 			{/if}
 			{#if fenError}
-				<p class="err">{fenError}</p>
+				<p class="err">Could not parse FEN string.</p>
 			{/if}
 
-			<ChessBoard fen={currentFen} />
+			<div
+				class="board-with-eval"
+				class:with-eval={replayActive && analysisAvailable}
+			>
+				<div class="board-wrap">
+					<ChessBoard fen={currentFen} suggestion={activeSuggestion} />
+				</div>
+				{#if replayActive && analysisAvailable}
+					<EvalBar
+						eval={currentEval}
+						loading={analysisLoading && currentEval == null}
+					/>
+				{/if}
+			</div>
 
 			{#if notationType === 'pgn' && history.length > 0}
+				<div class="analysis-progress-slot" aria-live="polite">
+					{#if analysisProgress}
+						<p class="analysis-progress">
+							Analyzing {analysisProgress.done}/{analysisProgress.total}…
+						</p>
+					{:else if showSuggestions && activeSuggestion}
+						<p class="suggestion-hint">
+							Gray arrow and faded piece = engine suggestion (not played in this game).
+						</p>
+					{/if}
+				</div>
 				<div class="controls">
-					<button onclick={goToStart} disabled={moveIndex === -1} title="Start">⏮</button>
-					<button onclick={stepBack} disabled={moveIndex === -1} title="Back">◀</button>
+					<button type="button" onclick={goToStart} disabled={viewIndex === -1} title="Start (↑)" aria-label="Go to start">
+						<ChevronFirst size={16} aria-hidden="true" />
+					</button>
+					<button type="button" onclick={stepBack} disabled={viewIndex === -1} title="Back (←)" aria-label="Previous move">
+						<ChevronLeft size={16} aria-hidden="true" />
+					</button>
 					<span class="move-counter">
-						{moveIndex === -1 ? 'Start' : `Move ${moveIndex + 1} / ${history.length}`}
+						{viewIndex === -1 ? 'Start' : `Move ${viewIndex + 1} / ${history.length}`}
 					</span>
-					<button onclick={stepForward} disabled={moveIndex === history.length - 1} title="Forward">▶</button>
-					<button onclick={goToEnd} disabled={moveIndex === history.length - 1} title="End">⏭</button>
+					<button type="button" onclick={stepForward} disabled={viewIndex === history.length - 1} title="Forward (→)" aria-label="Next move">
+						<ChevronRight size={16} aria-hidden="true" />
+					</button>
+					<button type="button" onclick={goToEnd} disabled={viewIndex === history.length - 1} title="End (↓)" aria-label="Go to end">
+						<ChevronLast size={16} aria-hidden="true" />
+					</button>
+					<button
+						type="button"
+						class="suggestion-toggle with-icon"
+						class:active={showSuggestions}
+						onclick={() => {
+							showSuggestions = !showSuggestions;
+						}}
+						title={showSuggestions ? 'Hide engine suggestions' : 'Show engine suggestions'}
+						aria-pressed={showSuggestions}
+						aria-label={showSuggestions ? 'Hide engine suggestions' : 'Show engine suggestions'}
+					>
+						<Lightbulb size={15} aria-hidden="true" />
+						<span class="suggestion-toggle-label">Hints</span>
+					</button>
 				</div>
 
 				<div class="move-list">
@@ -152,8 +341,9 @@
 							<span class="move-num">{Math.floor(i / 2) + 1}.</span>
 						{/if}
 						<button
+							type="button"
 							class="move-btn"
-							class:active={i === moveIndex}
+							class:active={i === viewIndex}
 							onclick={() => goToMove(i)}
 						>{move}</button>
 					{/each}
@@ -172,11 +362,11 @@
 
 			<div class="players-card">
 				{#each [
-					{ player: white, elo: whiteElo, delta: whiteDelta, color: 'White', icon: '⬜' },
-					{ player: black, elo: blackElo, delta: blackDelta, color: 'Black', icon: '⬛' }
+					{ player: white, elo: whiteElo, delta: whiteDelta, color: 'white' },
+					{ player: black, elo: blackElo, delta: blackDelta, color: 'black' }
 				] as side}
 					<div class="player-row">
-						<span class="color-icon">{side.icon}</span>
+						<PieceColor color={side.color} size={14} />
 						<PlayerAvatar
 							icon={side.player?.icon}
 							avatarUrl={side.player?.avatarUrl}
@@ -188,7 +378,7 @@
 							</a>
 							<div class="elo-row">
 								<span class="elo-before">{side.elo.before}</span>
-								<span class="arrow">→</span>
+								<ArrowRight size={14} class="arrow-icon" aria-hidden="true" />
 								<span class="elo-after">{side.elo.after}</span>
 								<span class="delta" class:pos={side.delta > 0} class:neg={side.delta < 0}>
 									{side.delta >= 0 ? '+' : ''}{side.delta}{pending ? ' (est.)' : ''}
@@ -227,20 +417,43 @@
 			{/if}
 
 			{#if canEditNotation}
-				<div class="notation-form-card">
-					<h2>{match.notation ? 'Update notation' : 'Add notation'}</h2>
+				<details class="notation-form-card" bind:open={notationFormOpen}>
+					<summary class="notation-form-summary with-icon">
+						<ChevronRight size={15} class="notation-chevron" aria-hidden="true" />
+						<span class="notation-form-title">
+							{match.notation ? 'Update notation' : 'Add notation'}
+						</span>
+					</summary>
+					<div class="notation-form-body">
 					<p class="notation-hint">Only you and your opponent can edit this. Paste PGN moves or a FEN position.</p>
 					{#if form?.error}
 						<p class="err">{form.error}</p>
+					{/if}
+					{#if notationSaveFeedback}
+						<p class="success">{notationSaveFeedback}</p>
 					{/if}
 					<form
 						method="POST"
 						action="?/updateNotation"
 						use:enhance={() => {
-							savingNotation = true;
 							return async (ctx) => {
-								await withActionToast()(ctx);
-								savingNotation = false;
+								savingNotation = true;
+								try {
+									await withActionToast({
+										invalidate: [`app:match:${match._id}`]
+									})(ctx);
+									if (ctx.result.type === 'success') {
+										const payload = /** @type {Record<string, unknown>} */ (
+											ctx.result.data ?? {}
+										);
+										notationSaveFeedback =
+											typeof payload.message === 'string'
+												? payload.message
+												: 'Notation saved.';
+									}
+								} finally {
+									savingNotation = false;
+								}
 							};
 						}}
 					>
@@ -249,14 +462,19 @@
 							bind:value={notationDraft}
 							rows="6"
 							placeholder="1. e4 e5 2. Nf3 Nc6 …&#10;or&#10;rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
+							oninput={() => {
+								notationSaveFeedback = null;
+							}}
 						></textarea>
 						<div class="notation-actions">
-							<button type="submit" disabled={savingNotation}>
+							<button type="submit" class="with-icon" disabled={savingNotation}>
+								<Save size={15} aria-hidden="true" />
 								{savingNotation ? 'Saving…' : 'Save notation'}
 							</button>
 						</div>
 					</form>
-				</div>
+					</div>
+				</details>
 			{/if}
 		</div>
 	</div>
@@ -273,6 +491,11 @@
 	h1 { margin: 0; font-size: 1.2rem; flex: 1; min-width: 0; }
 	.back { color: var(--color-text-faint); text-decoration: none; font-size: 0.9rem; }
 	.back:hover { color: var(--color-text-muted); }
+
+	:global(.arrow-icon) {
+		color: var(--color-text-extra-dim);
+		flex-shrink: 0;
+	}
 
 	.match-layout {
 		display: grid;
@@ -292,6 +515,46 @@
 	}
 
 	.board-section { display: flex; flex-direction: column; gap: 0.75rem; }
+
+	.board-with-eval {
+		display: grid;
+		grid-template-columns: minmax(0, min(480px, 100%));
+		align-items: stretch;
+		width: fit-content;
+		max-width: 100%;
+	}
+
+	.board-with-eval.with-eval {
+		grid-template-columns: minmax(0, min(480px, 100%)) 2.75rem;
+		gap: 0.5rem;
+	}
+
+	.board-wrap {
+		min-width: 0;
+		width: 100%;
+	}
+
+	.board-wrap :global(.board-container) {
+		margin: 0;
+		max-width: 100%;
+	}
+
+	.analysis-progress-slot {
+		min-height: 1.15rem;
+		margin: 0;
+	}
+
+	.analysis-progress,
+	.suggestion-hint {
+		margin: 0;
+		font-size: 0.78rem;
+		color: var(--color-text-faint);
+	}
+
+	.suggestion-hint {
+		color: var(--color-text-dim);
+	}
+
 	.err { color: var(--color-error); font-size: 0.85rem; margin: 0; }
 	.fen-note { font-size: 0.82rem; color: var(--color-text-faint); margin: 0; }
 	.muted { color: var(--color-text-extra-dim); }
@@ -306,6 +569,9 @@
 		padding: 8px 12px;
 	}
 	.controls button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		background: var(--color-surface-muted);
 		border: 1px solid var(--color-border-strong);
 		color: var(--color-text-soft);
@@ -313,9 +579,34 @@
 		padding: 4px 10px;
 		cursor: pointer;
 		font-size: 0.85rem;
+		min-width: 36px;
+		min-height: 32px;
 	}
 	.controls button:hover:not(:disabled) { background: var(--color-border-strong); }
 	.controls button:disabled { opacity: 0.35; cursor: not-allowed; }
+
+	.suggestion-toggle {
+		margin-left: auto;
+		gap: 0.35rem;
+		padding: 4px 10px;
+		min-width: auto;
+	}
+
+	.suggestion-toggle-label {
+		font-size: 0.78rem;
+		font-weight: 600;
+	}
+
+	.suggestion-toggle.active {
+		background: var(--color-border-strong);
+		color: var(--color-text);
+		border-color: var(--color-text-dim);
+	}
+
+	.suggestion-toggle:not(.active) {
+		opacity: 0.65;
+	}
+
 	.move-counter { flex: 1; text-align: center; font-size: 0.82rem; color: var(--color-text-faint); }
 
 	.move-list {
@@ -414,15 +705,39 @@
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
 		border-radius: 10px;
+	}
+
+	.notation-form-summary {
 		padding: 1rem;
+		cursor: pointer;
+		list-style: none;
+		color: var(--color-text-soft);
+	}
+
+	.notation-form-summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.notation-form-title {
+		font-size: 0.95rem;
+		font-weight: 600;
+	}
+
+	:global(.notation-chevron) {
+		color: var(--color-text-faint);
+		flex-shrink: 0;
+		transition: transform 0.15s ease;
+	}
+
+	.notation-form-card[open] :global(.notation-chevron) {
+		transform: rotate(90deg);
+	}
+
+	.notation-form-body {
+		padding: 0 1rem 1rem;
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-	}
-	.notation-form-card h2 {
-		margin: 0;
-		font-size: 0.95rem;
-		font-weight: 600;
 	}
 	.notation-hint {
 		margin: 0;
@@ -449,8 +764,12 @@
 	.notation-actions {
 		display: flex;
 		justify-content: flex-end;
+		padding-top: 0.5rem;
 	}
 	.notation-actions button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
 		padding: 8px 14px;
 		border: none;
 		border-radius: 6px;

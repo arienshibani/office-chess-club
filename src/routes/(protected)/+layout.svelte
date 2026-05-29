@@ -1,6 +1,17 @@
 <script>
 	import { page } from '$app/stores';
+	import {
+		History,
+		Home,
+		LogOut,
+		Menu,
+		PlusCircle,
+		Shield,
+		X
+	} from '@lucide/svelte';
+	import ClubMark from '$lib/ClubMark.svelte';
 	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
+	import ThemeToggle from '$lib/ThemeToggle.svelte';
 
 	const { data, children } = $props();
 	const user = $derived(data.user);
@@ -19,38 +30,37 @@
 <nav class:open={menuOpen}>
 	<div class="nav-inner">
 		<a href="/" class="brand" onclick={closeMenu}>
+			<ClubMark size={18} strokeWidth={2.25} />
 			<span class="brand-text">{data.clubName} Chess Club</span>
-			<span class="brand-mark">♟️</span>
 		</a>
-		<button
-			type="button"
-			class="menu-toggle"
-			aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-			aria-expanded={menuOpen}
-			onclick={() => (menuOpen = !menuOpen)}
-		>
-			<span class="menu-icon" class:open={menuOpen}></span>
-		</button>
 
 		<div class="nav-panel">
 			<div class="nav-links">
-				<a href="/" class:active={$page.url.pathname === '/'} onclick={closeMenu}>Home</a>
+				<a href="/" class="with-icon" class:active={$page.url.pathname === '/'} onclick={closeMenu}>
+					<Home size={16} aria-hidden="true" />
+					Home
+				</a>
 				<a
 					href="/matches"
+					class="with-icon"
 					class:active={$page.url.pathname.startsWith('/matches')}
 					onclick={closeMenu}
 				>
+					<History size={16} aria-hidden="true" />
 					Match History
 				</a>
-				<a href="/submit" class:active={$page.url.pathname === '/submit'} onclick={closeMenu}>
+				<a href="/submit" class="with-icon" class:active={$page.url.pathname === '/submit'} onclick={closeMenu}>
+					<PlusCircle size={16} aria-hidden="true" />
 					Submit Result
 				</a>
 				{#if user?.isAdmin}
 					<a
 						href="/admin"
+						class="with-icon"
 						class:active={$page.url.pathname.startsWith('/admin')}
 						onclick={closeMenu}
 					>
+						<Shield size={16} aria-hidden="true" />
 						Admin
 					</a>
 				{/if}
@@ -62,8 +72,28 @@
 						<span class="name">{user.name}</span>
 					</a>
 				{/if}
-				<a href="/logout" class="logout-btn" data-sveltekit-reload onclick={closeMenu}>Sign out</a>
+				<a href="/logout" class="logout-btn with-icon" data-sveltekit-reload onclick={closeMenu}>
+					<LogOut size={15} aria-hidden="true" />
+					Sign out
+				</a>
 			</div>
+		</div>
+
+		<div class="nav-trailing">
+			<ThemeToggle theme={user?.theme ?? 'dark'} />
+			<button
+				type="button"
+				class="menu-toggle"
+				aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+				aria-expanded={menuOpen}
+				onclick={() => (menuOpen = !menuOpen)}
+			>
+				{#if menuOpen}
+					<X size={20} aria-hidden="true" />
+				{:else}
+					<Menu size={20} aria-hidden="true" />
+				{/if}
+			</button>
 		</div>
 	</div>
 </nav>
@@ -107,7 +137,11 @@
 		text-overflow: ellipsis;
 	}
 
-	.brand-mark {
+	.nav-trailing {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin-left: auto;
 		flex-shrink: 0;
 	}
 
@@ -123,50 +157,11 @@
 		background: transparent;
 		cursor: pointer;
 		flex-shrink: 0;
+		color: var(--color-nav-text);
 	}
 
-	.menu-icon,
-	.menu-icon::before,
-	.menu-icon::after {
-		display: block;
-		width: 18px;
-		height: 2px;
-		background: var(--color-nav-text);
-		border-radius: 1px;
-		transition: transform 0.2s, opacity 0.2s;
-	}
-
-	.menu-icon {
-		position: relative;
-	}
-
-	.menu-icon::before,
-	.menu-icon::after {
-		content: '';
-		position: absolute;
-		left: 0;
-	}
-
-	.menu-icon::before {
-		top: -6px;
-	}
-
-	.menu-icon::after {
-		top: 6px;
-	}
-
-	.menu-icon.open {
-		background: transparent;
-	}
-
-	.menu-icon.open::before {
-		top: 0;
-		transform: rotate(45deg);
-	}
-
-	.menu-icon.open::after {
-		top: 0;
-		transform: rotate(-45deg);
+	.menu-toggle:hover {
+		border-color: var(--color-text-dim);
 	}
 
 	.nav-panel {
@@ -191,6 +186,10 @@
 		border-bottom: 2px solid transparent;
 		transition: color 0.15s, border-color 0.15s;
 		white-space: nowrap;
+	}
+
+	.nav-links a.with-icon {
+		padding: 4px 2px;
 	}
 
 	.nav-links a:hover,
@@ -261,9 +260,12 @@
 			padding: 0 1rem;
 		}
 
+		.nav-trailing {
+			gap: 0.35rem;
+		}
+
 		.menu-toggle {
 			display: flex;
-			margin-left: auto;
 		}
 
 		.nav-panel {

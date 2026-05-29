@@ -21,6 +21,11 @@ export const toastFromResult = (result) => {
 		if (typeof message === 'string') {
 			toast.error(message);
 		}
+		return;
+	}
+
+	if (result.type === 'error') {
+		toast.error('Something went wrong. Please try again.');
 	}
 };
 

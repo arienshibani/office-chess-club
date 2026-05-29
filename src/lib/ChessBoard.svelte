@@ -1,18 +1,24 @@
 <script>
+	import BoardArrows from '$lib/BoardArrows.svelte';
+	import { pieceSvgUrl } from '$lib/chess-pieces.js';
+	import { suggestionArrowLabel } from '$lib/chess-arrows.js';
+
 	/**
 	 * Renders a chess board from a FEN string.
-	 * Accepts `fen` prop for reactive updates.
+	 * `suggestion` draws a dashed arrow + ghost piece (engine best move, not played).
 	 */
-	let { fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' } = $props();
+	const props = $props();
+	const fen = $derived(
+		props.fen ?? 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+	);
+	/** @type {import('$lib/chess-arrows.js').SuggestionDisplay | null} */
+	const suggestion = $derived(props.suggestion ?? null);
+	const boardLabel = $derived(
+		suggestion ? `Chess board. ${suggestionArrowLabel(suggestion)}` : 'Chess board'
+	);
 
 	const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
 	const RANKS = [8, 7, 6, 5, 4, 3, 2, 1];
-
-	/** @type {Record<string, string>} */
-	const PIECE_UNICODE = {
-		K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙',
-		k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟'
-	};
 
 	/**
 	 * Parse FEN board string into a 2D array [rank8..rank1][fileA..fileH]
@@ -39,12 +45,14 @@
 	let board = $derived(parseFen(fen));
 </script>
 
-<div class="board" role="img" aria-label="Chess board">
+<div class="board-container">
+	<div class="board" role="img" aria-label={boardLabel}>
 	{#each RANKS as rank, rankIdx}
 		{#each FILES as file, fileIdx}
 			{@const piece = board[rankIdx]?.[fileIdx] ?? null}
+			{@const squareName = `${file}${rank}`}
+			{@const isSuggestionTarget = suggestion?.to === squareName}
 			{@const light = (rankIdx + fileIdx) % 2 === 0}
-			{@const isWhitePiece = piece && piece === piece.toUpperCase()}
 			<div
 				class="square"
 				class:light
@@ -52,9 +60,20 @@
 				title="{file}{rank}"
 			>
 				{#if piece}
-					<span class="piece" class:white-piece={isWhitePiece} class:black-piece={!isWhitePiece}>
-						{PIECE_UNICODE[piece] ?? piece}
-					</span>
+					<img
+						class="piece-img"
+						src={pieceSvgUrl(piece)}
+						alt=""
+						draggable="false"
+					/>
+				{/if}
+				{#if isSuggestionTarget && suggestion}
+					<img
+						class="piece-img suggestion-ghost"
+						src={pieceSvgUrl(suggestion.piece)}
+						alt=""
+						draggable="false"
+					/>
 				{/if}
 				{#if fileIdx === 0}
 					<span class="label rank-label">{rank}</span>
@@ -65,17 +84,25 @@
 			</div>
 		{/each}
 	{/each}
+	</div>
+	<BoardArrows arrow={suggestion} />
 </div>
 
 <style>
+	.board-container {
+		position: relative;
+		width: 100%;
+		max-width: min(480px, 100%);
+		aspect-ratio: 1;
+	}
+
 	.board {
 		display: grid;
 		grid-template-columns: repeat(8, 1fr);
 		grid-template-rows: repeat(8, 1fr);
 		width: 100%;
-		max-width: min(480px, 100%);
-		aspect-ratio: 1;
-		margin: 0 auto;
+		height: 100%;
+		margin: 0;
 		border: 2px solid #333;
 		border-radius: 4px;
 		overflow: hidden;
@@ -90,14 +117,22 @@
 	.light { background: #f0d9b5; }
 	.dark { background: #b58863; }
 
-	.piece {
-		font-size: clamp(1.4rem, 4vw, 2.2rem);
-		line-height: 1;
-		cursor: default;
-		filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+	.piece-img {
+		width: 88%;
+		height: 88%;
+		object-fit: contain;
+		pointer-events: none;
+		user-select: none;
+		-webkit-user-drag: none;
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
 	}
-	.white-piece { color: #fff; text-shadow: 0 0 2px #000, 0 0 4px #000; }
-	.black-piece { color: #1a1a1a; text-shadow: 0 0 1px #fff; }
+
+	.suggestion-ghost {
+		position: absolute;
+		z-index: 3;
+		opacity: 0.42;
+		filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
+	}
 
 	.label {
 		position: absolute;

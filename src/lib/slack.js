@@ -21,7 +21,7 @@ export async function notifyMatchApproved({
 	const replayUrl = `${ORIGIN}/matches/${matchId}`;
 	const text = isDraw
 		? `🤝 *${winnerName}* and *${loserName}* drew! (${winnerEloChange >= 0 ? '+' : ''}${winnerEloChange} / ${loserEloChange >= 0 ? '+' : ''}${loserEloChange} Elo) <${replayUrl}|View match>`
-		: `♟️ *${winnerName}* defeated *${loserName}*! (+${winnerEloChange} / ${loserEloChange} Elo) <${replayUrl}|Replay game here>`;
+		: `♞ *${winnerName}* defeated *${loserName}*! (+${winnerEloChange} / ${loserEloChange} Elo) <${replayUrl}|Replay game here>`;
 
 	await sendWebhook({ text });
 }
@@ -41,7 +41,7 @@ export async function notifyPendingMatch({ reporterName, opponentName, matchId }
 /** @returns {Promise<boolean>} */
 export const sendSlackTestNotification = async () => {
 	return sendWebhook({
-		text: '♟️ Test notification from Office Chess Club — Slack is connected!'
+		text: '♞ Test notification from Office Chess Club — Slack is connected!'
 	});
 };
 
