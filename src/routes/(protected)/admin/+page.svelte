@@ -28,6 +28,7 @@
 	let clearingSlack = $state(false);
 	let testingSlack = $state(false);
 	let processing = $state(/** @type {string | null} */ (null));
+	let approvingUser = $state(/** @type {string | null} */ (null));
 	let resettingPassword = $state(/** @type {string | null} */ (null));
 	let deletingUser = $state(/** @type {string | null} */ (null));
 	let resettingLadder = $state(false);
@@ -100,6 +101,9 @@
 		>
 			<Users size={15} aria-hidden="true" />
 			Users
+			{#if data.pendingUsers.length > 0}
+				<span class="tab-badge">{data.pendingUsers.length}</span>
+			{/if}
 			<span class="tab-count">{data.users.length}</span>
 		</button>
 		<button
@@ -433,11 +437,83 @@
 	</div>
 	{:else if activeTab === 'users'}
 	<div class="tab-panel" role="tabpanel">
+		{#if data.pendingUsers.length > 0}
+			<section class="card">
+				<h2>
+					Pending Signups
+					<span class="count-badge">{data.pendingUsers.length}</span>
+				</h2>
+				<p class="description">
+					New accounts can browse the club but cannot submit match results until approved.
+				</p>
+				<div class="signup-queue">
+					{#each data.pendingUsers as user (user._id)}
+						<div class="queue-item">
+							<div class="signup-summary">
+								<a href="/players/{user._id}" class="user-link">{user.name}</a>
+								<span class="mono">@{user.username}</span>
+								{#if user.createdAt}
+									<span class="date">Signed up {new Date(user.createdAt).toLocaleDateString()}</span>
+								{/if}
+							</div>
+							<div class="actions">
+								<form
+									method="POST"
+									action="?/approveUser"
+									use:enhance={() => {
+										approvingUser = user._id;
+										return async (ctx) => {
+											await adminToast()(ctx);
+											approvingUser = null;
+										};
+									}}
+								>
+									<input type="hidden" name="playerId" value={user._id} />
+									<button
+										type="submit"
+										class="approve-btn with-icon"
+										disabled={approvingUser === user._id}
+									>
+										<Check size={14} aria-hidden="true" />
+										{approvingUser === user._id ? '…' : 'Approve as member'}
+									</button>
+								</form>
+								<form
+									method="POST"
+									action="?/deleteUser"
+									onsubmit={(e) => {
+										if (!confirmDeleteUser(user)) e.preventDefault();
+									}}
+									use:enhance={() => {
+										deletingUser = user._id;
+										return async (ctx) => {
+											await adminToast()(ctx);
+											deletingUser = null;
+										};
+									}}
+								>
+									<input type="hidden" name="playerId" value={user._id} />
+									<button
+										type="submit"
+										class="reject-btn with-icon"
+										disabled={deletingUser === user._id}
+									>
+										<X size={14} aria-hidden="true" />
+										{deletingUser === user._id ? '…' : 'Reject'}
+									</button>
+								</form>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</section>
+		{/if}
+
 		<section class="card">
 			<h2>Users</h2>
 			<p class="description">
-				Manage club members. Reset passwords or remove accounts. You cannot delete your own account
-				or the only remaining admin.
+				Manage club members. Approve pending signups, reset passwords, or remove accounts. You cannot delete
+				your own account or the only remaining admin.
 			</p>
 
 			{#if data.users.length === 0}
@@ -469,8 +545,10 @@
 									<td>
 										{#if user.isAdmin}
 											<span class="role-badge admin">Admin</span>
+										{:else if user.status === 'pending'}
+											<span class="role-badge pending">Pending</span>
 										{:else}
-											<span class="role-badge">Player</span>
+											<span class="role-badge member">Member</span>
 										{/if}
 									</td>
 									<td>
@@ -745,6 +823,22 @@
 	.error { color: var(--color-error); background: var(--color-error-bg); border: 1px solid var(--color-error-border); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
 
 	.match-queue { display: flex; flex-direction: column; gap: 10px; }
+	.signup-queue { display: flex; flex-direction: column; gap: 10px; }
+	.signup-summary {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		flex: 1;
+	}
+	.signup-summary .mono {
+		font-family: ui-monospace, monospace;
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+	}
+	.signup-summary .date {
+		font-size: 0.78rem;
+		color: var(--color-text-faint);
+	}
 	.queue-item {
 		background: var(--color-bg);
 		border: 1px solid var(--color-border-strong);
@@ -843,6 +937,14 @@
 	.role-badge.admin {
 		color: var(--color-accent-gold);
 		border-color: var(--color-accent-gold);
+	}
+	.role-badge.member {
+		color: var(--color-success);
+		border-color: var(--color-badge-win-border);
+	}
+	.role-badge.pending {
+		color: var(--color-warning);
+		border-color: var(--color-notice-border);
 	}
 	.password-form {
 		display: flex;

@@ -1,4 +1,5 @@
 import {
+	approveUserById,
 	deleteUserById,
 	resetLadder as resetLadderSystem,
 	resetUserPasswordById
@@ -9,6 +10,7 @@ import { deleteMatchById } from '$lib/match-delete.js';
 import { generateHttpSubmitApiKey } from '$lib/http-submit-config.js';
 import { isValidSlackWebhookUrl, getSlackWebhookStatus } from '$lib/slack-config.js';
 import { notifyMatchApproved, sendSlackTestNotification } from '$lib/slack.js';
+import { normalizePlayerStatus, PLAYER_STATUS_PENDING } from '$lib/player-status.js';
 import { error, fail } from '@sveltejs/kit';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -37,8 +39,12 @@ export async function load({ locals, depends }) {
 		username: p.username,
 		rating: p.rating,
 		isAdmin: !!p.isAdmin,
-		isSelf: p._id.toString() === currentAdminId
+		status: normalizePlayerStatus(p.status),
+		isSelf: p._id.toString() === currentAdminId,
+		createdAt: p.createdAt ?? null
 	}));
+
+	const pendingUsers = users.filter((u) => u.status === PLAYER_STATUS_PENDING);
 
 	const playerIds = [
 		...new Set(
@@ -76,6 +82,7 @@ export async function load({ locals, depends }) {
 
 	return {
 		pendingMatches: enriched,
+		pendingUsers,
 		users,
 		currentAdminId,
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
@@ -327,6 +334,27 @@ export const actions = {
 		}
 
 		return { success: true, message: 'Match rejected.' };
+	},
+
+	approveUser: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const playerId = form.get('playerId')?.toString();
+		if (!playerId) return fail(400, { error: 'Missing user ID.' });
+
+		try {
+			await approveUserById(playerId, locals.user._id);
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message)
+				});
+			}
+			throw err;
+		}
+
+		return { success: true, message: 'User approved as member.' };
 	},
 
 	resetUserPassword: async ({ request, locals }) => {

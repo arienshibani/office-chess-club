@@ -15,6 +15,7 @@
 
 	const { data, children } = $props();
 	const user = $derived(data.user);
+	const canSubmit = $derived(data.canSubmit);
 	let menuOpen = $state(false);
 
 	const closeMenu = () => {
@@ -49,7 +50,13 @@
 					<History size={16} aria-hidden="true" />
 					Match History
 				</a>
-				<a href="/submit" class="with-icon" class:active={$page.url.pathname === '/submit'} onclick={closeMenu}>
+				<a
+					href="/submit"
+					class="with-icon"
+					class:active={$page.url.pathname === '/submit'}
+					class:restricted={!canSubmit}
+					onclick={closeMenu}
+				>
 					<PlusCircle size={16} aria-hidden="true" />
 					Submit Result
 				</a>
@@ -196,6 +203,10 @@
 	.nav-links a.active {
 		color: var(--color-nav-text);
 		border-color: var(--color-nav-text);
+	}
+
+	.nav-links a.restricted {
+		opacity: 0.55;
 	}
 
 	.user-area {

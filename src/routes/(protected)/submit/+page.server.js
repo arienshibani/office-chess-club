@@ -1,10 +1,11 @@
 import { getPlayers, getConfig } from '$lib/db.js';
 import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
+import { canSubmitMatches } from '$lib/player-status.js';
 import { fail } from '@sveltejs/kit';
 import { createMatch } from '$lib/match-submit.js';
 
 /** @type {import('./$types').PageServerLoad} */
-export async function load({ url }) {
+export async function load({ url, locals }) {
 	const [playersCol, cfgCol] = await Promise.all([getPlayers(), getConfig()]);
 
 	const [players, config, httpSubmit] = await Promise.all([
@@ -14,6 +15,7 @@ export async function load({ url }) {
 	]);
 
 	return {
+		canSubmit: canSubmitMatches(locals.user),
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
 		allPlayers: players.map((p) => ({ _id: p._id.toString(), name: p.name, rating: p.rating })),
 		apiSubmitEnabled: httpSubmit.enabled && !!httpSubmit.apiKey,
@@ -26,6 +28,9 @@ export async function load({ url }) {
 export const actions = {
 	logMatch: async ({ request, locals }) => {
 		if (!locals.user) return fail(401, { error: 'Not authenticated' });
+		if (!canSubmitMatches(locals.user)) {
+			return fail(403, { error: 'Your account is pending admin approval. You cannot submit matches yet.' });
+		}
 
 		const data = await request.formData();
 		const whiteId = data.get('whiteId')?.toString();

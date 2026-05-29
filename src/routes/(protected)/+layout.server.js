@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import { getConfig } from '$lib/db.js';
+import { canSubmitMatches } from '$lib/player-status.js';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load({ locals, url, depends }) {
@@ -16,6 +17,7 @@ export async function load({ locals, url, depends }) {
 
 	return {
 		user: locals.user,
+		canSubmit: canSubmitMatches(locals.user),
 		clubName: clubNameRaw || 'Office'
 	};
 }

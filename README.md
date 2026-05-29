@@ -68,7 +68,6 @@ https://YOUR-APP.vercel.app/login
 
 **That’s it.** Create an account, invite coworkers to do the same, and start logging games.
 
----
 
 ## After deploy
 
@@ -90,7 +89,26 @@ You only need this if you want the admin panel. With honor system on (the defaul
 
 In Atlas, edit the `config` collection → document `_id: "global_settings"` → change `clubName` from `"Office"` to whatever you like (e.g. `"Acme Corp"`). It shows on the login page.
 
----
+## Submitting Chess Games
+
+There's two ways to submit matches:
+
+1. Manually by any user via the "Submit Match" button on the top of the navigation bar. This is useful for quick matches or when you don't have a programmatic way to submit matches.
+
+2. Via HTTP POST request to the `/api/matches` endpoint. This is useful for programs, third-party services, smart chessboards or jank web-cam + raspberri pi setups. If you are using the HTTP submission feature, you will need to generate an API key in the admin panel, and use it to submit matches to the `/api/matches` endpoint.
+
+### Example HTTP POST request
+
+```bash
+curl -X POST https://your-app.vercel.app/api/matches \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"whitePlayerId": "PLAYER_ID", "blackPlayerId": "PLAYER_ID", "result": "white", "notation": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6"}'
+```
+
+### PGN Notation and Stockfish Analysis
+
+If you submit a PGN notation, the match will be analyzed by Stockfish. The app uses the latest version of Stockfish (17.1) compiled with the `popcnt` instruction set.
 
 ## Local development
 
@@ -105,7 +123,6 @@ Open [http://localhost:5173/login](http://localhost:5173/login).
 
 **CLI deploy alternative:** if you use the Vercel CLI locally, `./scripts/deploy-vercel.sh` reads your `.env` and pushes env vars + deploys production.
 
----
 
 ## Architecture 📦
 
@@ -135,6 +152,7 @@ src/
 
 ## License
 
-Do whatever the hell you want.
+Do what you like with this.
+
 
 **Third-party assets:** Board pieces in `static/pieces/cburnett/` are the [Cburnett](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett) set (Colin M.L. Burnett), used by Lichess under [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.html).

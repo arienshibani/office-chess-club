@@ -1,4 +1,5 @@
 import { getPlayers, ObjectId, ensureIndexes } from '$lib/db.js';
+import { normalizePlayerStatus } from '$lib/player-status.js';
 import { verifySessionToken, COOKIE_NAME } from '$lib/session.js';
 import { normalizeTheme } from '$lib/theme.js';
 
@@ -29,6 +30,7 @@ export async function handle({ event, resolve }) {
 						avatarUrl: user.avatarUrl ?? '',
 						rating: user.rating,
 						isAdmin: user.isAdmin,
+						status: normalizePlayerStatus(user.status),
 						stats: user.stats,
 						theme: normalizeTheme(user.theme)
 					};

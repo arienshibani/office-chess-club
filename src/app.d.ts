@@ -11,6 +11,7 @@ declare global {
 				avatarUrl: string;
 				rating: number;
 				isAdmin: boolean;
+				status: 'pending' | 'member';
 				stats: { wins: number; losses: number; draws: number };
 				theme: 'light' | 'dark';
 			} | null;

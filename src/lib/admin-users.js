@@ -1,6 +1,7 @@
 import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
 import { deleteMatchById } from '$lib/match-delete.js';
 import { hashPassword } from '$lib/password.js';
+import { normalizePlayerStatus, PLAYER_STATUS_MEMBER } from '$lib/player-status.js';
 
 export const DEFAULT_RATING = 1200;
 
@@ -78,6 +79,40 @@ export const resetUserPasswordById = async (userId, newPassword) => {
 
 	const passwordHash = await hashPassword(newPassword);
 	await playersCol.updateOne({ _id: oid }, { $set: { passwordHash } });
+};
+
+/**
+ * @param {string} userId
+ * @param {string} actingAdminId
+ */
+export const approveUserById = async (userId, actingAdminId) => {
+	let oid;
+	try {
+		oid = new ObjectId(userId);
+	} catch {
+		throw createHttpError(400, 'Invalid user ID.');
+	}
+
+	const playersCol = await getPlayers();
+	const player = await playersCol.findOne({ _id: oid });
+	if (!player) {
+		throw createHttpError(404, 'User not found.');
+	}
+
+	if (normalizePlayerStatus(player.status) === PLAYER_STATUS_MEMBER) {
+		throw createHttpError(400, 'User is already a member.');
+	}
+
+	await playersCol.updateOne(
+		{ _id: oid },
+		{
+			$set: {
+				status: PLAYER_STATUS_MEMBER,
+				approvedAt: new Date(),
+				approvedBy: new ObjectId(actingAdminId)
+			}
+		}
+	);
 };
 
 export const resetLadder = async () => {

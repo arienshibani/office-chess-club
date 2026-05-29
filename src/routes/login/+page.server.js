@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { setSessionCookie } from '$lib/auth.js';
 import { getConfig, getPlayers } from '$lib/db.js';
+import { PLAYER_STATUS_PENDING } from '$lib/player-status.js';
 import { hashPassword, normalizeUsername, verifyPassword } from '$lib/password.js';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -28,6 +29,7 @@ const newPlayerDoc = (username, name, passwordHash) => ({
 	avatarUrl: '',
 	rating: 1200,
 	isAdmin: false,
+	status: PLAYER_STATUS_PENDING,
 	stats: { wins: 0, losses: 0, draws: 0 },
 	createdAt: new Date()
 });

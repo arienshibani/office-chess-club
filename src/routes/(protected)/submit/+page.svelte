@@ -54,6 +54,15 @@ const copyCurl = async () => {
 	<h1>Submit results</h1>
 	<p class="subtitle">Log a match result to update the leaderboard.</p>
 
+	{#if !data.canSubmit}
+		<section class="log-match blocked">
+			<p class="notice with-icon">
+				<AlertTriangle size={15} aria-hidden="true" />
+				Your account is pending admin approval. You can browse matches and profiles, but you cannot submit
+				results until an admin promotes you to member.
+			</p>
+		</section>
+	{:else}
 	<section class="log-match">
 		{#if !data.honorSystemEnabled}
 			<p class="notice with-icon">
@@ -179,6 +188,7 @@ const copyCurl = async () => {
 			</p>
 		{/if}
 	</section>
+	{/if}
 </div>
 
 <style>

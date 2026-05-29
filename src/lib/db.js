@@ -64,6 +64,7 @@ export async function ensureIndexes() {
 
 	await players.createIndex({ username: 1 }, { unique: true });
 	await players.createIndex({ rating: -1 });
+	await players.createIndex({ status: 1 });
 	await db.collection('matches').createIndex({ whitePlayerId: 1 });
 	await db.collection('matches').createIndex({ blackPlayerId: 1 });
 	await db.collection('matches').createIndex({ status: 1 });
