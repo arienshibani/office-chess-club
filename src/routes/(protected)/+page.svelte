@@ -17,16 +17,17 @@
 <div class="dashboard">
 	<section class="leaderboard-section">
 		<h2>Leaderboard</h2>
+		<div class="table-scroll">
 		<table class="leaderboard">
 			<thead>
 				<tr>
 					<th>#</th>
 					<th>Player</th>
 					<th>Rating</th>
-					<th>W</th>
-					<th>L</th>
-					<th>D</th>
-					<th>Games</th>
+					<th class="col-stats">W</th>
+					<th class="col-stats">L</th>
+					<th class="col-stats">D</th>
+					<th class="col-stats">Games</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -45,16 +46,17 @@
 							</a>
 						</td>
 						<td class="rating" style="color: {ratingColor(player.rating)}">{player.rating}</td>
-						<td class="stat">{player.stats.wins}</td>
-						<td class="stat">{player.stats.losses}</td>
-						<td class="stat">{player.stats.draws}</td>
-						<td class="stat muted">{games}</td>
+						<td class="stat col-stats">{player.stats.wins}</td>
+						<td class="stat col-stats">{player.stats.losses}</td>
+						<td class="stat col-stats">{player.stats.draws}</td>
+						<td class="stat muted col-stats">{games}</td>
 					</tr>
 				{:else}
 					<tr><td colspan="7" class="empty">No players yet.</td></tr>
 				{/each}
 			</tbody>
 		</table>
+		</div>
 	</section>
 
 	<section class="recent-matches">
@@ -113,4 +115,27 @@
 		text-decoration: none;
 	}
 	.view-all:hover { color: var(--color-link-hover); }
+
+	@media (max-width: 640px) {
+		.leaderboard th.col-stats,
+		.leaderboard td.col-stats {
+			display: none;
+		}
+
+		.leaderboard {
+			min-width: 0;
+		}
+
+		.table-scroll > table.leaderboard {
+			min-width: 280px;
+		}
+
+		.player-link {
+			font-size: 0.85rem;
+		}
+
+		.rating {
+			font-size: 0.95rem;
+		}
+	}
 </style>

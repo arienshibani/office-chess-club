@@ -73,8 +73,9 @@
 		grid-template-columns: repeat(8, 1fr);
 		grid-template-rows: repeat(8, 1fr);
 		width: 100%;
-		max-width: 480px;
+		max-width: min(480px, 100%);
 		aspect-ratio: 1;
+		margin: 0 auto;
 		border: 2px solid #333;
 		border-radius: 4px;
 		overflow: hidden;

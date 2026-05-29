@@ -446,4 +446,21 @@ const subheading = $derived(
 		font-size: 0.84rem;
 		margin: 0 0 0.85rem;
 	}
+
+	@media (max-width: 640px) {
+		.login-wrap {
+			padding: 1rem;
+			align-items: flex-start;
+			padding-top: max(1rem, env(safe-area-inset-top));
+		}
+
+		.login-card {
+			padding: 1.25rem;
+			border-radius: 12px;
+		}
+
+		.panel h1 {
+			font-size: 1.2rem;
+		}
+	}
 </style>

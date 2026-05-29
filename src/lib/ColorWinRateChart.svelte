@@ -134,4 +134,16 @@
 	.dot.win { background: var(--color-success); }
 	.dot.loss { background: var(--color-error); }
 	.dot.draw { background: var(--color-text-faint); }
+
+	@media (max-width: 480px) {
+		.color-win-rate {
+			grid-template-columns: 1fr;
+			gap: 1.25rem;
+		}
+
+		.legend {
+			flex-wrap: wrap;
+			gap: 0.5rem 1rem;
+		}
+	}
 </style>
