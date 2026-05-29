@@ -2,6 +2,9 @@
 
 **Run your own private chess club at work.** Track over-the-board chess games between your coworkers. Log games, have you own internal Elo system, and settle the eternal "who's actually best?" debate. Self-hosted. Free to run. Takes about 10 minutes to set up.
 
+<img width="1206" height="967" alt="image" src="https://github.com/user-attachments/assets/ae985dc3-4475-41f2-b1b9-eb5637787dd6" />
+
+
 ## Features 🌟
 
 - **Instant Elo ratings** 📈 Every logged game updates the leaderboard automatically (K=32, starting at 1200).
