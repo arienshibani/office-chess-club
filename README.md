@@ -2,7 +2,7 @@
 
 **Run your own private chess club at work.** Track over-the-board chess games between your coworkers. Log games, have you own internal Elo system, and settle the eternal "who's actually best?" debate. Self-hosted. Free to run. Takes about 10 minutes to set up.
 
-<img width="1206" height="967" alt="image" src="https://github.com/user-attachments/assets/ae985dc3-4475-41f2-b1b9-eb5637787dd6" />
+<img width="1058" height="969" alt="image" src="https://github.com/user-attachments/assets/4ffa9f86-ef19-4a85-ab40-6aae4beb188a" />
 
 
 ## Features 🌟
