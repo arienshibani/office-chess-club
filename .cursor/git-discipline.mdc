@@ -1,0 +1,31 @@
+---
+description: Git Discipline — Conventional Commits and atomic change grouping
+alwaysApply: true
+---
+
+# Git conventions
+
+## 1. Commit Format
+All commits must follow **[Conventional Commits](https://www.conventionalcommits.org/)**:
+- **Format**: `type(scope): short imperative summary`
+- **Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+- **Style**: Max 50 characters, imperative mood ("add" not "added"), no trailing period.
+- **Scope**: Use the module, feature, or directory name (e.g., `api`, `ui`, `auth`).
+
+## 2. Commit Granularity (Atomic Commits)
+- **Small & Focused**: One logical change per commit. Do not bundle unrelated fixes, features, or refactors.
+- **Grouping**: If a task involves multiple layers (e.g., a DB change and a UI change), split them into separate commits while maintaining the same logical thread.
+- **No "Drive-bys"**: Do not include "clean up" or formatting changes in a commit that introduces a new feature. Refactors should be their own `refactor:` commits.
+
+## 3. Automation Rule
+When asked to "commit" or "save my changes":
+1. **Analyze** the diff to identify distinct logical changes.
+2. **Stage** only the files/lines relevant to the first logical change.
+3. **Commit** using the conventional format.
+4. **Repeat** until all changes are committed in a sequence of meaningful steps.
+
+**Examples of logical grouping:**
+- `feat(db): add users table schema`
+- `feat(api): implement user registration endpoint`
+- `feat(ui): add signup form component`
+- `fix(ui): resolve layout shift on mobile signup`
