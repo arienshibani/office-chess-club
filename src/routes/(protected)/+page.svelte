@@ -1,28 +1,31 @@
 <script>
-	import { ArrowRight } from '@lucide/svelte';
-	import MatchListTable from '$lib/MatchListTable.svelte';
-	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
+import { ArrowRight } from "@lucide/svelte";
+import MatchListTable from "$lib/MatchListTable.svelte";
+import PlayerAvatar from "$lib/PlayerAvatar.svelte";
 
-	let { data } = $props();
+const { data } = $props();
 
-	/** @param {number} r */
-	const ratingColor = (r) => {
-		if (r >= 1400) return '#f0c040';
-		if (r >= 1300) return '#a0c8ff';
-		return '#aaa';
-	};
+const githubRepoUrl = "https://github.com/arienshibani/office-chess-club";
+
+/** @param {number} r */
+const ratingColor = (r) => {
+	if (r >= 1400) return "#f0c040";
+	if (r >= 1300) return "#a0c8ff";
+	return "#aaa";
+};
 </script>
 
 <svelte:head><title>Home — Office Chess Club</title></svelte:head>
 
 <div class="dashboard">
+	<div class="dashboard-content">
 	<section class="leaderboard-section">
 		<h2>Leaderboard</h2>
 		<div class="table-scroll">
 		<table class="leaderboard">
 			<thead>
 				<tr>
-					<th>#</th>
+					<th class="rank">#</th>
 					<th>Player</th>
 					<th>Rating</th>
 					<th class="col-stats">W</th>
@@ -70,13 +73,43 @@
 			</a>
 		{/if}
 	</section>
+	</div>
+
+	<footer class="repo-footer">
+		<a href={githubRepoUrl} target="_blank" rel="noopener noreferrer">View on GitHub</a>
+	</footer>
 </div>
 
 <style>
 	.dashboard {
 		display: flex;
 		flex-direction: column;
+		min-height: calc(100vh - 56px - 4rem);
 		gap: 2rem;
+	}
+
+	.dashboard-content {
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		flex: 1;
+	}
+
+	.repo-footer {
+		margin-top: auto;
+		padding-top: 1rem;
+		text-align: center;
+	}
+
+	.repo-footer a {
+		font-size: 0.75rem;
+		color: var(--color-text-extra-dim);
+		text-decoration: none;
+		transition: color 0.15s;
+	}
+
+	.repo-footer a:hover {
+		color: var(--color-text-dim);
 	}
 	h2 { margin: 0 0 1rem; font-size: 1.1rem; font-weight: 600; color: var(--color-heading); }
 
@@ -97,9 +130,23 @@
 		font-size: 0.9rem;
 	}
 	.leaderboard tbody tr:hover td { background: var(--color-surface-hover); }
-	.rank { color: var(--color-text-dim); font-size: 0.8rem; width: 30px; }
+	.leaderboard th.rank,
+	.rank { color: var(--color-text-dim); font-size: 0.8rem; width: 30px; text-align: center; }
 	.rating { font-weight: 700; font-size: 1rem; }
-	.stat { color: var(--color-text-muted); text-align: center; }
+	.leaderboard th.col-stats,
+	.leaderboard td.col-stats {
+		text-align: center;
+		width: 3.25rem;
+		padding-left: 14px;
+		padding-right: 14px;
+		font-variant-numeric: tabular-nums;
+	}
+	.leaderboard th.col-stats:last-child,
+	.leaderboard td.col-stats:last-child {
+		width: 4.75rem;
+		padding-left: 45px;
+	}
+	.stat { color: var(--color-text-muted); }
 	.muted { color: var(--color-text-dim); }
 	.player-link {
 		display: flex;
