@@ -1,6 +1,7 @@
 import { getPlayers, getMatches, ObjectId } from '$lib/db.js';
 import { enrichMatches } from '$lib/matches.js';
 import { deleteMatchById } from '$lib/match-delete.js';
+import { updateMatchResultById } from '$lib/match-result-update.js';
 import { fail, redirect } from '@sveltejs/kit';
 
 const PER_PAGE = 10;
@@ -51,6 +52,37 @@ export const actions = {
 
 		try {
 			await deleteMatchById(matchId);
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message)
+				});
+			}
+			throw err;
+		}
+
+		if (returnTo?.startsWith('/')) {
+			redirect(303, returnTo);
+		}
+		const rawPage = url.searchParams.get('page');
+		const redirectTo = rawPage && rawPage !== '1' ? `/matches?page=${rawPage}` : '/matches';
+		redirect(303, redirectTo);
+	},
+
+	correctResult: async ({ request, locals, url }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Admin access required.' });
+
+		const form = await request.formData();
+		const matchId = form.get('matchId')?.toString();
+		const result = form.get('result')?.toString();
+		const returnTo = form.get('returnTo')?.toString();
+		if (!matchId || !result) return fail(400, { error: 'Missing required fields.' });
+
+		try {
+			await updateMatchResultById(
+				matchId,
+				/** @type {'white' | 'black' | 'draw'} */ (result)
+			);
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {

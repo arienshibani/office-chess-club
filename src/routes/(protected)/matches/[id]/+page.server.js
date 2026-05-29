@@ -1,6 +1,7 @@
 import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
 import { validateNotation } from '$lib/notation.js';
 import { deleteMatchById } from '$lib/match-delete.js';
+import { updateMatchResultById } from '$lib/match-result-update.js';
 import { error, fail, redirect } from '@sveltejs/kit';
 
 /** @param {import('mongodb').ObjectId} whiteId @param {import('mongodb').ObjectId} blackId @param {string} userId */
@@ -90,7 +91,7 @@ export const actions = {
 
 		await matchesCol.updateOne({ _id: oid }, { $set: { notation: parsed.notation } });
 
-		return { notationSuccess: true };
+		return { notationSuccess: true, message: 'Notation saved.' };
 	},
 
 	deleteMatch: async ({ locals, params }) => {
@@ -108,5 +109,29 @@ export const actions = {
 		}
 
 		redirect(303, '/matches');
+	},
+
+	correctResult: async ({ request, locals, params }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Admin access required.' });
+
+		const form = await request.formData();
+		const result = form.get('result')?.toString();
+		if (!result) return fail(400, { error: 'Missing result.' });
+
+		try {
+			await updateMatchResultById(
+				params.id,
+				/** @type {'white' | 'black' | 'draw'} */ (result)
+			);
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message)
+				});
+			}
+			throw err;
+		}
+
+		return { resultCorrected: true, message: 'Match result updated.' };
 	}
 };

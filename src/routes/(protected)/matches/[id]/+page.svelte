@@ -1,13 +1,14 @@
 <script>
 	import { enhance } from '$app/forms';
-	import { Chess } from 'chess.js';
+	import { withActionToast } from '$lib/action-toast.js';
 	import ChessBoard from '$lib/ChessBoard.svelte';
+	import MatchActionsMenu from '$lib/MatchActionsMenu.svelte';
 	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
 	import { detectNotationType } from '$lib/notation.js';
+	import { Chess } from 'chess.js';
 
 	let { data, form } = $props();
 	let { match, white, black, canEditNotation, isAdmin } = $derived(data);
-	let deleting = $state(false);
 
 	const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -94,6 +95,10 @@
 	);
 
 	let pending = $derived(match.status === 'pending');
+
+	let currentResult = $derived(
+		match.isDraw ? 'draw' : match.winnerId === match.whitePlayerId ? 'white' : 'black'
+	);
 </script>
 
 <svelte:head><title>Match — Office Chess Club</title></svelte:head>
@@ -104,6 +109,17 @@
 		<h1>Match Review</h1>
 		{#if pending}
 			<span class="badge pending-badge">⚠ Pending Approval</span>
+		{/if}
+		{#if isAdmin}
+			<MatchActionsMenu
+				matchId={match._id}
+				status={match.status}
+				result={currentResult}
+				whiteName={white?.name ?? 'White'}
+				blackName={black?.name ?? 'Black'}
+				deleteAction="?/deleteMatch"
+				correctAction="?/correctResult"
+			/>
 		{/if}
 	</div>
 
@@ -206,41 +222,8 @@
 				{/if}
 			</div>
 
-			{#if isAdmin}
-				<div class="admin-card">
-					<h2>Admin</h2>
-					<p class="admin-hint">
-						{#if pending}
-							Removes this match from history. Ratings were not applied yet.
-						{:else}
-							Removes this match and reverts both players’ ratings and win/loss/draw stats.
-						{/if}
-					</p>
-					{#if form?.error && !canEditNotation}
-						<p class="err">{form.error}</p>
-					{/if}
-					<form
-						method="POST"
-						action="?/deleteMatch"
-						use:enhance={() => {
-							deleting = true;
-							return async ({ update }) => {
-								await update();
-								deleting = false;
-							};
-						}}
-						onsubmit={(event) => {
-							const message = pending
-								? 'Delete this pending match?'
-								: 'Delete this match and revert rating changes for both players?';
-							if (!confirm(message)) event.preventDefault();
-						}}
-					>
-						<button type="submit" class="delete-match-btn" disabled={deleting}>
-							{deleting ? 'Deleting…' : 'Delete match'}
-						</button>
-					</form>
-				</div>
+			{#if isAdmin && form?.error && !canEditNotation}
+				<p class="err admin-err">{form.error}</p>
 			{/if}
 
 			{#if canEditNotation}
@@ -250,16 +233,13 @@
 					{#if form?.error}
 						<p class="err">{form.error}</p>
 					{/if}
-					{#if form?.notationSuccess}
-						<p class="success">Notation saved.</p>
-					{/if}
 					<form
 						method="POST"
 						action="?/updateNotation"
 						use:enhance={() => {
 							savingNotation = true;
-							return async ({ update }) => {
-								await update();
+							return async (ctx) => {
+								await withActionToast()(ctx);
 								savingNotation = false;
 							};
 						}}
@@ -284,8 +264,13 @@
 
 <style>
 	.match-page { display: flex; flex-direction: column; gap: 1.25rem; }
-	.match-header { display: flex; align-items: center; gap: 1rem; }
-	h1 { margin: 0; font-size: 1.2rem; }
+	.match-header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+	h1 { margin: 0; font-size: 1.2rem; flex: 1; min-width: 0; }
 	.back { color: var(--color-text-faint); text-decoration: none; font-size: 0.9rem; }
 	.back:hover { color: var(--color-text-muted); }
 
@@ -295,8 +280,15 @@
 		gap: 2rem;
 		align-items: start;
 	}
-	@media (max-width: 780px) {
+	@media (max-width: 900px) {
 		.match-layout { grid-template-columns: 1fr; }
+	}
+
+	@media (max-width: 640px) {
+		.match-header h1 { font-size: 1.05rem; }
+		.controls { flex-wrap: wrap; }
+		.move-list { max-height: 140px; }
+		.player-row { flex-wrap: wrap; }
 	}
 
 	.board-section { display: flex; flex-direction: column; gap: 0.75rem; }
@@ -416,30 +408,7 @@
 	}
 	.pending-badge { background: var(--color-badge-pending-bg); color: var(--color-warning); border: 1px solid var(--color-badge-pending-border); }
 
-	.admin-card {
-		background: var(--color-surface);
-		border: 1px solid var(--color-admin-reject-border);
-		border-radius: 10px;
-		padding: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.65rem;
-	}
-	.admin-card h2 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--color-error); }
-	.admin-hint { margin: 0; font-size: 0.8rem; color: var(--color-text-faint); line-height: 1.4; }
-	.delete-match-btn {
-		align-self: flex-start;
-		padding: 8px 14px;
-		border: 1px solid var(--color-admin-reject-border);
-		border-radius: 6px;
-		background: var(--color-admin-reject-bg);
-		color: var(--color-error);
-		font-weight: 600;
-		font-size: 0.85rem;
-		cursor: pointer;
-	}
-	.delete-match-btn:hover:not(:disabled) { background: var(--color-admin-reject-hover-bg); }
-	.delete-match-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+	.admin-err { margin-top: 0; }
 
 	.notation-form-card {
 		background: var(--color-surface);

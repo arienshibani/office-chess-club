@@ -20,7 +20,7 @@
 	</div>
 
 	{#if form?.error}
-		<p class="error">{form.error}</p>
+		<p class="error" aria-live="polite">{form.error}</p>
 	{/if}
 
 	<MatchListTable {matches} {isAdmin} />
@@ -112,5 +112,28 @@
 		background: var(--color-pagination-active-bg);
 		border-color: var(--color-pagination-active-border);
 		font-weight: 600;
+	}
+
+	@media (max-width: 640px) {
+		.pagination {
+			gap: 0.5rem;
+		}
+
+		.page-nav {
+			font-size: 0.8rem;
+			padding: 8px 12px;
+		}
+
+		.page-numbers {
+			max-width: 100%;
+			overflow-x: auto;
+			flex-wrap: nowrap;
+			-webkit-overflow-scrolling: touch;
+			padding-bottom: 2px;
+		}
+
+		.page-num {
+			flex-shrink: 0;
+		}
 	}
 </style>
