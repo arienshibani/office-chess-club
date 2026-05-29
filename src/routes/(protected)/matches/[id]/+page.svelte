@@ -6,7 +6,8 @@
 	import { detectNotationType } from '$lib/notation.js';
 
 	let { data, form } = $props();
-	let { match, white, black, canEditNotation } = $derived(data);
+	let { match, white, black, canEditNotation, isAdmin } = $derived(data);
+	let deleting = $state(false);
 
 	const INITIAL_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -205,6 +206,43 @@
 				{/if}
 			</div>
 
+			{#if isAdmin}
+				<div class="admin-card">
+					<h2>Admin</h2>
+					<p class="admin-hint">
+						{#if pending}
+							Removes this match from history. Ratings were not applied yet.
+						{:else}
+							Removes this match and reverts both players’ ratings and win/loss/draw stats.
+						{/if}
+					</p>
+					{#if form?.error && !canEditNotation}
+						<p class="err">{form.error}</p>
+					{/if}
+					<form
+						method="POST"
+						action="?/deleteMatch"
+						use:enhance={() => {
+							deleting = true;
+							return async ({ update }) => {
+								await update();
+								deleting = false;
+							};
+						}}
+						onsubmit={(event) => {
+							const message = pending
+								? 'Delete this pending match?'
+								: 'Delete this match and revert rating changes for both players?';
+							if (!confirm(message)) event.preventDefault();
+						}}
+					>
+						<button type="submit" class="delete-match-btn" disabled={deleting}>
+							{deleting ? 'Deleting…' : 'Delete match'}
+						</button>
+					</form>
+				</div>
+			{/if}
+
 			{#if canEditNotation}
 				<div class="notation-form-card">
 					<h2>{match.notation ? 'Update notation' : 'Add notation'}</h2>
@@ -377,6 +415,31 @@
 		font-weight: 500;
 	}
 	.pending-badge { background: var(--color-badge-pending-bg); color: var(--color-warning); border: 1px solid var(--color-badge-pending-border); }
+
+	.admin-card {
+		background: var(--color-surface);
+		border: 1px solid var(--color-admin-reject-border);
+		border-radius: 10px;
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+	.admin-card h2 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--color-error); }
+	.admin-hint { margin: 0; font-size: 0.8rem; color: var(--color-text-faint); line-height: 1.4; }
+	.delete-match-btn {
+		align-self: flex-start;
+		padding: 8px 14px;
+		border: 1px solid var(--color-admin-reject-border);
+		border-radius: 6px;
+		background: var(--color-admin-reject-bg);
+		color: var(--color-error);
+		font-weight: 600;
+		font-size: 0.85rem;
+		cursor: pointer;
+	}
+	.delete-match-btn:hover:not(:disabled) { background: var(--color-admin-reject-hover-bg); }
+	.delete-match-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 	.notation-form-card {
 		background: var(--color-surface);

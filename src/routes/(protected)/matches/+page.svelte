@@ -1,8 +1,9 @@
 <script>
 	import MatchListTable from '$lib/MatchListTable.svelte';
 
-	let { data } = $props();
+	let { data, form } = $props();
 	let { matches, pagination } = $derived(data);
+	let isAdmin = $derived(!!data.user?.isAdmin);
 
 	/** @param {number} page */
 	const pageHref = (page) => (page === 1 ? '/matches' : `/matches?page=${page}`);
@@ -18,7 +19,11 @@
 		{/if}
 	</div>
 
-	<MatchListTable {matches} />
+	{#if form?.error}
+		<p class="error">{form.error}</p>
+	{/if}
+
+	<MatchListTable {matches} {isAdmin} />
 
 	{#if pagination.totalPages > 1}
 		<nav class="pagination" aria-label="Match pages">
@@ -53,6 +58,15 @@
 	.page-header { display: flex; flex-direction: column; gap: 0.35rem; }
 	h1 { margin: 0; font-size: 1.2rem; font-weight: 600; color: var(--color-heading); }
 	.subtitle { margin: 0; font-size: 0.85rem; color: var(--color-text-faint); }
+	.error {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--color-error);
+		background: var(--color-error-bg);
+		border: 1px solid var(--color-error-border);
+		border-radius: 6px;
+		padding: 8px 10px;
+	}
 
 	.pagination {
 		display: flex;

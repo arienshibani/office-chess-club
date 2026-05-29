@@ -1,7 +1,18 @@
 <script>
+	import { page } from '$app/stores';
+	import { enhance } from '$app/forms';
 	import { matchSummary, eloDisplay, formatMatchTimestamp } from '$lib/matches.js';
 
-	let { matches = [] } = $props();
+	let { matches = [], isAdmin = false } = $props();
+	let deletingId = $state(/** @type {string | null} */ (null));
+
+	/** @param {string} matchId @param {boolean} wasApproved */
+	const confirmDelete = (matchId, wasApproved) => {
+		const message = wasApproved
+			? 'Delete this match and revert both players’ ratings and stats?'
+			: 'Delete this pending match?';
+		return confirm(message);
+	};
 </script>
 
 <table class="matches-table">
@@ -10,6 +21,9 @@
 			<th>Match</th>
 			<th>Elo</th>
 			<th>When</th>
+			{#if isAdmin}
+				<th class="actions-col"></th>
+			{/if}
 		</tr>
 	</thead>
 	<tbody>
@@ -23,9 +37,40 @@
 				</td>
 				<td class="elo-shift">{eloDisplay(match)}</td>
 				<td class="timestamp">{formatMatchTimestamp(match.playedAt)}</td>
+				{#if isAdmin}
+					<td class="actions-col">
+						<form
+							method="POST"
+							action="/matches?/deleteMatch"
+							use:enhance={() => {
+								deletingId = match._id;
+								return async ({ update }) => {
+									await update();
+									deletingId = null;
+								};
+							}}
+							onsubmit={(event) => {
+								if (!confirmDelete(match._id, match.status === 'approved')) {
+									event.preventDefault();
+								}
+							}}
+						>
+							<input type="hidden" name="matchId" value={match._id} />
+							<input type="hidden" name="returnTo" value="{$page.url.pathname}{$page.url.search}" />
+							<button
+								type="submit"
+								class="delete-btn"
+								disabled={deletingId === match._id}
+								title="Delete match"
+							>
+								{deletingId === match._id ? '…' : 'Delete'}
+							</button>
+						</form>
+					</td>
+				{/if}
 			</tr>
 		{:else}
-			<tr><td colspan="3" class="empty">No matches yet.</td></tr>
+			<tr><td colspan={isAdmin ? 4 : 3} class="empty">No matches yet.</td></tr>
 		{/each}
 	</tbody>
 </table>
@@ -57,6 +102,19 @@
 	.elo-shift { color: var(--color-text-faint); white-space: nowrap; font-size: 0.85rem; }
 	.timestamp { color: var(--color-text-dim); font-size: 0.8rem; white-space: nowrap; }
 	.empty { color: var(--color-text-dim); padding: 1rem; text-align: center; }
+	.actions-col { width: 1%; white-space: nowrap; text-align: right; }
+	.delete-btn {
+		background: transparent;
+		border: 1px solid var(--color-admin-reject-border);
+		color: var(--color-error);
+		border-radius: 5px;
+		padding: 4px 8px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.delete-btn:hover:not(:disabled) { background: var(--color-admin-reject-bg); }
+	.delete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 	.pending-badge {
 		margin-left: 8px;
 		font-size: 0.72rem;

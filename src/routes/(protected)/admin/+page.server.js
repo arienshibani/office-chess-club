@@ -1,5 +1,6 @@
 import { getMatches, getPlayers, getConfig, ObjectId } from '$lib/db.js';
 import { computeElo } from '$lib/elo.js';
+import { deleteMatchById } from '$lib/match-delete.js';
 import { notifyMatchApproved } from '$lib/slack.js';
 import { error, fail } from '@sveltejs/kit';
 
@@ -185,11 +186,16 @@ export const actions = {
 		const matchId = data.get('matchId')?.toString();
 		if (!matchId) return fail(400, { error: 'Missing match ID' });
 
-		const matchesCol = await getMatches();
-		let oid;
-		try { oid = new ObjectId(matchId); } catch { return fail(400, { error: 'Invalid ID' }); }
-
-		await matchesCol.deleteOne({ _id: oid, status: 'pending' });
+		try {
+			await deleteMatchById(matchId);
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message)
+				});
+			}
+			throw err;
+		}
 
 		return { success: true };
 	}

@@ -59,7 +59,7 @@
 
 	<section class="recent-matches">
 		<h2>Recent Matches</h2>
-		<MatchListTable matches={data.recentMatches} />
+		<MatchListTable matches={data.recentMatches} isAdmin={!!data.user?.isAdmin} />
 		{#if data.recentMatches.length > 0}
 			<a href="/matches" class="view-all">View all matches →</a>
 		{/if}

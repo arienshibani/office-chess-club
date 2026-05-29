@@ -1,6 +1,7 @@
 import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
 import { validateNotation } from '$lib/notation.js';
-import { error, fail } from '@sveltejs/kit';
+import { deleteMatchById } from '$lib/match-delete.js';
+import { error, fail, redirect } from '@sveltejs/kit';
 
 /** @param {import('mongodb').ObjectId} whiteId @param {import('mongodb').ObjectId} blackId @param {string} userId */
 const isMatchParticipant = (whiteId, blackId, userId) =>
@@ -58,7 +59,8 @@ export async function load({ params, locals }) {
 					rating: black.rating
 				}
 			: null,
-		canEditNotation
+		canEditNotation,
+		isAdmin: !!locals.user?.isAdmin
 	};
 }
 
@@ -89,5 +91,22 @@ export const actions = {
 		await matchesCol.updateOne({ _id: oid }, { $set: { notation: parsed.notation } });
 
 		return { notationSuccess: true };
+	},
+
+	deleteMatch: async ({ locals, params }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Admin access required.' });
+
+		try {
+			await deleteMatchById(params.id);
+		} catch (err) {
+			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message)
+				});
+			}
+			throw err;
+		}
+
+		redirect(303, '/matches');
 	}
 };
