@@ -21,14 +21,16 @@ Solution to let you self host your own web-based chess club. The code takes care
 
 Three steps. No code changes required.
 
-### 1. Fork or clone the repository 🔗
+### 1. Fork the repository 🔗
+
+### 1. Fork the repository 🔗
+
+Fork the repository to your GitHub account and clone it locally if you want to setup and host your own club.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/office-chess-club.git
+gh repo fork arienshibani/office-chess-club --clone
 cd office-chess-club
 ```
-
-Or click **Fork** on GitHub, then clone your fork.
 
 ### 2. Create a free MongoDB Atlas database 📊
 
