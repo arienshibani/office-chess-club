@@ -29,6 +29,7 @@
 		"elo-rank": "^1.0.4",
 		"emoji-picker-element": "^1.29.1",
 		"mongodb": "^7.2.0",
-		"svelte-french-toast": "^2.0.0-alpha.0"
+		"svelte-french-toast": "^2.0.0-alpha.0",
+		"swagger-ui-dist": "^5.32.6"
 	}
 }

@@ -1,91 +1,138 @@
 <script>
-	import { enhance } from '$app/forms';
-	import {
-		Check,
-		ClipboardClock,
-		Copy,
-		ExternalLink,
-		Eye,
-		EyeOff,
-		Globe,
-		Handshake,
-		KeyRound,
-		Landmark,
-		RefreshCw,
-		RotateCcw,
-		Save,
-		Send,
-		Settings,
-		ShieldCheck,
-		SlidersHorizontal,
-		Trash2,
-		TriangleAlert,
-		UserPlus,
-		Users,
-		Webhook,
-		X
-	} from '@lucide/svelte';
-	import { ADMIN_INVALIDATE, withActionToast } from '$lib/action-toast.js';
-	import PieceColor from '$lib/PieceColor.svelte';
+import { onMount, tick } from "svelte";
+import { browser } from "$app/environment";
+import { enhance } from "$app/forms";
+import "swagger-ui-dist/swagger-ui.css";
+import {
+	Check,
+	ClipboardClock,
+	Copy,
+	ExternalLink,
+	Eye,
+	EyeOff,
+	Globe,
+	Handshake,
+	KeyRound,
+	Landmark,
+	RefreshCw,
+	RotateCcw,
+	Save,
+	Send,
+	Settings,
+	ShieldCheck,
+	SlidersHorizontal,
+	Trash2,
+	TriangleAlert,
+	UserPlus,
+	Users,
+	Webhook,
+	X,
+} from "@lucide/svelte";
+import { ADMIN_INVALIDATE, withActionToast } from "$lib/action-toast.js";
+import PieceColor from "$lib/PieceColor.svelte";
 
-	let { data, form } = $props();
-	let activeTab = $state(/** @type {'settings' | 'advanced' | 'users' | 'danger'} */ ('settings'));
-	let toggling = $state(false);
-	let togglingPublicView = $state(false);
-	let savingName = $state(false);
-	let togglingHttp = $state(false);
-	let generatingKey = $state(false);
-	let showHttpApiKey = $state(false);
-	let savingSlack = $state(false);
-	let togglingSlack = $state(false);
-	let testingSlack = $state(false);
-	let processing = $state(/** @type {string | null} */ (null));
-	let approvingUser = $state(/** @type {string | null} */ (null));
-	let resettingPassword = $state(/** @type {string | null} */ (null));
-	let deletingUser = $state(/** @type {string | null} */ (null));
-	let resettingLadder = $state(false);
-	let clubNameDraft = $state('');
-	let slackWebhookDraft = $state('');
-	let ladderConfirmText = $state('');
+const { data, form } = $props();
+let activeTab = $state(
+	/** @type {'settings' | 'advanced' | 'users' | 'danger'} */ ("settings"),
+);
+let toggling = $state(false);
+let togglingPublicView = $state(false);
+let savingName = $state(false);
+let togglingHttp = $state(false);
+let generatingKey = $state(false);
+let showHttpApiKey = $state(false);
+let savingSlack = $state(false);
+let togglingSlack = $state(false);
+let testingSlack = $state(false);
+let processing = $state(/** @type {string | null} */ (null));
+let approvingUser = $state(/** @type {string | null} */ (null));
+let resettingPassword = $state(/** @type {string | null} */ (null));
+let deletingUser = $state(/** @type {string | null} */ (null));
+let resettingLadder = $state(false);
+let swaggerMountEl = $state(/** @type {HTMLDivElement | null} */ (null));
+let swaggerReady = $state(false);
+let swaggerError = $state(/** @type {string | null} */ (null));
+let swaggerInitialized = $state(false);
+let clubNameDraft = $state("");
+let slackWebhookDraft = $state("");
+let ladderConfirmText = $state("");
 
-	$effect(() => {
-		clubNameDraft = data.clubName;
-		slackWebhookDraft = data.slackWebhookUrl;
-	});
+$effect(() => {
+	clubNameDraft = data.clubName;
+	slackWebhookDraft = data.slackWebhookUrl;
+});
 
-	/** @param {'settings' | 'advanced' | 'users' | 'danger'} tab */
-	const setTab = (tab) => {
-		activeTab = tab;
-	};
+/** @param {'settings' | 'advanced' | 'users' | 'danger'} tab */
+const setTab = (tab) => {
+	activeTab = tab;
+};
 
-	/** @param {{ name: string }} user */
-	const confirmDeleteUser = (user) =>
-		confirm(
-			`Delete ${user.name}? All of their matches will be removed and opponent ratings will be reverted where applicable. This cannot be undone.`
-		);
-
-	const confirmResetLadder = () =>
-		confirm(
-			'Reset the entire ladder? This permanently deletes every match and sets all players back to 1200 rating with zero wins, losses, and draws.'
-		);
-
-	const copyApiKey = async (key) => {
-		try {
-			await navigator.clipboard.writeText(key);
-		} catch {
-			// clipboard may be unavailable
-		}
-	};
-
-	const adminToast = (extra = {}) => withActionToast({ invalidate: ADMIN_INVALIDATE, ...extra });
-
-	const httpApiKeyDisplay = $derived(
-		!data.httpSubmitApiKey
-			? ''
-			: showHttpApiKey
-				? data.httpSubmitApiKey
-				: '•'.repeat(data.httpSubmitApiKey.length)
+/** @param {{ name: string }} user */
+const confirmDeleteUser = (user) =>
+	confirm(
+		`Delete ${user.name}? All of their matches will be removed and opponent ratings will be reverted where applicable. This cannot be undone.`,
 	);
+
+const confirmResetLadder = () =>
+	confirm(
+		"Reset the entire ladder? This permanently deletes every match and sets all players back to 1200 rating with zero wins, losses, and draws.",
+	);
+
+/** @param {string} key */
+const copyApiKey = async (key) => {
+	try {
+		await navigator.clipboard.writeText(key);
+	} catch {
+		// clipboard may be unavailable
+	}
+};
+
+const adminToast = (extra = {}) =>
+	withActionToast({ invalidate: ADMIN_INVALIDATE, ...extra });
+
+const initSwaggerUi = async () => {
+	if (!browser || swaggerInitialized) return;
+	await tick();
+	if (!swaggerMountEl) return;
+	try {
+		const { default: SwaggerUI } = await import(
+			"swagger-ui-dist/swagger-ui-bundle.js"
+		);
+		SwaggerUI({
+			domNode: swaggerMountEl,
+			url: "/api/openapi",
+			deepLinking: true,
+			persistAuthorization: true,
+			defaultModelsExpandDepth: -1,
+			docExpansion: "list",
+		});
+		swaggerReady = true;
+		swaggerInitialized = true;
+	} catch (err) {
+		swaggerError =
+			err instanceof Error ? err.message : "Could not load API explorer.";
+	}
+};
+
+onMount(() => {
+	if (activeTab === "advanced") {
+		void initSwaggerUi();
+	}
+});
+
+$effect(() => {
+	if (activeTab === "advanced") {
+		void initSwaggerUi();
+	}
+});
+
+const httpApiKeyDisplay = $derived(
+	!data.httpSubmitApiKey
+		? ""
+		: showHttpApiKey
+			? data.httpSubmitApiKey
+			: "•".repeat(data.httpSubmitApiKey.length),
+);
 </script>
 
 <svelte:head><title>Admin — Office Chess Club</title></svelte:head>
@@ -584,6 +631,25 @@
 		{#if !data.httpSubmitHasKey}
 			<p class="hint">Generate an API key before enabling.</p>
 		{/if}
+	</section>
+
+	<section class="card">
+		<h2 class="card-title">
+			<ExternalLink size={18} aria-hidden="true" />
+			API Explorer (Swagger)
+		</h2>
+		<p class="description">
+			Browse and test available endpoints directly from the admin panel.
+			For <code>/api/matches</code> and <code>/api/players</code>, click <strong>Authorize</strong> and paste the same API key used for HTTP submissions.
+		</p>
+		{#if swaggerError}
+			<p class="error">{swaggerError}</p>
+		{/if}
+		<div class="swagger-wrap" bind:this={swaggerMountEl}>
+			{#if !swaggerReady && !swaggerError}
+				<p class="hint">Loading API explorer…</p>
+			{/if}
+		</div>
 	</section>
 	</div>
 	{:else if activeTab === 'users'}
@@ -1171,6 +1237,28 @@
 		padding: 8px 10px;
 		font-size: 0.9rem;
 		max-width: 280px;
+	}
+	.swagger-wrap {
+		min-height: 220px;
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		overflow: hidden;
+		background: var(--color-bg);
+	}
+	:global(.swagger-ui) {
+		font-family: inherit;
+	}
+	:global(.swagger-ui .topbar) {
+		display: none;
+	}
+	:global(.swagger-ui .info) {
+		margin: 16px;
+	}
+	:global(.swagger-ui .scheme-container) {
+		background: var(--color-surface);
+		box-shadow: none;
+		margin: 0;
+		padding: 12px 16px;
 	}
 
 	@media (max-width: 640px) {
