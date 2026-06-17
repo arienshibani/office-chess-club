@@ -78,14 +78,14 @@ const subheading = $derived(
 </script>
 
 <svelte:head>
-	<title>{mode === 'sign-in' ? 'Sign in' : 'Create account'} — {data.clubName} Chess Club</title>
+	<title>{mode === 'sign-in' ? 'Sign in' : 'Create account'} — {data.clubName}</title>
 </svelte:head>
 
 <div class="login-wrap">
 	<div class="login-card">
 		<div class="brand">
 			<ClubMark size={36} strokeWidth={2} />
-			<p class="brand-name">{data.clubName} Chess Club</p>
+			<p class="brand-name">{data.clubName}</p>
 		</div>
 
 		<div class="mode-tabs" role="tablist" aria-label="Authentication mode">

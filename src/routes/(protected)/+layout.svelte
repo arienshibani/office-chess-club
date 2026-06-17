@@ -33,7 +33,7 @@
 	<div class="nav-inner">
 		<a href="/" class="brand" onclick={closeMenu}>
 			<ClubMark size={18} strokeWidth={2.25} />
-			<span class="brand-text">{data.clubName} Chess Club</span>
+			<span class="brand-text">{data.clubName}</span>
 		</a>
 
 		<div class="nav-panel">

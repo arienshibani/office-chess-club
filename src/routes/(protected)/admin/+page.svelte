@@ -258,7 +258,7 @@
 				{savingName ? 'Saving…' : 'Save club name'}
 			</button>
 		</form>
-		<p class="preview">Preview: <strong>{data.clubName} Chess Club</strong></p>
+		<p class="preview">Preview: <strong>{data.clubName}</strong></p>
 	</section>
 
 	<!-- Pending Matches Queue -->
