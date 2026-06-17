@@ -23,8 +23,6 @@ Three steps. No code changes required.
 
 ### 1. Fork the repository 🔗
 
-### 1. Fork the repository 🔗
-
 Fork the repository to your GitHub account and clone it locally if you want to setup and host your own club.
 
 ```bash
