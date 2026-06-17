@@ -263,6 +263,12 @@ const subheading = $derived(
 				<button type="button" class="link-btn" onclick={() => switchMode('sign-in')}>Sign in</button>
 			{/if}
 		</p>
+
+		{#if data.publicViewEnabled}
+			<p class="browse-link">
+				<a href="/">Browse leaderboard without signing in</a>
+			</p>
+		{/if}
 	</div>
 </div>
 
@@ -456,6 +462,22 @@ const subheading = $derived(
 		text-align: center;
 		font-size: 0.82rem;
 		color: var(--color-text-subtle);
+	}
+
+	.browse-link {
+		margin: 0.75rem 0 0;
+		text-align: center;
+		font-size: 0.82rem;
+	}
+
+	.browse-link a {
+		color: var(--color-text-subtle);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.browse-link a:hover {
+		color: var(--color-text);
 	}
 
 	.link-btn {

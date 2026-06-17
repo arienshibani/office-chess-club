@@ -4,5 +4,5 @@ import { COOKIE_NAME } from '$lib/session.js';
 /** @type {import('./$types').RequestHandler} */
 export function GET({ cookies }) {
 	cookies.delete(COOKIE_NAME, { path: '/' });
-	redirect(302, '/login');
+	redirect(302, '/');
 }

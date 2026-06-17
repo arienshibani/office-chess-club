@@ -2,30 +2,42 @@
 	import { enhance } from '$app/forms';
 	import {
 		Check,
+		ClipboardClock,
 		Copy,
 		ExternalLink,
+		Eye,
+		EyeOff,
+		Globe,
+		Handshake,
 		KeyRound,
+		Landmark,
 		RefreshCw,
+		RotateCcw,
 		Save,
 		Send,
 		Settings,
 		ShieldCheck,
+		SlidersHorizontal,
 		Trash2,
 		TriangleAlert,
+		UserPlus,
 		Users,
+		Webhook,
 		X
 	} from '@lucide/svelte';
 	import { ADMIN_INVALIDATE, withActionToast } from '$lib/action-toast.js';
 	import PieceColor from '$lib/PieceColor.svelte';
 
 	let { data, form } = $props();
-	let activeTab = $state(/** @type {'settings' | 'users' | 'danger'} */ ('settings'));
+	let activeTab = $state(/** @type {'settings' | 'advanced' | 'users' | 'danger'} */ ('settings'));
 	let toggling = $state(false);
+	let togglingPublicView = $state(false);
 	let savingName = $state(false);
 	let togglingHttp = $state(false);
 	let generatingKey = $state(false);
+	let showHttpApiKey = $state(false);
 	let savingSlack = $state(false);
-	let clearingSlack = $state(false);
+	let togglingSlack = $state(false);
 	let testingSlack = $state(false);
 	let processing = $state(/** @type {string | null} */ (null));
 	let approvingUser = $state(/** @type {string | null} */ (null));
@@ -38,9 +50,10 @@
 
 	$effect(() => {
 		clubNameDraft = data.clubName;
+		slackWebhookDraft = data.slackWebhookUrl;
 	});
 
-	/** @param {'settings' | 'users' | 'danger'} tab */
+	/** @param {'settings' | 'advanced' | 'users' | 'danger'} tab */
 	const setTab = (tab) => {
 		activeTab = tab;
 	};
@@ -65,6 +78,14 @@
 	};
 
 	const adminToast = (extra = {}) => withActionToast({ invalidate: ADMIN_INVALIDATE, ...extra });
+
+	const httpApiKeyDisplay = $derived(
+		!data.httpSubmitApiKey
+			? ''
+			: showHttpApiKey
+				? data.httpSubmitApiKey
+				: '•'.repeat(data.httpSubmitApiKey.length)
+	);
 </script>
 
 <svelte:head><title>Admin — Office Chess Club</title></svelte:head>
@@ -90,6 +111,17 @@
 			{#if data.pendingMatches.length > 0}
 				<span class="tab-badge">{data.pendingMatches.length}</span>
 			{/if}
+		</button>
+		<button
+			type="button"
+			role="tab"
+			class="with-icon"
+			class:active={activeTab === 'advanced'}
+			aria-selected={activeTab === 'advanced'}
+			onclick={() => setTab('advanced')}
+		>
+			<SlidersHorizontal size={15} aria-hidden="true" />
+			Advanced Settings
 		</button>
 		<button
 			type="button"
@@ -121,10 +153,56 @@
 
 	{#if activeTab === 'settings'}
 	<div class="tab-panel" role="tabpanel">
+	<!-- Public View Toggle -->
+	<section class="card">
+		<div class="section-header">
+			<h2 class="card-title">
+				<Globe size={18} aria-hidden="true" />
+				Public Viewing
+			</h2>
+			<div class="toggle-status" class:on={data.publicViewEnabled}>
+				{data.publicViewEnabled ? 'Enabled' : 'Disabled'}
+			</div>
+		</div>
+		<p class="description">
+			When <strong>enabled</strong>, anyone can browse the leaderboard, match history, and player profiles
+			without signing in. Match submission still requires an approved account.
+			When <strong>disabled</strong>, visitors must log in to view club data.
+		</p>
+		<form
+			method="POST"
+			action="?/togglePublicView"
+			use:enhance={() => {
+				togglingPublicView = true;
+				return async (ctx) => {
+					await adminToast()(ctx);
+					togglingPublicView = false;
+				};
+			}}
+		>
+			<button
+				type="submit"
+				disabled={togglingPublicView}
+				class="toggle-btn with-icon"
+				class:danger={data.publicViewEnabled}
+			>
+				<Globe size={15} aria-hidden="true" />
+				{togglingPublicView
+					? 'Updating…'
+					: data.publicViewEnabled
+						? 'Require Login to Browse'
+						: 'Allow Public Browsing'}
+			</button>
+		</form>
+	</section>
+
 	<!-- Honor System Toggle -->
 	<section class="card">
 		<div class="section-header">
-			<h2>Honor System</h2>
+			<h2 class="card-title">
+				<Handshake size={18} aria-hidden="true" />
+				Honor System
+			</h2>
 			<div class="toggle-status" class:on={data.honorSystemEnabled}>
 				{data.honorSystemEnabled ? 'Enabled' : 'Disabled'}
 			</div>
@@ -152,7 +230,10 @@
 	</section>
 
 	<section class="card">
-		<h2>Club Name</h2>
+		<h2 class="card-title">
+			<Landmark size={18} aria-hidden="true" />
+			Club Name
+		</h2>
 		<p class="description">
 			Used across the app header and login screen. Defaults to <strong>Office</strong> when empty.
 		</p>
@@ -180,162 +261,10 @@
 		<p class="preview">Preview: <strong>{data.clubName} Chess Club</strong></p>
 	</section>
 
-	<section class="card">
-		<div class="section-header">
-			<h2>Slack Notifications</h2>
-			<div class="toggle-status" class:on={data.slackWebhookConfigured}>
-				{data.slackWebhookConfigured ? 'Configured' : 'Not configured'}
-			</div>
-		</div>
-		<p class="description">
-			Post match results and pending-match alerts to a Slack channel via an
-			<a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer">incoming webhook</a>.
-			You can also set <code>SLACK_WEBHOOK_URL</code> in the environment as a fallback.
-		</p>
-		{#if data.slackWebhookFromEnv && !data.slackWebhookStoredInDb}
-			<p class="hint">Currently using the webhook from your environment variables.</p>
-		{/if}
-		<form
-			method="POST"
-			action="?/updateSlackWebhook"
-			class="name-form"
-			use:enhance={() => {
-				savingSlack = true;
-				return async (ctx) => {
-					await adminToast()(ctx);
-					slackWebhookDraft = '';
-					savingSlack = false;
-				};
-			}}
-		>
-			<label>
-				Slack webhook URL
-				<input
-					name="slackWebhookUrl"
-					type="url"
-					bind:value={slackWebhookDraft}
-					placeholder="https://hooks.slack.com/services/…"
-					autocomplete="off"
-					spellcheck="false"
-				/>
-			</label>
-			<button type="submit" class="toggle-btn with-icon" disabled={savingSlack || !slackWebhookDraft.trim()}>
-				<Save size={15} aria-hidden="true" />
-				{savingSlack ? 'Saving…' : data.slackWebhookStoredInDb ? 'Update webhook' : 'Save webhook'}
-			</button>
-		</form>
-		<div class="http-admin-actions">
-			<form
-				method="POST"
-				action="?/testSlackWebhook"
-				use:enhance={() => {
-					testingSlack = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						testingSlack = false;
-					};
-				}}
-			>
-				<button type="submit" class="toggle-btn with-icon" disabled={testingSlack || !data.slackWebhookConfigured}>
-					<Send size={15} aria-hidden="true" />
-					{testingSlack ? 'Sending…' : 'Send test notification'}
-				</button>
-			</form>
-			{#if data.slackWebhookStoredInDb}
-				<form
-					method="POST"
-					action="?/clearSlackWebhook"
-					use:enhance={() => {
-						clearingSlack = true;
-						return async (ctx) => {
-							await adminToast()(ctx);
-							slackWebhookDraft = '';
-							clearingSlack = false;
-						};
-					}}
-				>
-					<button type="submit" class="toggle-btn danger with-icon" disabled={clearingSlack}>
-						<Trash2 size={15} aria-hidden="true" />
-						{clearingSlack ? 'Removing…' : 'Remove saved webhook'}
-					</button>
-				</form>
-			{/if}
-		</div>
-	</section>
-
-	<section class="card">
-		<div class="section-header">
-			<h2>HTTP Match Submission</h2>
-			<div class="toggle-status" class:on={data.httpSubmitEnabled}>
-				{data.httpSubmitEnabled ? 'Enabled' : 'Disabled'}
-			</div>
-		</div>
-		<p class="description">
-			When <strong>enabled</strong>, scripts and third-party tools can log matches via
-			<code>POST /api/matches</code> using a bearer token. Off by default — generate a key,
-			then enable when you are ready.
-		</p>
-		{#if form?.apiKey}
-			<div class="api-key-reveal">
-				<p class="api-key-label">New API key (copy now — shown once):</p>
-				<code class="api-key-value">{form.apiKey}</code>
-				<button type="button" class="toggle-btn with-icon" onclick={() => copyApiKey(form.apiKey)}>
-					<Copy size={15} aria-hidden="true" />
-					Copy key
-				</button>
-			</div>
-		{/if}
-		<div class="http-admin-actions">
-			<form
-				method="POST"
-				action="?/generateHttpSubmitKey"
-				use:enhance={() => {
-					generatingKey = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						generatingKey = false;
-					};
-				}}
-			>
-				<button type="submit" class="toggle-btn with-icon" disabled={generatingKey}>
-					<RefreshCw size={15} aria-hidden="true" />
-					{generatingKey ? 'Generating…' : data.httpSubmitHasKey ? 'Regenerate API key' : 'Generate API key'}
-				</button>
-			</form>
-			<form
-				method="POST"
-				action="?/toggleHttpSubmit"
-				use:enhance={() => {
-					togglingHttp = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						togglingHttp = false;
-					};
-				}}
-			>
-				<button
-					type="submit"
-					disabled={togglingHttp || (!data.httpSubmitEnabled && !data.httpSubmitHasKey)}
-					class="toggle-btn with-icon"
-					class:danger={data.httpSubmitEnabled}
-				>
-					<ShieldCheck size={15} aria-hidden="true" />
-					{togglingHttp
-						? 'Updating…'
-						: data.httpSubmitEnabled
-							? 'Disable HTTP submissions'
-							: 'Enable HTTP submissions'}
-				</button>
-			</form>
-		</div>
-		{#if !data.httpSubmitHasKey}
-			<p class="hint">Generate an API key before enabling.</p>
-		{/if}
-	</section>
-
 	<!-- Pending Matches Queue -->
 	<section class="card">
-		<h2>
+		<h2 class="card-title">
+			<ClipboardClock size={18} aria-hidden="true" />
 			Pending Matches
 			{#if data.pendingMatches.length > 0}
 				<span class="count-badge">{data.pendingMatches.length}</span>
@@ -435,11 +364,234 @@
 		{/if}
 	</section>
 	</div>
+	{:else if activeTab === 'advanced'}
+	<div class="tab-panel" role="tabpanel">
+	<section class="card">
+		<div class="section-header">
+			<h2 class="card-title">
+				<Webhook size={18} aria-hidden="true" />
+				Slack Notifications
+			</h2>
+			<div
+				class="toggle-status"
+				class:on={data.slackWebhookConfigured && data.slackWebhookEnabled}
+			>
+				{!data.slackWebhookConfigured
+					? 'Not configured'
+					: data.slackWebhookEnabled
+						? 'Enabled'
+						: 'Disabled'}
+			</div>
+		</div>
+		<p class="description">
+			Post match results and pending-match alerts to a Slack channel via an
+			<a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer">incoming webhook</a>.
+			You can also set <code>SLACK_WEBHOOK_URL</code> in the environment as a fallback.
+			Save a URL here, then enable or disable notifications without removing it.
+			Clear the field and save to remove a stored webhook.
+		</p>
+		{#if data.slackWebhookFromEnv && !data.slackWebhookStoredInDb}
+			<p class="hint">Currently using the webhook from your environment variables.</p>
+		{/if}
+		<form
+			method="POST"
+			action="?/updateSlackWebhook"
+			class="name-form"
+			use:enhance={() => {
+				savingSlack = true;
+				return async (ctx) => {
+					await adminToast()(ctx);
+					savingSlack = false;
+				};
+			}}
+		>
+			<label>
+				Slack webhook URL
+				<input
+					name="slackWebhookUrl"
+					type="url"
+					bind:value={slackWebhookDraft}
+					placeholder="https://hooks.slack.com/services/…"
+					autocomplete="off"
+					spellcheck="false"
+				/>
+			</label>
+			<button
+				type="submit"
+				class="toggle-btn with-icon"
+				disabled={savingSlack || (!slackWebhookDraft.trim() && !data.slackWebhookStoredInDb)}
+			>
+				<Save size={15} aria-hidden="true" />
+				{savingSlack
+					? 'Saving…'
+					: !slackWebhookDraft.trim() && data.slackWebhookStoredInDb
+						? 'Remove webhook'
+						: data.slackWebhookStoredInDb
+							? 'Update webhook'
+							: 'Save webhook'}
+			</button>
+		</form>
+		<div class="http-admin-actions slack-admin-actions">
+			<form
+				method="POST"
+				action="?/toggleSlackWebhook"
+				use:enhance={() => {
+					togglingSlack = true;
+					return async (ctx) => {
+						await adminToast()(ctx);
+						togglingSlack = false;
+					};
+				}}
+			>
+				<button
+					type="submit"
+					disabled={togglingSlack || (!data.slackWebhookEnabled && !data.slackWebhookConfigured)}
+					class="toggle-btn with-icon"
+					class:danger={data.slackWebhookEnabled}
+				>
+					<ShieldCheck size={15} aria-hidden="true" />
+					{togglingSlack
+						? 'Updating…'
+						: data.slackWebhookEnabled
+							? 'Disable notifications'
+							: 'Enable notifications'}
+				</button>
+			</form>
+			<form
+				method="POST"
+				action="?/testSlackWebhook"
+				use:enhance={() => {
+					testingSlack = true;
+					return async (ctx) => {
+						await adminToast()(ctx);
+						testingSlack = false;
+					};
+				}}
+			>
+				<button type="submit" class="toggle-btn with-icon" disabled={testingSlack || !data.slackWebhookConfigured}>
+					<Send size={15} aria-hidden="true" />
+					{testingSlack ? 'Sending…' : 'Send test notification'}
+				</button>
+			</form>
+		</div>
+		{#if !data.slackWebhookConfigured}
+			<p class="hint">Save a webhook URL before enabling notifications.</p>
+		{:else if !data.slackWebhookEnabled}
+			<p class="hint">Notifications are paused — the saved URL is kept for when you re-enable.</p>
+		{/if}
+	</section>
+
+	<section class="card">
+		<div class="section-header">
+			<h2 class="card-title">
+				<KeyRound size={18} aria-hidden="true" />
+				HTTP Match Submission
+			</h2>
+			<div class="toggle-status" class:on={data.httpSubmitEnabled}>
+				{data.httpSubmitEnabled ? 'Enabled' : 'Disabled'}
+			</div>
+		</div>
+		<p class="description">
+			When <strong>enabled</strong>, scripts and third-party tools can log matches via
+			<code>POST /api/matches</code> using a bearer token. Off by default — generate a key,
+			then enable when you are ready.
+		</p>
+		<div class="api-key-field">
+			<label>
+				API key
+				<div class="api-key-input-row">
+					<input
+						type="text"
+						readonly
+						tabindex="-1"
+						value={httpApiKeyDisplay}
+						placeholder="No API key generated yet"
+						class="api-key-input"
+						aria-label="HTTP submission API key"
+					/>
+					<button
+						type="button"
+						class="toggle-btn with-icon"
+						disabled={!data.httpSubmitHasKey}
+						onclick={() => (showHttpApiKey = !showHttpApiKey)}
+					>
+						{#if showHttpApiKey}
+							<EyeOff size={15} aria-hidden="true" />
+							Hide key
+						{:else}
+							<Eye size={15} aria-hidden="true" />
+							Show key
+						{/if}
+					</button>
+					<button
+						type="button"
+						class="toggle-btn with-icon"
+						disabled={!data.httpSubmitHasKey}
+						onclick={() => copyApiKey(data.httpSubmitApiKey)}
+					>
+						<Copy size={15} aria-hidden="true" />
+						Copy
+					</button>
+				</div>
+			</label>
+		</div>
+		<div class="http-admin-actions">
+			<form
+				method="POST"
+				action="?/generateHttpSubmitKey"
+				use:enhance={() => {
+					generatingKey = true;
+					return async (ctx) => {
+						await adminToast()(ctx);
+						if (ctx.result.type === 'success') {
+							showHttpApiKey = true;
+						}
+						generatingKey = false;
+					};
+				}}
+			>
+				<button type="submit" class="toggle-btn with-icon" disabled={generatingKey}>
+					<RefreshCw size={15} aria-hidden="true" />
+					{generatingKey ? 'Generating…' : data.httpSubmitHasKey ? 'Regenerate API key' : 'Generate API key'}
+				</button>
+			</form>
+			<form
+				method="POST"
+				action="?/toggleHttpSubmit"
+				use:enhance={() => {
+					togglingHttp = true;
+					return async (ctx) => {
+						await adminToast()(ctx);
+						togglingHttp = false;
+					};
+				}}
+			>
+				<button
+					type="submit"
+					disabled={togglingHttp || (!data.httpSubmitEnabled && !data.httpSubmitHasKey)}
+					class="toggle-btn with-icon"
+					class:danger={data.httpSubmitEnabled}
+				>
+					<ShieldCheck size={15} aria-hidden="true" />
+					{togglingHttp
+						? 'Updating…'
+						: data.httpSubmitEnabled
+							? 'Disable HTTP submissions'
+							: 'Enable HTTP submissions'}
+				</button>
+			</form>
+		</div>
+		{#if !data.httpSubmitHasKey}
+			<p class="hint">Generate an API key before enabling.</p>
+		{/if}
+	</section>
+	</div>
 	{:else if activeTab === 'users'}
 	<div class="tab-panel" role="tabpanel">
 		{#if data.pendingUsers.length > 0}
 			<section class="card">
-				<h2>
+				<h2 class="card-title">
+					<UserPlus size={18} aria-hidden="true" />
 					Pending Signups
 					<span class="count-badge">{data.pendingUsers.length}</span>
 				</h2>
@@ -510,7 +662,10 @@
 		{/if}
 
 		<section class="card">
-			<h2>Users</h2>
+			<h2 class="card-title">
+				<Users size={18} aria-hidden="true" />
+				Users
+			</h2>
 			<p class="description">
 				Manage club members. Approve pending signups, reset passwords, or remove accounts. You cannot delete
 				your own account or the only remaining admin.
@@ -621,7 +776,10 @@
 	{:else}
 	<div class="tab-panel" role="tabpanel">
 		<section class="card danger-zone">
-			<h2>Reset entire ladder</h2>
+			<h2 class="card-title">
+				<RotateCcw size={18} aria-hidden="true" />
+				Reset entire ladder
+			</h2>
 			<p class="description">
 				Permanently delete <strong>all matches</strong> and reset every player's rating to
 				<strong>1200</strong> with zero wins, losses, and draws. User accounts are kept.
@@ -728,7 +886,19 @@
 		gap: 0.75rem;
 	}
 
+	.card-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		margin: 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--color-text);
+		flex-wrap: wrap;
+	}
+
 	.section-header { display: flex; align-items: center; gap: 1rem; justify-content: space-between; }
+	.section-header .card-title { flex: 1; min-width: 0; }
 	.toggle-status {
 		font-size: 0.78rem;
 		font-weight: 600;
@@ -758,26 +928,40 @@
 		gap: 8px;
 	}
 
-	.api-key-reveal {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-		padding: 10px 12px;
-		background: var(--color-bg);
-		border: 1px solid var(--color-border-strong);
-		border-radius: 8px;
+	.slack-admin-actions form:last-child {
+		margin-left: auto;
 	}
 
-	.api-key-label {
-		margin: 0;
+	.api-key-field label {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
 		font-size: 0.82rem;
 		color: var(--color-text-faint);
 	}
 
-	.api-key-value {
-		font-size: 0.78rem;
-		word-break: break-all;
-		color: var(--color-text-muted);
+	.api-key-input-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.api-key-input {
+		flex: 1 1 220px;
+		min-width: 0;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 0.82rem;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border-strong);
+		border-radius: 6px;
+		color: var(--color-text);
+		padding: 8px 10px;
+		cursor: default;
+	}
+
+	.api-key-input:read-only {
+		user-select: all;
 	}
 
 	.hint {

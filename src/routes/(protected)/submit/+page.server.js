@@ -1,11 +1,14 @@
 import { getPlayers, getConfig } from '$lib/db.js';
 import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
 import { canSubmitMatches } from '$lib/player-status.js';
-import { fail } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import { createMatch } from '$lib/match-submit.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ url, locals }) {
+	if (!locals.user) {
+		redirect(302, `/login?next=${encodeURIComponent(url.pathname)}`);
+	}
 	const [playersCol, cfgCol] = await Promise.all([getPlayers(), getConfig()]);
 
 	const [players, config, httpSubmit] = await Promise.all([

@@ -77,7 +77,9 @@ export async function ensureIndexes() {
 				_id: 'global_settings',
 				honorSystemEnabled: true,
 				clubName: 'Office',
-				httpSubmitEnabled: false
+				httpSubmitEnabled: false,
+				publicViewEnabled: true,
+				slackWebhookEnabled: true
 			})
 		},
 		{ upsert: true }

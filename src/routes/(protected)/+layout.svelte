@@ -3,6 +3,7 @@
 	import {
 		History,
 		Home,
+		LogIn,
 		LogOut,
 		Menu,
 		PlusCircle,
@@ -50,17 +51,18 @@
 					<History size={16} aria-hidden="true" />
 					Match History
 				</a>
-				<a
-					href="/submit"
-					class="with-icon"
-					class:active={$page.url.pathname === '/submit'}
-					class:restricted={!canSubmit}
-					onclick={closeMenu}
-				>
-					<PlusCircle size={16} aria-hidden="true" />
-					Submit Result
-				</a>
-				{#if user?.isAdmin}
+				{#if user}
+					<a
+						href="/submit"
+						class="with-icon"
+						class:active={$page.url.pathname === '/submit'}
+						class:restricted={!canSubmit}
+						onclick={closeMenu}
+					>
+						<PlusCircle size={16} aria-hidden="true" />
+						Submit Result
+					</a>
+					{#if user.isAdmin}
 					<a
 						href="/admin"
 						class="with-icon"
@@ -70,6 +72,7 @@
 						<Shield size={16} aria-hidden="true" />
 						Admin
 					</a>
+					{/if}
 				{/if}
 			</div>
 			<div class="user-area">
@@ -78,11 +81,16 @@
 						<PlayerAvatar icon={user.icon} avatarUrl={user.avatarUrl} size={28} alt={user.name} />
 						<span class="name">{user.name}</span>
 					</a>
+					<a href="/logout" class="logout-btn with-icon" data-sveltekit-reload onclick={closeMenu}>
+						<LogOut size={15} aria-hidden="true" />
+						Sign out
+					</a>
+				{:else}
+					<a href="/login" class="login-btn with-icon" onclick={closeMenu}>
+						<LogIn size={15} aria-hidden="true" />
+						Sign in
+					</a>
 				{/if}
-				<a href="/logout" class="logout-btn with-icon" data-sveltekit-reload onclick={closeMenu}>
-					<LogOut size={15} aria-hidden="true" />
-					Sign out
-				</a>
 			</div>
 		</div>
 
@@ -253,6 +261,23 @@
 	}
 
 	.logout-btn:hover {
+		color: var(--color-nav-text);
+		border-color: var(--color-text-dim);
+	}
+
+	.login-btn {
+		font-size: 0.8rem;
+		color: var(--color-nav-text);
+		text-decoration: none;
+		padding: 6px 10px;
+		border: 1px solid var(--color-border-nav);
+		border-radius: 6px;
+		transition: border-color 0.15s, color 0.15s;
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+
+	.login-btn:hover {
 		color: var(--color-nav-text);
 		border-color: var(--color-text-dim);
 	}

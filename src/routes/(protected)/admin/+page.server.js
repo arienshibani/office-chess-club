@@ -8,7 +8,8 @@ import { getMatches, getPlayers, getConfig, ObjectId } from '$lib/db.js';
 import { computeElo } from '$lib/elo.js';
 import { deleteMatchById } from '$lib/match-delete.js';
 import { generateHttpSubmitApiKey } from '$lib/http-submit-config.js';
-import { isValidSlackWebhookUrl, getSlackWebhookStatus } from '$lib/slack-config.js';
+import { isPublicViewEnabled } from '$lib/public-view-config.js';
+import { isValidSlackWebhookUrl, getSlackWebhookStatus, isSlackWebhookEnabled } from '$lib/slack-config.js';
 import { notifyMatchApproved, sendSlackTestNotification } from '$lib/slack.js';
 import { normalizePlayerStatus, PLAYER_STATUS_PENDING } from '$lib/player-status.js';
 import { error, fail } from '@sveltejs/kit';
@@ -86,17 +87,43 @@ export async function load({ locals, depends }) {
 		users,
 		currentAdminId,
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
+		publicViewEnabled: isPublicViewEnabled(config),
 		clubName: typeof config?.clubName === 'string' && config.clubName.trim() ? config.clubName.trim() : 'Office',
 		httpSubmitEnabled: config?.httpSubmitEnabled === true,
+		httpSubmitApiKey:
+			typeof config?.httpSubmitApiKey === 'string' ? config.httpSubmitApiKey.trim() : '',
 		httpSubmitHasKey: typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim(),
 		slackWebhookConfigured: slackWebhook.configured,
+		slackWebhookEnabled: slackWebhook.enabled,
 		slackWebhookStoredInDb: slackWebhook.storedInDb,
-		slackWebhookFromEnv: slackWebhook.fromEnv
+		slackWebhookFromEnv: slackWebhook.fromEnv,
+		slackWebhookUrl: slackWebhook.url
 	};
 }
 
 /** @type {import('./$types').Actions} */
 export const actions = {
+	togglePublicView: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const cfgCol = await getConfig();
+		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
+		const current = isPublicViewEnabled(config);
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { publicViewEnabled: !current } },
+			{ upsert: true }
+		);
+
+		return {
+			success: true,
+			message: !current
+				? 'Public viewing enabled — leaderboards and profiles are visible without login.'
+				: 'Public viewing disabled — login required to browse.'
+		};
+	},
+
 	toggleHonorSystem: async ({ locals }) => {
 		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
 
@@ -141,17 +168,22 @@ export const actions = {
 
 		const form = await request.formData();
 		const webhookUrl = String(form.get('slackWebhookUrl') ?? '').trim();
+		const cfgCol = await getConfig();
 
 		if (!webhookUrl) {
-			return fail(400, { error: 'Slack webhook URL is required.' });
+			await cfgCol.updateOne(
+				/** @type {any} */ ({ _id: 'global_settings' }),
+				{ $unset: { slackWebhookUrl: '' } }
+			);
+			return { success: true, message: 'Slack webhook removed.' };
 		}
+
 		if (!isValidSlackWebhookUrl(webhookUrl)) {
 			return fail(400, {
 				error: 'Enter a valid Slack incoming webhook URL (https://hooks.slack.com/services/…).'
 			});
 		}
 
-		const cfgCol = await getConfig();
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { slackWebhookUrl: webhookUrl } },
@@ -161,16 +193,30 @@ export const actions = {
 		return { success: true, message: 'Slack webhook saved.' };
 	},
 
-	clearSlackWebhook: async ({ locals }) => {
+	toggleSlackWebhook: async ({ locals }) => {
 		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
 
 		const cfgCol = await getConfig();
+		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
+		const current = isSlackWebhookEnabled(config);
+		const status = await getSlackWebhookStatus();
+
+		if (!current && !status.configured) {
+			return fail(400, {
+				error: 'Save a webhook URL before enabling Slack notifications.'
+			});
+		}
+
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
-			{ $unset: { slackWebhookUrl: '' } }
+			{ $set: { slackWebhookEnabled: !current } },
+			{ upsert: true }
 		);
 
-		return { success: true, message: 'Slack webhook removed from admin settings.' };
+		return {
+			success: true,
+			message: !current ? 'Slack notifications enabled.' : 'Slack notifications disabled.'
+		};
 	},
 
 	testSlackWebhook: async ({ locals }) => {
@@ -227,8 +273,7 @@ export const actions = {
 
 		return {
 			success: true,
-			message: 'New API key generated. Copy it now — it will not be shown again.',
-			apiKey
+			message: 'New API key generated.'
 		};
 	},
 

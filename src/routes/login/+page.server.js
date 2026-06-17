@@ -1,6 +1,7 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { setSessionCookie } from '$lib/auth.js';
 import { getConfig, getPlayers } from '$lib/db.js';
+import { isPublicViewEnabled } from '$lib/public-view-config.js';
 import { PLAYER_STATUS_PENDING } from '$lib/player-status.js';
 import { hashPassword, normalizeUsername, verifyPassword } from '$lib/password.js';
 
@@ -16,7 +17,8 @@ export async function load({ locals, url }) {
 	const clubNameRaw = typeof config?.clubName === 'string' ? config.clubName.trim() : '';
 
 	return {
-		clubName: clubNameRaw || 'Office'
+		clubName: clubNameRaw || 'Office',
+		publicViewEnabled: isPublicViewEnabled(config)
 	};
 }
 
