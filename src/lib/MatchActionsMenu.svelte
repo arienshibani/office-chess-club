@@ -3,6 +3,7 @@
 	import { enhance } from '$app/forms';
 	import { Check, EllipsisVertical, PencilLine, Trash2, X } from '@lucide/svelte';
 	import { withActionToast } from '$lib/action-toast.js';
+	import { DEFAULT_TIME_FORMAT, TIME_FORMAT_OPTIONS } from '$lib/time-control.js';
 
 	let {
 		matchId,
@@ -10,7 +11,11 @@
 		result,
 		whiteName,
 		blackName,
+		timeFormat = DEFAULT_TIME_FORMAT,
 		returnTo = '',
+		canDelete = true,
+		canEditResult = true,
+		canEditTimeFormat = true,
 		deleteAction = '/matches?/deleteMatch',
 		correctAction = '/matches?/correctResult'
 	} = $props();
@@ -20,6 +25,7 @@
 	let busy = $state(false);
 	/** @type {'white' | 'black' | 'draw'} */
 	let selectedResult = $state('white');
+	let selectedTimeFormat = $state(DEFAULT_TIME_FORMAT);
 	/** @type {HTMLDivElement | null} */
 	let wrapperEl = $state(null);
 
@@ -33,6 +39,7 @@
 
 	const openCorrectModal = () => {
 		selectedResult = result;
+		selectedTimeFormat = timeFormat || DEFAULT_TIME_FORMAT;
 		closeMenu();
 		modalOpen = true;
 	};
@@ -56,7 +63,9 @@
 		{ value: 'draw', label: 'Draw' }
 	]);
 
-	const canSave = $derived(selectedResult !== result);
+	const canSave = $derived(
+		(canEditResult && selectedResult !== result) || (canEditTimeFormat && selectedTimeFormat !== (timeFormat || DEFAULT_TIME_FORMAT))
+	);
 
 	$effect(() => {
 		if (!browser || !menuOpen) return;
@@ -110,37 +119,39 @@
 		<div class="menu" role="menu">
 			<button type="button" class="menu-item with-icon" role="menuitem" onclick={openCorrectModal}>
 				<PencilLine size={15} aria-hidden="true" />
-				Correct result
+				Correct match
 			</button>
 
-			<div class="menu-divider"></div>
+			{#if canDelete}
+				<div class="menu-divider"></div>
 
-			<form
-				method="POST"
-				action={deleteAction}
-				use:enhance={() => {
-					busy = true;
-					closeMenu();
-					return async (ctx) => {
-						await withActionToast({ redirectMessage: 'Match deleted.' })(ctx);
-						busy = false;
-					};
-				}}
-				onsubmit={(event) => {
-					if (!confirmDelete(status === 'approved')) {
-						event.preventDefault();
-					}
-				}}
-			>
-				<input type="hidden" name="matchId" value={matchId} />
-				{#if returnTo}
-					<input type="hidden" name="returnTo" value={returnTo} />
-				{/if}
-				<button type="submit" class="menu-item danger with-icon" disabled={busy} role="menuitem">
-					<Trash2 size={15} aria-hidden="true" />
-					Delete match
-				</button>
-			</form>
+				<form
+					method="POST"
+					action={deleteAction}
+					use:enhance={() => {
+						busy = true;
+						closeMenu();
+						return async (ctx) => {
+							await withActionToast({ redirectMessage: 'Match deleted.' })(ctx);
+							busy = false;
+						};
+					}}
+					onsubmit={(event) => {
+						if (!confirmDelete(status === 'approved')) {
+							event.preventDefault();
+						}
+					}}
+				>
+					<input type="hidden" name="matchId" value={matchId} />
+					{#if returnTo}
+						<input type="hidden" name="returnTo" value={returnTo} />
+					{/if}
+					<button type="submit" class="menu-item danger with-icon" disabled={busy} role="menuitem">
+						<Trash2 size={15} aria-hidden="true" />
+						Delete match
+					</button>
+				</form>
+			{/if}
 		</div>
 	{/if}
 </div>
@@ -170,7 +181,7 @@
 				busy = true;
 				return async (ctx) => {
 					await withActionToast({
-						redirectMessage: returnTo ? 'Match result updated.' : undefined
+						redirectMessage: returnTo ? 'Match updated.' : undefined
 					})(ctx);
 					busy = false;
 					closeModal();
@@ -179,27 +190,43 @@
 		>
 			<input type="hidden" name="matchId" value={matchId} />
 			<input type="hidden" name="result" value={selectedResult} />
+			<input type="hidden" name="timeFormat" value={selectedTimeFormat} />
 			{#if returnTo}
 				<input type="hidden" name="returnTo" value={returnTo} />
 			{/if}
 
-			<fieldset class="result-options">
-				<legend class="sr-only">Match result</legend>
-				{#each resultOptions as option}
-					<label class="result-option" class:current={option.value === result}>
-						<input
-							type="radio"
-							name="resultChoice"
-							value={option.value}
-							bind:group={selectedResult}
-						/>
-						<span class="result-label">{option.label}</span>
-						{#if option.value === result}
-							<span class="current-mark">Current</span>
-						{/if}
-					</label>
-				{/each}
-			</fieldset>
+			{#if canEditResult}
+				<fieldset class="result-options">
+					<legend class="sr-only">Match result</legend>
+					{#each resultOptions as option}
+						<label class="result-option" class:current={option.value === result}>
+							<input
+								type="radio"
+								name="resultChoice"
+								value={option.value}
+								bind:group={selectedResult}
+							/>
+							<span class="result-label">{option.label}</span>
+							{#if option.value === result}
+								<span class="current-mark">Current</span>
+							{/if}
+						</label>
+					{/each}
+				</fieldset>
+			{:else}
+				<p class="modal-hint role-note">Only admins can change the recorded result.</p>
+			{/if}
+
+			{#if canEditTimeFormat}
+				<label class="time-format-field">
+					Time format
+					<select name="timeFormatChoice" bind:value={selectedTimeFormat}>
+						{#each TIME_FORMAT_OPTIONS as option}
+							<option value={option.value}>{option.label}</option>
+						{/each}
+					</select>
+				</label>
+			{/if}
 
 			<div class="modal-actions">
 				<button type="button" class="btn secondary" onclick={closeModal} disabled={busy}>
@@ -370,6 +397,26 @@
 		display: flex;
 		flex-direction: column;
 		gap: 8px;
+	}
+	.time-format-field {
+		margin-top: 0.9rem;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		font-size: 0.82rem;
+		color: var(--color-text-faint);
+	}
+	.time-format-field select {
+		background: var(--color-input-bg);
+		border: 1px solid var(--color-border-strong);
+		border-radius: 6px;
+		color: var(--color-text);
+		padding: 8px 10px;
+		font-size: 0.88rem;
+		font-family: inherit;
+	}
+	.role-note {
+		margin-bottom: 0;
 	}
 
 	.result-option {

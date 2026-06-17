@@ -10,8 +10,17 @@ let whiteId = $state("");
 let blackId = $state("");
 let result = $state("white");
 let notation = $state("");
+let timeFormat = $state("");
 let submitting = $state(false);
 let copyMsg = $state("");
+let lastDefaultTimeFormat = $state('');
+
+$effect(() => {
+	if (!timeFormat || data.defaultTimeFormat !== lastDefaultTimeFormat) {
+		timeFormat = data.defaultTimeFormat;
+		lastDefaultTimeFormat = data.defaultTimeFormat;
+	}
+});
 const sampleWhiteId = $derived(
 	whiteId || data.allPlayers[0]?._id || "WHITE_PLAYER_ID",
 );
@@ -22,11 +31,13 @@ const sampleResult = $derived(result || "white");
 const sampleNotation = $derived(
 	notation.trim() || "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6",
 );
+const sampleTimeFormat = $derived(timeFormat || data.defaultTimeFormat);
 const payloadPreview = $derived(`{
   "whitePlayerId": "${sampleWhiteId}",
   "blackPlayerId": "${sampleBlackId}",
   "result": "${sampleResult}",
-  "notation": "${sampleNotation.replaceAll('"', '\\"')}"
+  "notation": "${sampleNotation.replaceAll('"', '\\"')}",
+  "timeFormat": "${sampleTimeFormat}"
 }`);
 const sampleCurl = $derived(
 	`curl -X POST ${data.apiSubmitUrl} \\
@@ -84,6 +95,7 @@ const copyCurl = async () => {
 						blackId = '';
 						result = 'white';
 						notation = '';
+						timeFormat = data.defaultTimeFormat;
 					}
 					await withActionToast()({ result: actionResult, update });
 					submitting = false;
@@ -139,6 +151,14 @@ const copyCurl = async () => {
 				PGN / FEN (optional)
 				<textarea name="notation" bind:value={notation} rows="3" placeholder="Paste PGN moves or FEN position…"></textarea>
 			</label>
+			<label>
+				Time format
+				<select name="timeFormat" bind:value={timeFormat} required>
+					{#each data.timeFormatOptions as option}
+						<option value={option.value}>{option.label}</option>
+					{/each}
+				</select>
+			</label>
 			<button type="submit" class="with-icon" disabled={submitting}>
 				<ClipboardPlus size={16} aria-hidden="true" />
 				{submitting ? 'Saving…' : 'Log Match'}
@@ -155,13 +175,17 @@ const copyCurl = async () => {
 				<div class="http-body">
 					<p><strong>Endpoint:</strong> <code>POST {data.apiSubmitUrl}</code></p>
 					<p><strong>Header:</strong> <code>Authorization: Bearer {data.apiSubmitKey}</code></p>
-					<p><strong>Body (all required):</strong></p>
+					<p><strong>Body (required unless noted):</strong></p>
 					<pre>{`{
   "whitePlayerId": "PLAYER_ID",
   "blackPlayerId": "PLAYER_ID",
   "result": "white|black|draw",
-  "notation": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6"
+  "notation": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6",
+  "timeFormat": "600+0"
 }`}</pre>
+					<p class="http-note">
+						<code>timeFormat</code> is optional for API submissions and defaults to <code>600+0</code>.
+					</p>
 					<p class="http-note">
 						You can also send FEN, for example:
 						<code>rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1</code>

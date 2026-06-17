@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { assertApiKey } from '$lib/api-auth.js';
 import { createMatch } from '$lib/match-submit.js';
+import { DEFAULT_TIME_FORMAT, parseTimeFormatValue } from '$lib/time-control.js';
 
 const ALLOWED_RESULTS = new Set(['white', 'black', 'draw']);
 
@@ -12,10 +13,10 @@ const methodNotAllowed = () =>
  */
 const parsePayload = (payload) => {
 	if (!payload || typeof payload !== 'object') {
-		return { ok: false, status: 400, error: 'Invalid JSON body' };
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid JSON body' };
 	}
 
-	const data = /** @type {{ whitePlayerId?: unknown; blackPlayerId?: unknown; result?: unknown; notation?: unknown }} */ (
+	const data = /** @type {{ whitePlayerId?: unknown; blackPlayerId?: unknown; result?: unknown; notation?: unknown; timeFormat?: unknown }} */ (
 		payload
 	);
 
@@ -29,20 +30,28 @@ const parsePayload = (payload) => {
 		!data.result.trim() ||
 		!data.notation.trim()
 	) {
-		return { ok: false, status: 400, error: 'Missing required fields' };
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Missing required fields' };
 	}
 
 	if (!ALLOWED_RESULTS.has(data.result)) {
-		return { ok: false, status: 400, error: 'Invalid result' };
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid result' };
+	}
+	const timeFormatRaw =
+		typeof data.timeFormat === 'string' && data.timeFormat.trim()
+			? data.timeFormat.trim()
+			: DEFAULT_TIME_FORMAT;
+	if (!parseTimeFormatValue(timeFormatRaw)) {
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid time format' };
 	}
 
 	return {
-		ok: true,
+		ok: /** @type {const} */ (true),
 		value: {
 			whitePlayerId: data.whitePlayerId.trim(),
 			blackPlayerId: data.blackPlayerId.trim(),
 			result: /** @type {'white' | 'black' | 'draw'} */ (data.result),
-			notation: data.notation
+			notation: data.notation,
+			timeFormat: timeFormatRaw
 		}
 	};
 };

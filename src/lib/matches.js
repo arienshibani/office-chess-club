@@ -51,6 +51,7 @@ export const enrichMatches = async (playersCol, matches, ObjectId) => {
 		status: m.status,
 		eloChange: m.eloChange,
 		playedAt: m.playedAt,
+		timeFormat: typeof m.timeFormat === 'string' ? m.timeFormat : null,
 		whitePlayerId: m.whitePlayerId.toString(),
 		blackPlayerId: m.blackPlayerId.toString(),
 		winnerId: m.winnerId?.toString() ?? null,

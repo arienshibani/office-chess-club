@@ -2,6 +2,7 @@ import { getPlayers, getMatches, getConfig, ObjectId } from '$lib/db.js';
 import { computeElo } from '$lib/elo.js';
 import { validateNotation } from '$lib/notation.js';
 import { notifyMatchApproved, notifyPendingMatch } from '$lib/slack.js';
+import { parseTimeFormatValue } from '$lib/time-control.js';
 
 /** @typedef {'white' | 'black' | 'draw'} MatchResult */
 
@@ -60,6 +61,7 @@ const notifyApprovedMatch = async (result, isDraw, eloChange, white, black, matc
  * @param {string} input.blackPlayerId
  * @param {MatchResult} input.result
  * @param {string} input.notation
+ * @param {string | null | undefined} [input.timeFormat]
  * @param {string | null} input.reportedBy
  * @param {string} input.reporterName
  * @param {boolean} [input.requireNotation]
@@ -69,6 +71,7 @@ export const createMatch = async ({
 	blackPlayerId,
 	result,
 	notation,
+	timeFormat,
 	reportedBy,
 	reporterName,
 	requireNotation = false
@@ -85,10 +88,14 @@ export const createMatch = async ({
 
 	const parsedNotation = validateNotation(notation ?? '');
 	if (!parsedNotation.ok) {
-		throw createHttpError(400, parsedNotation.error);
+		throw createHttpError(400, parsedNotation.error ?? 'Invalid notation');
 	}
 	if (requireNotation && !parsedNotation.notation) {
 		throw createHttpError(400, 'Notation is required');
+	}
+	const parsedTimeFormat = parseTimeFormatValue(timeFormat);
+	if (!parsedTimeFormat) {
+		throw createHttpError(400, 'Invalid time format');
 	}
 
 	const whiteId = parseObjectId(whitePlayerId, 'whitePlayerId');
@@ -105,6 +112,8 @@ export const createMatch = async ({
 	if (!white || !black) {
 		throw createHttpError(404, 'Player not found');
 	}
+	const whiteName = typeof white.name === 'string' ? white.name : 'White';
+	const blackName = typeof black.name === 'string' ? black.name : 'Black';
 
 	const eloChange = computeElo(white.rating, black.rating, result);
 	const isDraw = result === 'draw';
@@ -120,6 +129,11 @@ export const createMatch = async ({
 		status,
 		eloChange,
 		notation: parsedNotation.notation,
+		timeFormat: parsedTimeFormat.value,
+		timeControl: {
+			baseSeconds: parsedTimeFormat.baseSeconds,
+			incrementSeconds: parsedTimeFormat.incrementSeconds
+		},
 		reportedBy: reporterId,
 		playedAt: new Date()
 	};
@@ -153,15 +167,15 @@ export const createMatch = async ({
 			)
 		]);
 
-		await notifyApprovedMatch(result, isDraw, eloChange, white, black, matchId);
+		await notifyApprovedMatch(result, isDraw, eloChange, { name: whiteName }, { name: blackName }, matchId);
 	} else {
 		await notifyPendingMatch({
 			reporterName,
 			opponentName: reporterId
 				? reporterId.toString() === whitePlayerId
-					? black.name
-					: white.name
-				: `${white.name} vs ${black.name}`,
+					? blackName
+					: whiteName
+				: `${whiteName} vs ${blackName}`,
 			matchId
 		});
 	}

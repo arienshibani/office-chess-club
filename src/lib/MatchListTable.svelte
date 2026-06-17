@@ -45,6 +45,7 @@
 								result={currentResult(match)}
 								whiteName={match.whiteName}
 								blackName={match.blackName}
+								timeFormat={match.timeFormat ?? undefined}
 								returnTo="{$page.url.pathname}{$page.url.search}"
 							/>
 						</td>

@@ -3,6 +3,7 @@ import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
 import { canSubmitMatches } from '$lib/player-status.js';
 import { fail, redirect } from '@sveltejs/kit';
 import { createMatch } from '$lib/match-submit.js';
+import { DEFAULT_TIME_FORMAT, TIME_FORMAT_OPTIONS, parseTimeFormatValue } from '$lib/time-control.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ url, locals }) {
@@ -21,6 +22,8 @@ export async function load({ url, locals }) {
 		canSubmit: canSubmitMatches(locals.user),
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
 		allPlayers: players.map((p) => ({ _id: p._id.toString(), name: p.name, rating: p.rating })),
+		timeFormatOptions: TIME_FORMAT_OPTIONS,
+		defaultTimeFormat: DEFAULT_TIME_FORMAT,
 		apiSubmitEnabled: httpSubmit.enabled && !!httpSubmit.apiKey,
 		apiSubmitUrl: `${url.origin}/api/matches`,
 		apiSubmitKey: httpSubmit.apiKey
@@ -39,7 +42,9 @@ export const actions = {
 		const whiteId = data.get('whiteId')?.toString();
 		const blackId = data.get('blackId')?.toString();
 		const resultRaw = data.get('result')?.toString();
-		const notation = data.get('notation')?.toString();
+		const notation = data.get('notation')?.toString() ?? '';
+		const timeFormatRaw = data.get('timeFormat')?.toString();
+		const timeFormat = typeof timeFormatRaw === 'string' ? timeFormatRaw.trim() : '';
 
 		if (!whiteId || !blackId || !resultRaw) {
 			return fail(400, { error: 'Missing required fields' });
@@ -50,6 +55,9 @@ export const actions = {
 		if (!['white', 'black', 'draw'].includes(resultRaw)) {
 			return fail(400, { error: 'Invalid result' });
 		}
+		if (!parseTimeFormatValue(timeFormat)) {
+			return fail(400, { error: 'Select a valid time format' });
+		}
 		const result = /** @type {'white' | 'black' | 'draw'} */ (resultRaw);
 
 		try {
@@ -58,6 +66,7 @@ export const actions = {
 				blackPlayerId: blackId,
 				result,
 				notation,
+				timeFormat,
 				reportedBy: locals.user._id,
 				reporterName: locals.user.name
 			});

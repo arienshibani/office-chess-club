@@ -1,244 +1,313 @@
 <script>
-	import { browser } from '$app/environment';
-	import { enhance } from '$app/forms';
-	import {
-		ArrowRight,
-		ChevronFirst,
-		ChevronLast,
-		ChevronLeft,
-		ChevronRight,
-		Lightbulb,
-		Save
-	} from '@lucide/svelte';
-	import { buildSuggestionDisplay } from '$lib/chess-arrows.js';
-	import { withActionToast } from '$lib/action-toast.js';
-	import ChessBoard from '$lib/ChessBoard.svelte';
-	import EvalBar from '$lib/EvalBar.svelte';
-	import MatchActionsMenu from '$lib/MatchActionsMenu.svelte';
-	import { fenAtMoveIndex, INITIAL_FEN } from '$lib/pgn-replay.js';
-	import { analyzeHistory } from '$lib/stockfish/analyze-timeline.js';
-	import { stopEngine } from '$lib/stockfish/engine.js';
-	import PieceColor from '$lib/PieceColor.svelte';
-	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
-	import ResultBadge from '$lib/ResultBadge.svelte';
-	import { detectNotationType } from '$lib/notation.js';
-	import { Chess } from 'chess.js';
+import {
+	ArrowRight,
+	CalendarDays,
+	ChevronFirst,
+	ChevronLast,
+	ChevronLeft,
+	ChevronRight,
+	Clock3,
+	FileCode2,
+	Lightbulb,
+	Save,
+} from "@lucide/svelte";
+import { Chess } from "chess.js";
+import { browser } from "$app/environment";
+import { enhance } from "$app/forms";
+import { withActionToast } from "$lib/action-toast.js";
+import ChessBoard from "$lib/ChessBoard.svelte";
+import { buildSuggestionDisplay } from "$lib/chess-arrows.js";
+import EvalBar from "$lib/EvalBar.svelte";
+import MatchActionsMenu from "$lib/MatchActionsMenu.svelte";
+import { detectNotationType } from "$lib/notation.js";
+import PieceColor from "$lib/PieceColor.svelte";
+import PlayerAvatar from "$lib/PlayerAvatar.svelte";
+import { fenAtMoveIndex, INITIAL_FEN } from "$lib/pgn-replay.js";
+import ResultBadge from "$lib/ResultBadge.svelte";
+import { analyzeHistory } from "$lib/stockfish/analyze-timeline.js";
+import { stopEngine } from "$lib/stockfish/engine.js";
+import {
+	computeClockStateByPly,
+	extractElapsedMoveTimes,
+	formatClockSeconds,
+	getTimeFormatLabel,
+	parseTimeFormatValue,
+} from "$lib/time-control.js";
 
-	const props = $props();
-	const data = $derived(props.data);
-	const form = $derived(props.form);
-	let { match, white, black, canEditNotation, isAdmin } = $derived(data);
+const props = $props();
+const data = $derived(props.data);
+const form = $derived(props.form);
+const { match, white, black, canEditNotation, isAdmin } = $derived(data);
 
-	let notationDraft = $state('');
-	let savingNotation = $state(false);
-	let notationSaveFeedback = $state(/** @type {string | null} */ (null));
-	let notationFormOpen = $state(false);
+let notationDraft = $state("");
+let savingNotation = $state(false);
+let notationSaveFeedback = $state(/** @type {string | null} */ (null));
+let notationFormOpen = $state(false);
 
-	$effect(() => {
-		if (form?.error && canEditNotation) notationFormOpen = true;
-	});
+$effect(() => {
+	if (form?.error && canEditNotation) notationFormOpen = true;
+});
 
-	$effect(() => {
-		if (notationSaveFeedback) notationFormOpen = true;
-	});
+$effect(() => {
+	if (notationSaveFeedback) notationFormOpen = true;
+});
 
-	$effect(() => {
-		notationDraft = match.notation ?? '';
-	});
+$effect(() => {
+	notationDraft = match.notation ?? "";
+});
 
-	let notationType = $derived(detectNotationType(match.notation));
+const notationType = $derived(detectNotationType(match.notation));
 
-	/** @type {{ type: 'pgn', history: string[] } | { type: 'fen', fen: string } | { type: 'error', kind: 'pgn' | 'fen' } | { type: 'none' }} */
-	const replaySource = $derived.by(() => {
-		const notation = match.notation ?? '';
-		const type = detectNotationType(notation);
-		if (type === 'pgn' && notation) {
-			try {
-				const c = new Chess();
-				c.loadPgn(notation);
-				return { type: /** @type {const} */ ('pgn'), history: c.history() };
-			} catch {
-				return { type: /** @type {const} */ ('error'), kind: /** @type {const} */ ('pgn') };
-			}
-		}
-		if (type === 'fen' && notation) {
-			try {
-				const c = new Chess();
-				c.load(notation.trim());
-				return { type: /** @type {const} */ ('fen'), fen: c.fen() };
-			} catch {
-				return { type: /** @type {const} */ ('error'), kind: /** @type {const} */ ('fen') };
-			}
-		}
-		return { type: /** @type {const} */ ('none') };
-	});
-
-	let history = $derived(replaySource.type === 'pgn' ? replaySource.history : []);
-	let pgnError = $derived(replaySource.type === 'error' && replaySource.kind === 'pgn');
-	let fenError = $derived(replaySource.type === 'error' && replaySource.kind === 'fen');
-
-	/** Index of the current move in SAN history (-1 = starting position). */
-	let viewIndex = $state(-1);
-	let lastReplayKey = $state('');
-
-	$effect(() => {
-		const notation = match.notation ?? '';
-		const key = `${match._id}:${notation}`;
-		if (key === lastReplayKey) return;
-		lastReplayKey = key;
-		if (detectNotationType(notation) === 'pgn' && notation) {
-			try {
-				const c = new Chess();
-				c.loadPgn(notation);
-				viewIndex = c.history().length - 1;
-			} catch {
-				viewIndex = -1;
-			}
-		} else {
-			viewIndex = -1;
-		}
-	});
-
-	const currentFen = $derived.by(() => {
-		if (replaySource.type === 'fen') return replaySource.fen;
-		if (replaySource.type === 'pgn') {
-			return fenAtMoveIndex(replaySource.history, viewIndex);
-		}
-		return INITIAL_FEN;
-	});
-
-	/** @type {({ cp?: number, mate?: number } | null)[]} */
-	let evals = $state([]);
-	let analysisLoading = $state(false);
-	let analysisAvailable = $state(true);
-	let analysisProgress = $state(/** @type {{ done: number, total: number } | null} */ (null));
-
-	let currentEval = $derived(evals[viewIndex + 1] ?? null);
-	let showSuggestions = $state(true);
-
-	let activeSuggestion = $derived(
-		showSuggestions ? buildSuggestionDisplay(currentFen, currentEval?.bestMove) : null
-	);
-
-	/** @param {number} idx */
-	const goToMove = (idx) => {
-		viewIndex = idx;
-	};
-
-	const stepBack = () => {
-		if (viewIndex > -1) viewIndex -= 1;
-	};
-	const stepForward = () => {
-		if (viewIndex < history.length - 1) viewIndex += 1;
-	};
-	const goToStart = () => {
-		viewIndex = -1;
-	};
-	const goToEnd = () => {
-		if (history.length > 0) viewIndex = history.length - 1;
-	};
-
-	let replayActive = $derived(notationType === 'pgn' && history.length > 0);
-
-	$effect(() => {
-		if (!browser) return;
-		const key = lastReplayKey;
-		const notation = match.notation ?? '';
-		if (!key || detectNotationType(notation) !== 'pgn' || !notation) return;
-
-		let moves;
+/** @type {{ type: 'pgn', history: string[] } | { type: 'fen', fen: string } | { type: 'error', kind: 'pgn' | 'fen' } | { type: 'none' }} */
+const replaySource = $derived.by(() => {
+	const notation = match.notation ?? "";
+	const type = detectNotationType(notation);
+	if (type === "pgn" && notation) {
 		try {
 			const c = new Chess();
 			c.loadPgn(notation);
-			moves = c.history();
+			return { type: /** @type {const} */ ("pgn"), history: c.history() };
 		} catch {
-			return;
+			return {
+				type: /** @type {const} */ ("error"),
+				kind: /** @type {const} */ ("pgn"),
+			};
 		}
-		if (!moves.length) return;
+	}
+	if (type === "fen" && notation) {
+		try {
+			const c = new Chess();
+			c.load(notation.trim());
+			return { type: /** @type {const} */ ("fen"), fen: c.fen() };
+		} catch {
+			return {
+				type: /** @type {const} */ ("error"),
+				kind: /** @type {const} */ ("fen"),
+			};
+		}
+	}
+	return { type: /** @type {const} */ ("none") };
+});
 
-		const ac = new AbortController();
+const history = $derived(
+	replaySource.type === "pgn" ? replaySource.history : [],
+);
+const pgnError = $derived(
+	replaySource.type === "error" && replaySource.kind === "pgn",
+);
+const fenError = $derived(
+	replaySource.type === "error" && replaySource.kind === "fen",
+);
 
-		analysisLoading = true;
-		analysisAvailable = true;
-		analysisProgress = null;
-		evals = [];
+/** Index of the current move in SAN history (-1 = starting position). */
+let viewIndex = $state(-1);
+let lastReplayKey = $state("");
 
-		analyzeHistory(moves, {
-			signal: ac.signal,
-			onProgress: (point, index, total) => {
-				const next = [...evals];
-				while (next.length < total) next.push(null);
-				next[index] = point;
-				evals = next;
-				analysisProgress = { done: index + 1, total };
+$effect(() => {
+	const notation = match.notation ?? "";
+	const key = `${match._id}:${notation}`;
+	if (key === lastReplayKey) return;
+	lastReplayKey = key;
+	if (detectNotationType(notation) === "pgn" && notation) {
+		try {
+			const c = new Chess();
+			c.loadPgn(notation);
+			viewIndex = c.history().length - 1;
+		} catch {
+			viewIndex = -1;
+		}
+	} else {
+		viewIndex = -1;
+	}
+});
+
+const currentFen = $derived.by(() => {
+	if (replaySource.type === "fen") return replaySource.fen;
+	if (replaySource.type === "pgn") {
+		return fenAtMoveIndex(replaySource.history, viewIndex);
+	}
+	return INITIAL_FEN;
+});
+
+/** @type {({ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null } | null)[]} */
+let evals = $state([]);
+let analysisLoading = $state(false);
+let analysisAvailable = $state(true);
+let analysisProgress = $state(
+	/** @type {{ done: number, total: number } | null} */ (null),
+);
+
+const currentEval = $derived(evals[viewIndex + 1] ?? null);
+let showSuggestions = $state(false);
+
+const activeSuggestion = $derived(
+	showSuggestions
+		? buildSuggestionDisplay(currentFen, currentEval?.bestMove)
+		: null,
+);
+
+/** @param {number} idx */
+const goToMove = (idx) => {
+	viewIndex = idx;
+};
+
+const stepBack = () => {
+	if (viewIndex > -1) viewIndex -= 1;
+};
+const stepForward = () => {
+	if (viewIndex < history.length - 1) viewIndex += 1;
+};
+const goToStart = () => {
+	viewIndex = -1;
+};
+const goToEnd = () => {
+	if (history.length > 0) viewIndex = history.length - 1;
+};
+
+const replayActive = $derived(notationType === "pgn" && history.length > 0);
+const moveElapsedByPly = $derived.by(() => {
+	if (notationType !== "pgn" || !match.notation) return [];
+	const elapsed = extractElapsedMoveTimes(match.notation);
+	return history.map((_, index) => elapsed[index] ?? null);
+});
+const hasMoveTimingData = $derived(
+	moveElapsedByPly.some((item) => typeof item === "number"),
+);
+const timeControl = $derived.by(() => {
+	if (
+		match.timeControl &&
+		typeof match.timeControl.baseSeconds === "number" &&
+		typeof match.timeControl.incrementSeconds === "number"
+	) {
+		return match.timeControl;
+	}
+	return parseTimeFormatValue(match.timeFormat);
+});
+const clockStateByPly = $derived.by(() => {
+	if (!timeControl || !hasMoveTimingData) return [];
+	return computeClockStateByPly(
+		moveElapsedByPly,
+		timeControl.baseSeconds,
+		timeControl.incrementSeconds,
+	);
+});
+const currentClock = $derived.by(() => {
+	if (!timeControl) return null;
+	if (viewIndex < 0) {
+		return {
+			white: timeControl.baseSeconds,
+			black: timeControl.baseSeconds,
+		};
+	}
+	return clockStateByPly[viewIndex] ?? null;
+});
+
+$effect(() => {
+	if (!browser) return;
+	const key = lastReplayKey;
+	const notation = match.notation ?? "";
+	if (!key || detectNotationType(notation) !== "pgn" || !notation) return;
+
+	let moves;
+	try {
+		const c = new Chess();
+		c.loadPgn(notation);
+		moves = c.history();
+	} catch {
+		return;
+	}
+	if (!moves.length) return;
+
+	const ac = new AbortController();
+
+	analysisLoading = true;
+	analysisAvailable = true;
+	analysisProgress = null;
+	evals = [];
+
+	analyzeHistory(moves, {
+		signal: ac.signal,
+		/** @param {{ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }} point @param {number} index @param {number} total */
+		onProgress: (point, index, total) => {
+			const next = [...evals];
+			while (next.length < total) next.push(null);
+			next[index] = point;
+			evals = next;
+			analysisProgress = { done: index + 1, total };
+		},
+	})
+		.then((results) => {
+			if (!ac.signal.aborted) evals = results;
+		})
+		.catch((err) => {
+			if (err?.name !== "AbortError") {
+				console.error("Stockfish analysis failed:", err);
+				analysisAvailable = false;
 			}
 		})
-			.then((results) => {
-				if (!ac.signal.aborted) evals = results;
-			})
-			.catch((err) => {
-				if (err?.name !== 'AbortError') {
-					console.error('Stockfish analysis failed:', err);
-					analysisAvailable = false;
-				}
-			})
-			.finally(() => {
-				if (!ac.signal.aborted) {
-					analysisLoading = false;
-					analysisProgress = null;
-				}
-			});
-
-		return () => {
-			ac.abort();
-			stopEngine();
-		};
-	});
-
-	$effect(() => {
-		if (!browser || !replayActive) return;
-
-		/** @param {KeyboardEvent} e */
-		const onKeyDown = (e) => {
-			const replayKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
-			if (!replayKeys.includes(e.key)) return;
-			const el = document.activeElement;
-			if (
-				el instanceof HTMLInputElement ||
-				el instanceof HTMLTextAreaElement ||
-				el instanceof HTMLSelectElement ||
-				(el instanceof HTMLElement && el.isContentEditable)
-			) {
-				return;
+		.finally(() => {
+			if (!ac.signal.aborted) {
+				analysisLoading = false;
+				analysisProgress = null;
 			}
-			e.preventDefault();
-			if (e.key === 'ArrowLeft') stepBack();
-			else if (e.key === 'ArrowRight') stepForward();
-			else if (e.key === 'ArrowUp') goToStart();
-			else goToEnd();
-		};
+		});
 
-		window.addEventListener('keydown', onKeyDown);
-		return () => window.removeEventListener('keydown', onKeyDown);
-	});
+	return () => {
+		ac.abort();
+		stopEngine();
+	};
+});
 
-	// Elo display helpers
-	let whiteElo = $derived(match.eloChange.white);
-	let blackElo = $derived(match.eloChange.black);
-	let whiteDelta = $derived(whiteElo.after - whiteElo.before);
-	let blackDelta = $derived(blackElo.after - blackElo.before);
+$effect(() => {
+	if (!browser || !replayActive) return;
 
-	let resultLabel = $derived(
-		match.isDraw ? '½–½ Draw'
-		: match.winnerId === match.whitePlayerId ? '1–0 White wins'
-		: '0–1 Black wins'
-	);
+	/** @param {KeyboardEvent} e */
+	const onKeyDown = (e) => {
+		const replayKeys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+		if (!replayKeys.includes(e.key)) return;
+		const el = document.activeElement;
+		if (
+			el instanceof HTMLInputElement ||
+			el instanceof HTMLTextAreaElement ||
+			el instanceof HTMLSelectElement ||
+			(el instanceof HTMLElement && el.isContentEditable)
+		) {
+			return;
+		}
+		e.preventDefault();
+		if (e.key === "ArrowLeft") stepBack();
+		else if (e.key === "ArrowRight") stepForward();
+		else if (e.key === "ArrowUp") goToStart();
+		else goToEnd();
+	};
 
-	let pending = $derived(match.status === 'pending');
+	window.addEventListener("keydown", onKeyDown);
+	return () => window.removeEventListener("keydown", onKeyDown);
+});
 
-	let currentResult = $derived(
-		match.isDraw ? 'draw' : match.winnerId === match.whitePlayerId ? 'white' : 'black'
-	);
+// Elo display helpers
+const whiteElo = $derived(match.eloChange.white);
+const blackElo = $derived(match.eloChange.black);
+const whiteDelta = $derived(whiteElo.after - whiteElo.before);
+const blackDelta = $derived(blackElo.after - blackElo.before);
+
+const resultLabel = $derived(
+	match.isDraw
+		? "½–½ Draw"
+		: match.winnerId === match.whitePlayerId
+			? "1–0 White wins"
+			: "0–1 Black wins",
+);
+
+const pending = $derived(match.status === "pending");
+
+const currentResult = $derived(
+	match.isDraw
+		? "draw"
+		: match.winnerId === match.whitePlayerId
+			? "white"
+			: "black",
+);
 </script>
 
 <svelte:head><title>Match — Office Chess Club</title></svelte:head>
@@ -325,14 +394,32 @@
 						onclick={() => {
 							showSuggestions = !showSuggestions;
 						}}
-						title={showSuggestions ? 'Hide engine suggestions' : 'Show engine suggestions'}
+						title={showSuggestions ? 'Hide suggested move' : 'Show suggested move'}
 						aria-pressed={showSuggestions}
-						aria-label={showSuggestions ? 'Hide engine suggestions' : 'Show engine suggestions'}
+						aria-label={showSuggestions ? 'Hide suggested move' : 'Show suggested move'}
 					>
 						<Lightbulb size={15} aria-hidden="true" />
-						<span class="suggestion-toggle-label">Hints</span>
+						<span class="suggestion-toggle-label">Toggle suggested move</span>
 					</button>
 				</div>
+				{#if currentClock}
+					<div class="clock-strip">
+						<div class="clock-item">
+							<span class="clock-label with-icon">
+								<PieceColor color="white" size={11} />
+								White
+							</span>
+							<strong>{formatClockSeconds(currentClock.white)}</strong>
+						</div>
+						<div class="clock-item">
+							<span class="clock-label with-icon">
+								<PieceColor color="black" size={11} />
+								Black
+							</span>
+							<strong>{formatClockSeconds(currentClock.black)}</strong>
+						</div>
+					</div>
+				{/if}
 
 				<div class="move-list">
 					{#each history as move, i}
@@ -345,7 +432,12 @@
 							class="move-btn"
 							class:active={i === viewIndex}
 							onclick={() => goToMove(i)}
-						>{move}</button>
+						>
+							<span>{move}</span>
+							{#if moveElapsedByPly[i] != null}
+								<span class="move-time">({formatClockSeconds(moveElapsedByPly[i] ?? 0)})</span>
+							{/if}
+						</button>
 					{/each}
 				</div>
 			{:else if notationType === 'fen'}
@@ -362,8 +454,8 @@
 
 			<div class="players-card">
 				{#each [
-					{ player: white, elo: whiteElo, delta: whiteDelta, color: 'white' },
-					{ player: black, elo: blackElo, delta: blackDelta, color: 'black' }
+					/** @type {{ player: typeof white, elo: typeof whiteElo, delta: typeof whiteDelta, color: 'white' | 'black' }} */ ({ player: white, elo: whiteElo, delta: whiteDelta, color: 'white' }),
+					/** @type {{ player: typeof black, elo: typeof blackElo, delta: typeof blackDelta, color: 'white' | 'black' }} */ ({ player: black, elo: blackElo, delta: blackDelta, color: 'black' })
 				] as side}
 					<div class="player-row">
 						<PieceColor color={side.color} size={14} />
@@ -391,13 +483,29 @@
 
 			<div class="meta-card">
 				<div class="meta-row">
-					<span class="meta-label">Date</span>
+					<span class="meta-label with-icon">
+						<CalendarDays size={14} aria-hidden="true" />
+						Date
+					</span>
 					<span>{new Date(match.playedAt).toLocaleString()}</span>
 				</div>
 				<div class="meta-row">
-					<span class="meta-label">Notation</span>
+					<span class="meta-label with-icon">
+						<FileCode2 size={14} aria-hidden="true" />
+						Notation
+					</span>
 					<span class="notation-type">{notationType === 'none' ? 'None' : notationType.toUpperCase()}</span>
 				</div>
+				<div class="meta-row">
+					<span class="meta-label with-icon">
+						<Clock3 size={14} aria-hidden="true" />
+						Time format
+					</span>
+					<span>{getTimeFormatLabel(match.timeFormat)}</span>
+				</div>
+				{#if notationType === 'pgn' && match.timeFormat && !hasMoveTimingData}
+					<p class="meta-hint">This PGN does not include per-move time tags.</p>
+				{/if}
 				{#if match.notation && notationType === 'pgn'}
 					<details class="pgn-raw">
 						<summary>Raw PGN</summary>
@@ -525,7 +633,7 @@
 	}
 
 	.board-with-eval.with-eval {
-		grid-template-columns: minmax(0, min(480px, 100%)) 2.75rem;
+		grid-template-columns: minmax(0, min(600px, 100%)) 2.75rem;
 		gap: 0.5rem;
 	}
 
@@ -595,6 +703,7 @@
 	.suggestion-toggle-label {
 		font-size: 0.78rem;
 		font-weight: 600;
+		white-space: nowrap;
 	}
 
 	.suggestion-toggle.active {
@@ -629,9 +738,16 @@
 		border-radius: 3px;
 		font-size: 0.82rem;
 		margin-right: 2px;
+		display: inline-flex;
+		align-items: baseline;
+		gap: 4px;
 	}
 	.move-btn:hover { background: var(--color-match-move-bg); color: var(--color-link-hover); }
 	.move-btn.active { background: var(--color-match-move-active-bg); color: var(--color-link-hover); font-weight: 600; }
+	.move-time {
+		font-size: 0.72rem;
+		opacity: 0.8;
+	}
 
 	/* Match info */
 	.match-info { display: flex; flex-direction: column; gap: 1rem; }
@@ -678,6 +794,32 @@
 	.meta-row { display: flex; justify-content: space-between; font-size: 0.85rem; }
 	.meta-label { color: var(--color-text-dim); }
 	.notation-type { color: var(--color-text-subtle); text-transform: uppercase; font-size: 0.78rem; }
+	.meta-hint {
+		margin: 0;
+		font-size: 0.78rem;
+		color: var(--color-text-faint);
+	}
+	.clock-strip {
+		background: var(--color-surface);
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		padding: 8px 10px;
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 8px;
+	}
+	.clock-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		font-size: 0.82rem;
+	}
+	.clock-item strong {
+		font-variant-numeric: tabular-nums;
+	}
+	.clock-label {
+		color: var(--color-text-dim);
+	}
 
 	.pgn-raw summary { font-size: 0.82rem; color: var(--color-text-dim); cursor: pointer; margin-top: 4px; }
 	.pgn-raw pre {

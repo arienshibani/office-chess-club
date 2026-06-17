@@ -75,13 +75,16 @@ export const actions = {
 		const form = await request.formData();
 		const matchId = form.get('matchId')?.toString();
 		const result = form.get('result')?.toString();
+		const timeFormatRaw = form.get('timeFormat')?.toString();
+		const timeFormat = typeof timeFormatRaw === 'string' ? timeFormatRaw.trim() : '';
 		const returnTo = form.get('returnTo')?.toString();
 		if (!matchId || !result) return fail(400, { error: 'Missing required fields.' });
 
 		try {
 			await updateMatchResultById(
 				matchId,
-				/** @type {'white' | 'black' | 'draw'} */ (result)
+				/** @type {'white' | 'black' | 'draw'} */ (result),
+				timeFormat || undefined
 			);
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {

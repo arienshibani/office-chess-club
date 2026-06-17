@@ -1,6 +1,7 @@
 import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
 import { computeElo } from '$lib/elo.js';
 import { revertApprovedMatchEffects } from '$lib/match-delete.js';
+import { parseTimeFormatValue } from '$lib/time-control.js';
 
 /** @typedef {'white' | 'black' | 'draw'} MatchResult */
 
@@ -60,10 +61,18 @@ const applyApprovedMatchEffects = async (playersCol, white, black, result, eloCh
  * Correct a match result. Reverts and reapplies ratings for approved matches.
  * @param {string} matchId
  * @param {MatchResult} newResult
+ * @param {string | null | undefined} [newTimeFormat]
  */
-export const updateMatchResultById = async (matchId, newResult) => {
+export const updateMatchResultById = async (matchId, newResult, newTimeFormat) => {
 	if (!['white', 'black', 'draw'].includes(newResult)) {
 		throw createHttpError(400, 'Invalid result');
+	}
+	const parsedTimeFormat =
+		typeof newTimeFormat === 'string' && newTimeFormat.trim()
+			? parseTimeFormatValue(newTimeFormat)
+			: null;
+	if (typeof newTimeFormat === 'string' && newTimeFormat.trim() && !parsedTimeFormat) {
+		throw createHttpError(400, 'Invalid time format');
 	}
 
 	let oid;
@@ -80,8 +89,13 @@ export const updateMatchResultById = async (matchId, newResult) => {
 	}
 
 	const oldResult = matchResult(match);
-	if (oldResult === newResult) {
-		throw createHttpError(400, 'That is already the recorded result.');
+	const currentTimeFormat = typeof match.timeFormat === 'string' ? match.timeFormat : '';
+	const targetTimeFormat = parsedTimeFormat?.value ?? currentTimeFormat;
+	const resultChanged = oldResult !== newResult;
+	const timeFormatChanged = !!parsedTimeFormat && parsedTimeFormat.value !== currentTimeFormat;
+
+	if (!resultChanged && !timeFormatChanged) {
+		throw createHttpError(400, 'No changes to save.');
 	}
 
 	const [white, black] = await Promise.all([
@@ -95,7 +109,7 @@ export const updateMatchResultById = async (matchId, newResult) => {
 	const isDraw = newResult === 'draw';
 	const winnerId = isDraw ? null : newResult === 'white' ? white._id : black._id;
 
-	if (match.status === 'approved') {
+	if (match.status === 'approved' && resultChanged) {
 		await revertApprovedMatchEffects(match, playersCol);
 
 		const baselineWhite = match.eloChange.white.before;
@@ -106,7 +120,36 @@ export const updateMatchResultById = async (matchId, newResult) => {
 
 		await matchesCol.updateOne(
 			{ _id: oid },
-			{ $set: { isDraw, winnerId, eloChange } }
+			{
+				$set: {
+					isDraw,
+					winnerId,
+					eloChange,
+					timeFormat: targetTimeFormat,
+					timeControl: parsedTimeFormat
+						? {
+								baseSeconds: parsedTimeFormat.baseSeconds,
+								incrementSeconds: parsedTimeFormat.incrementSeconds
+							}
+						: match.timeControl
+				}
+			}
+		);
+		return;
+	}
+
+	if (!resultChanged && timeFormatChanged) {
+		await matchesCol.updateOne(
+			{ _id: oid },
+			{
+				$set: {
+					timeFormat: targetTimeFormat,
+					timeControl: {
+						baseSeconds: parsedTimeFormat.baseSeconds,
+						incrementSeconds: parsedTimeFormat.incrementSeconds
+					}
+				}
+			}
 		);
 		return;
 	}
@@ -114,6 +157,19 @@ export const updateMatchResultById = async (matchId, newResult) => {
 	const eloChange = computeElo(white.rating, black.rating, newResult);
 	await matchesCol.updateOne(
 		{ _id: oid },
-		{ $set: { isDraw, winnerId, eloChange } }
+		{
+			$set: {
+				isDraw,
+				winnerId,
+				eloChange,
+				timeFormat: targetTimeFormat,
+				timeControl: parsedTimeFormat
+					? {
+							baseSeconds: parsedTimeFormat.baseSeconds,
+							incrementSeconds: parsedTimeFormat.incrementSeconds
+						}
+					: match.timeControl
+			}
+		}
 	);
 };
