@@ -212,7 +212,7 @@
 							{#each matches as m}
 								<tr class:pending={m.status === 'pending'}>
 									<td>
-										<a href="/players/{m.opponentId}" class="opp-link">
+										<a href="/matches/{m._id}" class="opp-link">
 											<PlayerAvatar
 												icon={m.opponentIcon}
 												avatarUrl={m.opponentAvatar}
@@ -335,7 +335,7 @@
 					{#each matches as m}
 						<tr class:pending={m.status === 'pending'}>
 							<td>
-								<a href="/players/{m.opponentId}" class="opp-link">
+								<a href="/matches/{m._id}" class="opp-link">
 									<PlayerAvatar
 										icon={m.opponentIcon}
 										avatarUrl={m.opponentAvatar}
