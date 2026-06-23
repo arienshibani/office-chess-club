@@ -10,8 +10,7 @@ export const isSlackWebhookEnabled = (config) => config?.slackWebhookEnabled !==
 
 /** @param {import('mongodb').Document | null | undefined} config @returns {string} */
 const resolveSlackWebhookUrl = (config) => {
-	const stored =
-		typeof config?.slackWebhookUrl === 'string' ? config.slackWebhookUrl.trim() : '';
+	const stored = typeof config?.slackWebhookUrl === 'string' ? config.slackWebhookUrl.trim() : '';
 
 	if (stored && isValidSlackWebhookUrl(stored)) {
 		return stored;
@@ -44,8 +43,7 @@ export const getResolvedSlackWebhookUrl = async () => {
 export const getSlackWebhookStatus = async () => {
 	const cfgCol = await getConfig();
 	const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
-	const stored =
-		typeof config?.slackWebhookUrl === 'string' ? config.slackWebhookUrl.trim() : '';
+	const stored = typeof config?.slackWebhookUrl === 'string' ? config.slackWebhookUrl.trim() : '';
 	const env = typeof ENV_SLACK_WEBHOOK_URL === 'string' ? ENV_SLACK_WEBHOOK_URL.trim() : '';
 
 	const storedValid = !!(stored && isValidSlackWebhookUrl(stored));
@@ -58,6 +56,6 @@ export const getSlackWebhookStatus = async () => {
 		enabled,
 		storedInDb: storedValid,
 		fromEnv: !storedValid && envValid,
-		url
+		url,
 	};
 };

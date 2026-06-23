@@ -1,5 +1,5 @@
 import { ORIGIN } from '$env/static/private';
-import { getSlackWebhookUrl, getResolvedSlackWebhookUrl } from '$lib/slack-config.js';
+import { getResolvedSlackWebhookUrl, getSlackWebhookUrl } from '$lib/slack-config.js';
 
 /**
  * @param {object} p
@@ -16,7 +16,7 @@ export async function notifyMatchApproved({
 	isDraw,
 	winnerEloChange,
 	loserEloChange,
-	matchId
+	matchId,
 }) {
 	const replayUrl = `${ORIGIN}/matches/${matchId}`;
 	const text = isDraw
@@ -44,7 +44,7 @@ export const sendSlackTestNotification = async () => {
 	if (!webhookUrl) return false;
 
 	return postToSlackWebhook(webhookUrl, {
-		text: '♞ Test notification from Office Chess Club — Slack is connected!'
+		text: '♞ Test notification from Office Chess Club — Slack is connected!',
 	});
 };
 
@@ -54,7 +54,7 @@ async function postToSlackWebhook(webhookUrl, payload) {
 		const res = await fetch(webhookUrl, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(payload)
+			body: JSON.stringify(payload),
 		});
 		if (!res.ok) {
 			console.error('Slack webhook error: HTTP', res.status);

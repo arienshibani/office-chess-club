@@ -23,7 +23,7 @@ export const formatMatchTimestamp = (date) =>
 		month: 'short',
 		day: 'numeric',
 		hour: 'numeric',
-		minute: '2-digit'
+		minute: '2-digit',
 	});
 
 /**
@@ -33,9 +33,7 @@ export const formatMatchTimestamp = (date) =>
  */
 export const enrichMatches = async (playersCol, matches, ObjectId) => {
 	const playerIds = [
-		...new Set(
-			matches.flatMap((m) => [m.whitePlayerId.toString(), m.blackPlayerId.toString()])
-		)
+		...new Set(matches.flatMap((m) => [m.whitePlayerId.toString(), m.blackPlayerId.toString()])),
 	];
 
 	const playerDocs = playerIds.length
@@ -60,6 +58,6 @@ export const enrichMatches = async (playersCol, matches, ObjectId) => {
 		whiteIcon: playerMap[m.whitePlayerId.toString()]?.icon ?? '',
 		whiteAvatar: playerMap[m.whitePlayerId.toString()]?.avatarUrl ?? '',
 		blackIcon: playerMap[m.blackPlayerId.toString()]?.icon ?? '',
-		blackAvatar: playerMap[m.blackPlayerId.toString()]?.avatarUrl ?? ''
+		blackAvatar: playerMap[m.blackPlayerId.toString()]?.avatarUrl ?? '',
 	}));
 };

@@ -1,9 +1,13 @@
-import { getPlayers, getConfig } from '$lib/db.js';
-import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
-import { canSubmitMatches } from '$lib/player-status.js';
 import { fail, redirect } from '@sveltejs/kit';
+import { getConfig, getPlayers } from '$lib/db.js';
+import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
 import { createMatch } from '$lib/match-submit.js';
-import { DEFAULT_TIME_FORMAT, TIME_FORMAT_OPTIONS, parseTimeFormatValue } from '$lib/time-control.js';
+import { canSubmitMatches } from '$lib/player-status.js';
+import {
+	DEFAULT_TIME_FORMAT,
+	parseTimeFormatValue,
+	TIME_FORMAT_OPTIONS,
+} from '$lib/time-control.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ url, locals }) {
@@ -15,7 +19,7 @@ export async function load({ url, locals }) {
 	const [players, config, httpSubmit] = await Promise.all([
 		playersCol.find({}).sort({ rating: -1 }).toArray(),
 		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' })),
-		getHttpSubmitConfig()
+		getHttpSubmitConfig(),
 	]);
 
 	return {
@@ -26,7 +30,7 @@ export async function load({ url, locals }) {
 		defaultTimeFormat: DEFAULT_TIME_FORMAT,
 		apiSubmitEnabled: httpSubmit.enabled && !!httpSubmit.apiKey,
 		apiSubmitUrl: `${url.origin}/api/matches`,
-		apiSubmitKey: httpSubmit.apiKey
+		apiSubmitKey: httpSubmit.apiKey,
 	};
 }
 
@@ -35,7 +39,9 @@ export const actions = {
 	logMatch: async ({ request, locals }) => {
 		if (!locals.user) return fail(401, { error: 'Not authenticated' });
 		if (!canSubmitMatches(locals.user)) {
-			return fail(403, { error: 'Your account is pending admin approval. You cannot submit matches yet.' });
+			return fail(403, {
+				error: 'Your account is pending admin approval. You cannot submit matches yet.',
+			});
 		}
 
 		const data = await request.formData();
@@ -68,7 +74,7 @@ export const actions = {
 				notation,
 				timeFormat,
 				reportedBy: locals.user._id,
-				reporterName: locals.user.name
+				reporterName: locals.user.name,
 			});
 
 			return {
@@ -78,13 +84,15 @@ export const actions = {
 				message:
 					status === 'approved'
 						? 'Match logged and ratings updated!'
-						: 'Match submitted — pending admin approval.'
+						: 'Match submitted — pending admin approval.',
 			};
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
-				return fail(/** @type {number} */ (err.status), { error: /** @type {string} */ (err.message) });
+				return fail(/** @type {number} */ (err.status), {
+					error: /** @type {string} */ (err.message),
+				});
 			}
 			throw err;
 		}
-	}
+	},
 };

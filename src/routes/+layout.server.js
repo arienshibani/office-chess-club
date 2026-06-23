@@ -5,6 +5,6 @@ export function load({ locals, depends }) {
 	depends('app:session');
 
 	return {
-		theme: locals.user?.theme ? normalizeTheme(locals.user.theme) : null
+		theme: locals.user?.theme ? normalizeTheme(locals.user.theme) : null,
 	};
-};
+}

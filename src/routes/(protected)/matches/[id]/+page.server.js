@@ -1,9 +1,9 @@
+import { error, fail, redirect } from '@sveltejs/kit';
 import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
-import { validateNotation } from '$lib/notation.js';
 import { deleteMatchById } from '$lib/match-delete.js';
 import { updateMatchResultById } from '$lib/match-result-update.js';
+import { validateNotation } from '$lib/notation.js';
 import { parseTimeFormatValue } from '$lib/time-control.js';
-import { error, fail, redirect } from '@sveltejs/kit';
 
 /** @param {import('mongodb').ObjectId} whiteId @param {import('mongodb').ObjectId} blackId @param {string} userId */
 const isMatchParticipant = (whiteId, blackId, userId) =>
@@ -35,11 +35,12 @@ export async function load({ params, locals, depends }) {
 	const playersCol = await getPlayers();
 	const [white, black] = await Promise.all([
 		playersCol.findOne({ _id: match.whitePlayerId }),
-		playersCol.findOne({ _id: match.blackPlayerId })
+		playersCol.findOne({ _id: match.blackPlayerId }),
 	]);
 
 	const userId = locals.user?._id ?? '';
-	const canEditNotation = !!userId && isMatchParticipant(match.whitePlayerId, match.blackPlayerId, userId);
+	const canEditNotation =
+		!!userId && isMatchParticipant(match.whitePlayerId, match.blackPlayerId, userId);
 	const canEditTimeFormat = canEditNotation || !!locals.user?.isAdmin;
 
 	return {
@@ -56,13 +57,13 @@ export async function load({ params, locals, depends }) {
 				typeof match.timeControl.incrementSeconds === 'number'
 					? {
 							baseSeconds: match.timeControl.baseSeconds,
-							incrementSeconds: match.timeControl.incrementSeconds
+							incrementSeconds: match.timeControl.incrementSeconds,
 						}
 					: null,
 			playedAt: match.playedAt,
 			winnerId: match.winnerId?.toString() ?? null,
 			whitePlayerId: match.whitePlayerId.toString(),
-			blackPlayerId: match.blackPlayerId.toString()
+			blackPlayerId: match.blackPlayerId.toString(),
 		},
 		white: white
 			? {
@@ -70,7 +71,7 @@ export async function load({ params, locals, depends }) {
 					name: white.name,
 					icon: typeof white.icon === 'string' ? white.icon : '',
 					avatarUrl: white.avatarUrl,
-					rating: white.rating
+					rating: white.rating,
 				}
 			: null,
 		black: black
@@ -79,12 +80,12 @@ export async function load({ params, locals, depends }) {
 					name: black.name,
 					icon: typeof black.icon === 'string' ? black.icon : '',
 					avatarUrl: black.avatarUrl,
-					rating: black.rating
+					rating: black.rating,
 				}
 			: null,
 		canEditNotation,
 		canEditTimeFormat,
-		isAdmin: !!locals.user?.isAdmin
+		isAdmin: !!locals.user?.isAdmin,
 	};
 }
 
@@ -125,7 +126,7 @@ export const actions = {
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
@@ -157,7 +158,11 @@ export const actions = {
 		if (!match) return fail(404, { error: 'Match not found.' });
 
 		const isAdmin = !!locals.user.isAdmin;
-		const isParticipant = isMatchParticipant(match.whitePlayerId, match.blackPlayerId, locals.user._id);
+		const isParticipant = isMatchParticipant(
+			match.whitePlayerId,
+			match.blackPlayerId,
+			locals.user._id,
+		);
 		if (!isAdmin && !isParticipant) {
 			return fail(403, { error: 'Only players in this match can edit time format.' });
 		}
@@ -178,17 +183,17 @@ export const actions = {
 			await updateMatchResultById(
 				params.id,
 				/** @type {'white' | 'black' | 'draw'} */ (result),
-				submittedTimeFormat || undefined
+				submittedTimeFormat || undefined,
 			);
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
 		}
 
 		return { resultCorrected: true, message: 'Match updated.' };
-	}
+	},
 };

@@ -1,4 +1,4 @@
-import { createHmac, randomBytes } from 'crypto';
+import { createHmac } from 'node:crypto';
 import { SESSION_SECRET } from '$env/static/private';
 
 const COOKIE_NAME = 'session';

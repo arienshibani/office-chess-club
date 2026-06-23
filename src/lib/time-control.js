@@ -9,7 +9,7 @@ export const TIME_FORMAT_OPTIONS = [
 	{ value: '600+0', label: '10+0 Rapid', baseSeconds: 600, incrementSeconds: 0 },
 	{ value: '600+5', label: '10+5 Rapid', baseSeconds: 600, incrementSeconds: 5 },
 	{ value: '900+10', label: '15+10 Rapid', baseSeconds: 900, incrementSeconds: 10 },
-	{ value: '1800+0', label: '30+0 Classical', baseSeconds: 1800, incrementSeconds: 0 }
+	{ value: '1800+0', label: '30+0 Classical', baseSeconds: 1800, incrementSeconds: 0 },
 ];
 
 export const DEFAULT_TIME_FORMAT = TIME_FORMAT_OPTIONS[5].value;
@@ -28,7 +28,7 @@ export const parseTimeFormatValue = (value) => {
 	return {
 		value: `${baseSeconds}+${incrementSeconds}`,
 		baseSeconds,
-		incrementSeconds
+		incrementSeconds,
 	};
 };
 

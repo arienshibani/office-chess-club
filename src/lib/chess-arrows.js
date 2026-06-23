@@ -13,7 +13,7 @@ export const parseUciMove = (uci) => {
 	return {
 		from: match[1],
 		to: match[2],
-		...(match[3] ? { promotion: match[3].toLowerCase() } : {})
+		...(match[3] ? { promotion: match[3].toLowerCase() } : {}),
 	};
 };
 
@@ -42,7 +42,7 @@ export const squareToPercent = (square) => {
 	const rank = parseInt(square[1], 10);
 	return {
 		x: (file + 0.5) * 12.5,
-		y: (8 - rank + 0.5) * 12.5
+		y: (8 - rank + 0.5) * 12.5,
 	};
 };
 
@@ -65,7 +65,7 @@ export const arrowLine = (from, to, shrink = 2.2) => {
 		x1: from.x + ux * shrink,
 		y1: from.y + uy * shrink,
 		x2: to.x - ux * shrink,
-		y2: to.y - uy * shrink
+		y2: to.y - uy * shrink,
 	};
 };
 

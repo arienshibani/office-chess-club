@@ -1,7 +1,9 @@
 import { MongoClient, ObjectId } from 'mongodb';
 import { env } from '$env/dynamic/private';
 
-const globalWithMongo = /** @type {typeof globalThis & { _mongoClient?: MongoClient }} */ (globalThis);
+const globalWithMongo = /** @type {typeof globalThis & { _mongoClient?: MongoClient }} */ (
+	globalThis
+);
 
 const getMongoUri = () => {
 	const uri = env.MONGODB_URI?.trim();
@@ -18,7 +20,7 @@ async function getClient() {
 	const client = new MongoClient(getMongoUri(), {
 		maxPoolSize: 10,
 		serverSelectionTimeoutMS: 10_000,
-		connectTimeoutMS: 10_000
+		connectTimeoutMS: 10_000,
 	});
 	await client.connect();
 	globalWithMongo._mongoClient = client;
@@ -58,7 +60,8 @@ export async function ensureIndexes() {
 		for (const idx of existing) {
 			const indexName = typeof idx.name === 'string' ? idx.name : '';
 			const isLegacySlackId =
-				indexName === 'slackId_1' || (idx.unique === true && Object.keys(idx.key).join(',') === 'slackId');
+				indexName === 'slackId_1' ||
+				(idx.unique === true && Object.keys(idx.key).join(',') === 'slackId');
 			if (isLegacySlackId) {
 				await players.dropIndex(indexName);
 			}
@@ -82,10 +85,10 @@ export async function ensureIndexes() {
 				clubName: 'Office',
 				httpSubmitEnabled: false,
 				publicViewEnabled: true,
-				slackWebhookEnabled: true
-			})
+				slackWebhookEnabled: true,
+			}),
 		},
-		{ upsert: true }
+		{ upsert: true },
 	);
 }
 

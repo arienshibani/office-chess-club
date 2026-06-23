@@ -18,10 +18,7 @@ export const POST = async ({ request, locals }) => {
 	const theme = normalizeTheme(body?.theme);
 	const playersCol = await getPlayers();
 
-	await playersCol.updateOne(
-		{ _id: new ObjectId(locals.user._id) },
-		{ $set: { theme } }
-	);
+	await playersCol.updateOne({ _id: new ObjectId(locals.user._id) }, { $set: { theme } });
 
 	return json({ success: true, theme });
 };

@@ -33,7 +33,7 @@
 			const row = [];
 			for (const ch of rankStr) {
 				if (/\d/.test(ch)) {
-					for (let i = 0; i < parseInt(ch); i++) row.push(null);
+					for (let i = 0; i < parseInt(ch, 10); i++) row.push(null);
 				} else {
 					row.push(ch);
 				}

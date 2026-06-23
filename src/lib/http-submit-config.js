@@ -1,5 +1,5 @@
-import { getConfig } from '$lib/db.js';
 import { randomBytes } from 'node:crypto';
+import { getConfig } from '$lib/db.js';
 
 /** @returns {string} */
 export const generateHttpSubmitApiKey = () => randomBytes(32).toString('base64url');
@@ -11,6 +11,6 @@ export const getHttpSubmitConfig = async () => {
 
 	return {
 		enabled: config?.httpSubmitEnabled === true,
-		apiKey: typeof config?.httpSubmitApiKey === 'string' ? config.httpSubmitApiKey.trim() : ''
+		apiKey: typeof config?.httpSubmitApiKey === 'string' ? config.httpSubmitApiKey.trim() : '',
 	};
 };

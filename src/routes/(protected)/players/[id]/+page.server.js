@@ -1,9 +1,9 @@
-import { getPlayers, getMatches, ObjectId } from '$lib/db.js';
-import { buildEloHistoryFromDocs } from '$lib/elo-history.js';
-import { normalizePlayerIcon } from '$lib/player-icon.js';
-import { hashPassword, verifyPassword } from '$lib/password.js';
-import { normalizeTheme } from '$lib/theme.js';
 import { error, fail } from '@sveltejs/kit';
+import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
+import { buildEloHistoryFromDocs } from '$lib/elo-history.js';
+import { hashPassword, verifyPassword } from '$lib/password.js';
+import { normalizePlayerIcon } from '$lib/player-icon.js';
+import { normalizeTheme } from '$lib/theme.js';
 
 /** @param {import('@sveltejs/kit').RequestEvent} event */
 const assertOwnProfile = ({ locals, params }) => {
@@ -27,7 +27,7 @@ export async function load({ params, locals, depends }) {
 
 	const [player, allPlayers] = await Promise.all([
 		playersCol.findOne({ _id: oid }),
-		playersCol.find({}).sort({ rating: -1 }).toArray()
+		playersCol.find({}).sort({ rating: -1 }).toArray(),
 	]);
 
 	if (!player) error(404, 'Player not found');
@@ -37,7 +37,7 @@ export async function load({ params, locals, depends }) {
 	const [matches, historyDocs] = await Promise.all([
 		matchesCol
 			.find({
-				$or: [{ whitePlayerId: oid }, { blackPlayerId: oid }]
+				$or: [{ whitePlayerId: oid }, { blackPlayerId: oid }],
 			})
 			.sort({ playedAt: -1 })
 			.limit(50)
@@ -45,11 +45,11 @@ export async function load({ params, locals, depends }) {
 		matchesCol
 			.find({
 				$or: [{ whitePlayerId: oid }, { blackPlayerId: oid }],
-				status: 'approved'
+				status: 'approved',
 			})
 			.project({ playedAt: 1, whitePlayerId: 1, blackPlayerId: 1, eloChange: 1, status: 1 })
 			.sort({ playedAt: 1 })
-			.toArray()
+			.toArray(),
 	]);
 
 	// Collect opponent IDs
@@ -58,9 +58,9 @@ export async function load({ params, locals, depends }) {
 			matches.map((m) =>
 				m.whitePlayerId.toString() === params.id
 					? m.blackPlayerId.toString()
-					: m.whitePlayerId.toString()
-			)
-		)
+					: m.whitePlayerId.toString(),
+			),
+		),
 	];
 
 	const opponents = await playersCol
@@ -91,7 +91,7 @@ export async function load({ params, locals, depends }) {
 			eloBefore: playerElo.before,
 			eloAfter: playerElo.after,
 			eloChange: playerElo.after - playerElo.before,
-			playedAt: m.playedAt
+			playedAt: m.playedAt,
 		};
 	});
 
@@ -104,12 +104,12 @@ export async function load({ params, locals, depends }) {
 			rating: /** @type {number} */ (player.rating),
 			isAdmin: /** @type {boolean} */ (player.isAdmin),
 			stats: /** @type {{ wins: number, losses: number, draws: number }} */ (player.stats),
-			theme: normalizeTheme(player.theme)
+			theme: normalizeTheme(player.theme),
 		},
 		matches: enriched,
 		eloHistory: buildEloHistoryFromDocs(historyDocs, params.id),
 		rank,
-		isOwnProfile: locals.user?._id === params.id
+		isOwnProfile: locals.user?._id === params.id,
 	};
 }
 
@@ -124,7 +124,8 @@ export const actions = {
 		const icon = normalizePlayerIcon(String(data.get('icon') ?? ''));
 		const theme = normalizeTheme(String(data.get('theme') ?? ''));
 
-		if (!name) return fail(400, { profileError: 'Display name is required.', action: 'updateProfile' });
+		if (!name)
+			return fail(400, { profileError: 'Display name is required.', action: 'updateProfile' });
 		if (name.length > 80) {
 			return fail(400, { profileError: 'Display name is too long.', action: 'updateProfile' });
 		}
@@ -132,7 +133,7 @@ export const actions = {
 		const playersCol = await getPlayers();
 		await playersCol.updateOne(
 			{ _id: new ObjectId(event.params.id) },
-			{ $set: { name, icon, theme } }
+			{ $set: { name, icon, theme } },
 		);
 
 		return { profileSuccess: true, action: 'updateProfile', message: 'Profile updated.' };
@@ -150,13 +151,13 @@ export const actions = {
 		if (!currentPassword || !newPassword) {
 			return fail(400, {
 				passwordError: 'Current and new password are required.',
-				action: 'changePassword'
+				action: 'changePassword',
 			});
 		}
 		if (newPassword.length < 4) {
 			return fail(400, {
 				passwordError: 'New password must be at least 4 characters.',
-				action: 'changePassword'
+				action: 'changePassword',
 			});
 		}
 		if (confirmPassword && newPassword !== confirmPassword) {
@@ -169,12 +170,15 @@ export const actions = {
 			return fail(400, { passwordError: 'Unable to change password.', action: 'changePassword' });
 		}
 		if (!(await verifyPassword(currentPassword, player.passwordHash))) {
-			return fail(401, { passwordError: 'Current password is incorrect.', action: 'changePassword' });
+			return fail(401, {
+				passwordError: 'Current password is incorrect.',
+				action: 'changePassword',
+			});
 		}
 
 		const passwordHash = await hashPassword(newPassword);
 		await playersCol.updateOne({ _id: player._id }, { $set: { passwordHash } });
 
 		return { passwordSuccess: true, action: 'changePassword', message: 'Password updated.' };
-	}
+	},
 };

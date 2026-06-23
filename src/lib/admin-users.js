@@ -109,9 +109,9 @@ export const approveUserById = async (userId, actingAdminId) => {
 			$set: {
 				status: PLAYER_STATUS_MEMBER,
 				approvedAt: new Date(),
-				approvedBy: new ObjectId(actingAdminId)
-			}
-		}
+				approvedBy: new ObjectId(actingAdminId),
+			},
+		},
 	);
 };
 
@@ -124,8 +124,8 @@ export const resetLadder = async () => {
 		{
 			$set: {
 				rating: DEFAULT_RATING,
-				stats: { wins: 0, losses: 0, draws: 0 }
-			}
-		}
+				stats: { wins: 0, losses: 0, draws: 0 },
+			},
+		},
 	);
 };

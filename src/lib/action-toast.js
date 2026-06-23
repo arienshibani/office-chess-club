@@ -1,5 +1,5 @@
-import { invalidate } from '$app/navigation';
 import toast from 'svelte-french-toast';
+import { invalidate } from '$app/navigation';
 
 export { toast };
 
@@ -34,19 +34,21 @@ export const toastFromResult = (result) => {
 /**
  * @param {{ redirectMessage?: string, invalidate?: string[] }} [options]
  */
-export const withActionToast = (options = {}) => async ({ result, update }) => {
-	await update({ invalidateAll: true });
+export const withActionToast =
+	(options = {}) =>
+	async ({ result, update }) => {
+		await update({ invalidateAll: true });
 
-	if (options.invalidate?.length) {
-		await Promise.all(options.invalidate.map((key) => invalidate(key)));
-	}
+		if (options.invalidate?.length) {
+			await Promise.all(options.invalidate.map((key) => invalidate(key)));
+		}
 
-	if (result.type === 'redirect' && options.redirectMessage) {
-		toast.success(options.redirectMessage);
-	} else {
-		toastFromResult(result);
-	}
-};
+		if (result.type === 'redirect' && options.redirectMessage) {
+			toast.success(options.redirectMessage);
+		} else {
+			toastFromResult(result);
+		}
+	};
 
 /** Keys for targeted admin/config reloads after settings change. */
 export const ADMIN_INVALIDATE = ['app:admin', 'app:config'];

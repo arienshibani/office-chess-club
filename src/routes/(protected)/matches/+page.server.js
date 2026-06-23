@@ -1,8 +1,8 @@
-import { getPlayers, getMatches, ObjectId } from '$lib/db.js';
-import { enrichMatches } from '$lib/matches.js';
+import { fail, redirect } from '@sveltejs/kit';
+import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
 import { deleteMatchById } from '$lib/match-delete.js';
 import { updateMatchResultById } from '$lib/match-result-update.js';
-import { fail, redirect } from '@sveltejs/kit';
+import { enrichMatches } from '$lib/matches.js';
 
 const PER_PAGE = 10;
 
@@ -35,8 +35,8 @@ export async function load({ url }) {
 			total,
 			perPage: PER_PAGE,
 			hasPrev: page > 1,
-			hasNext: page < totalPages
-		}
+			hasNext: page < totalPages,
+		},
 	};
 }
 
@@ -55,7 +55,7 @@ export const actions = {
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
@@ -84,12 +84,12 @@ export const actions = {
 			await updateMatchResultById(
 				matchId,
 				/** @type {'white' | 'black' | 'draw'} */ (result),
-				timeFormat || undefined
+				timeFormat || undefined,
 			);
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
@@ -101,5 +101,5 @@ export const actions = {
 		const rawPage = url.searchParams.get('page');
 		const redirectTo = rawPage && rawPage !== '1' ? `/matches?page=${rawPage}` : '/matches';
 		redirect(303, redirectTo);
-	}
+	},
 };

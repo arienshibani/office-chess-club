@@ -8,7 +8,7 @@ export const computeColorStats = (matches) => {
 	/** @type {{ white: ColorRecord, black: ColorRecord }} */
 	const stats = {
 		white: { wins: 0, losses: 0, draws: 0 },
-		black: { wins: 0, losses: 0, draws: 0 }
+		black: { wins: 0, losses: 0, draws: 0 },
 	};
 
 	for (const match of matches) {

@@ -39,9 +39,9 @@ const applyApprovedMatchEffects = async (playersCol, white, black, result, eloCh
 				$inc: {
 					'stats.wins': result === 'white' ? 1 : 0,
 					'stats.losses': result === 'black' ? 1 : 0,
-					'stats.draws': isDraw ? 1 : 0
-				}
-			}
+					'stats.draws': isDraw ? 1 : 0,
+				},
+			},
 		),
 		playersCol.updateOne(
 			{ _id: black._id },
@@ -50,10 +50,10 @@ const applyApprovedMatchEffects = async (playersCol, white, black, result, eloCh
 				$inc: {
 					'stats.wins': result === 'black' ? 1 : 0,
 					'stats.losses': result === 'white' ? 1 : 0,
-					'stats.draws': isDraw ? 1 : 0
-				}
-			}
-		)
+					'stats.draws': isDraw ? 1 : 0,
+				},
+			},
+		),
 	]);
 };
 
@@ -100,7 +100,7 @@ export const updateMatchResultById = async (matchId, newResult, newTimeFormat) =
 
 	const [white, black] = await Promise.all([
 		playersCol.findOne({ _id: match.whitePlayerId }),
-		playersCol.findOne({ _id: match.blackPlayerId })
+		playersCol.findOne({ _id: match.blackPlayerId }),
 	]);
 	if (!white || !black) {
 		throw createHttpError(400, 'Players not found');
@@ -129,11 +129,11 @@ export const updateMatchResultById = async (matchId, newResult, newTimeFormat) =
 					timeControl: parsedTimeFormat
 						? {
 								baseSeconds: parsedTimeFormat.baseSeconds,
-								incrementSeconds: parsedTimeFormat.incrementSeconds
+								incrementSeconds: parsedTimeFormat.incrementSeconds,
 							}
-						: match.timeControl
-				}
-			}
+						: match.timeControl,
+				},
+			},
 		);
 		return;
 	}
@@ -146,10 +146,10 @@ export const updateMatchResultById = async (matchId, newResult, newTimeFormat) =
 					timeFormat: targetTimeFormat,
 					timeControl: {
 						baseSeconds: parsedTimeFormat.baseSeconds,
-						incrementSeconds: parsedTimeFormat.incrementSeconds
-					}
-				}
-			}
+						incrementSeconds: parsedTimeFormat.incrementSeconds,
+					},
+				},
+			},
 		);
 		return;
 	}
@@ -166,10 +166,10 @@ export const updateMatchResultById = async (matchId, newResult, newTimeFormat) =
 				timeControl: parsedTimeFormat
 					? {
 							baseSeconds: parsedTimeFormat.baseSeconds,
-							incrementSeconds: parsedTimeFormat.incrementSeconds
+							incrementSeconds: parsedTimeFormat.incrementSeconds,
 						}
-					: match.timeControl
-			}
-		}
+					: match.timeControl,
+			},
+		},
 	);
 };

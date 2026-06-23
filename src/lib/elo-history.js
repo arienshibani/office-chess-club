@@ -17,7 +17,7 @@ export const buildEloHistoryFromDocs = (docs, playerId, startingRating = DEFAULT
 				m.status === 'approved' &&
 				m.eloChange &&
 				typeof m.eloChange.white?.before === 'number' &&
-				typeof m.eloChange.black?.before === 'number'
+				typeof m.eloChange.black?.before === 'number',
 		)
 		.sort((a, b) => new Date(a.playedAt).getTime() - new Date(b.playedAt).getTime());
 
@@ -38,7 +38,7 @@ export const buildEloHistoryFromDocs = (docs, playerId, startingRating = DEFAULT
 				rating: elo.before ?? startingRating,
 				delta: 0,
 				before: elo.before ?? startingRating,
-				isStart: true
+				isStart: true,
 			});
 		}
 
@@ -46,7 +46,7 @@ export const buildEloHistoryFromDocs = (docs, playerId, startingRating = DEFAULT
 			playedAt,
 			rating: elo.after,
 			delta: elo.after - elo.before,
-			before: elo.before
+			before: elo.before,
 		});
 	}
 
@@ -97,7 +97,7 @@ export const buildEloChartGeometry = (points, options = {}) => {
 		rating: p.rating,
 		delta: p.delta,
 		playedAt: p.playedAt,
-		isStart: !!p.isStart
+		isStart: !!p.isStart,
 	}));
 
 	return {
@@ -110,11 +110,11 @@ export const buildEloChartGeometry = (points, options = {}) => {
 		yLabels: [
 			{ y: toY(maxR), label: String(Math.round(maxR)) },
 			{ y: toY((maxR + minR) / 2), label: String(Math.round((maxR + minR) / 2)) },
-			{ y: toY(minR), label: String(Math.round(minR)) }
+			{ y: toY(minR), label: String(Math.round(minR)) },
 		],
 		xStart: points[0].playedAt,
 		xEnd: points[points.length - 1].playedAt,
-		gridYs: [toY(maxR), toY((maxR + minR) / 2), toY(minR)]
+		gridYs: [toY(maxR), toY((maxR + minR) / 2), toY(minR)],
 	};
 };
 

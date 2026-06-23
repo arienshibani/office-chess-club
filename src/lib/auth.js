@@ -1,4 +1,4 @@
-import { createSessionToken, COOKIE_NAME, MAX_AGE } from '$lib/session.js';
+import { COOKIE_NAME, createSessionToken, MAX_AGE } from '$lib/session.js';
 
 /** @param {import('@sveltejs/kit').Cookies} cookies @param {string} userId */
 export const setSessionCookie = (cookies, userId) => {
@@ -7,6 +7,6 @@ export const setSessionCookie = (cookies, userId) => {
 		httpOnly: true,
 		secure: import.meta.env.PROD,
 		sameSite: 'lax',
-		maxAge: MAX_AGE
+		maxAge: MAX_AGE,
 	});
 };

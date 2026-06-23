@@ -37,9 +37,9 @@ export const revertApprovedMatchEffects = async (match, playersCol) => {
 				$inc: {
 					'stats.wins': result === 'white' ? -1 : 0,
 					'stats.losses': result === 'black' ? -1 : 0,
-					'stats.draws': match.isDraw ? -1 : 0
-				}
-			}
+					'stats.draws': match.isDraw ? -1 : 0,
+				},
+			},
 		),
 		playersCol.updateOne(
 			{ _id: match.blackPlayerId },
@@ -48,10 +48,10 @@ export const revertApprovedMatchEffects = async (match, playersCol) => {
 				$inc: {
 					'stats.wins': result === 'black' ? -1 : 0,
 					'stats.losses': result === 'white' ? -1 : 0,
-					'stats.draws': match.isDraw ? -1 : 0
-				}
-			}
-		)
+					'stats.draws': match.isDraw ? -1 : 0,
+				},
+			},
+		),
 	]);
 };
 

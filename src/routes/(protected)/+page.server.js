@@ -1,4 +1,4 @@
-import { getPlayers, getMatches, ObjectId } from '$lib/db.js';
+import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
 import { enrichMatches } from '$lib/matches.js';
 
 /** @type {import('./$types').PageServerLoad} */
@@ -7,7 +7,7 @@ export async function load() {
 
 	const [leaderboard, recentMatches] = await Promise.all([
 		playersCol.find({}).sort({ rating: -1 }).toArray(),
-		matchesCol.find({}).sort({ playedAt: -1 }).limit(10).toArray()
+		matchesCol.find({}).sort({ playedAt: -1 }).limit(10).toArray(),
 	]);
 
 	const enrichedMatches = await enrichMatches(playersCol, recentMatches, ObjectId);
@@ -19,8 +19,8 @@ export async function load() {
 			icon: typeof p.icon === 'string' ? p.icon : '',
 			avatarUrl: p.avatarUrl ?? '',
 			rating: p.rating,
-			stats: p.stats
+			stats: p.stats,
 		})),
-		recentMatches: enrichedMatches
+		recentMatches: enrichedMatches,
 	};
 }

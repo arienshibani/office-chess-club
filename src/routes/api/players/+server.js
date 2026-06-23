@@ -23,8 +23,8 @@ export const GET = async ({ request }) => {
 			rating: typeof player.rating === 'number' ? player.rating : 1200,
 			status: normalizePlayerStatus(player.status),
 			isAdmin: !!player.isAdmin,
-			createdAt: player.createdAt instanceof Date ? player.createdAt.toISOString() : null
-		}))
+			createdAt: player.createdAt instanceof Date ? player.createdAt.toISOString() : null,
+		})),
 	});
 };
 

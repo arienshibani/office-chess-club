@@ -35,6 +35,6 @@ export function computeElo(whiteRating, blackRating, result) {
 
 	return {
 		white: { before: whiteRating, after: newWhite },
-		black: { before: blackRating, after: newBlack }
+		black: { before: blackRating, after: newBlack },
 	};
 }

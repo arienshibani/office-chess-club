@@ -1,4 +1,4 @@
-import { getPlayers, getMatches, getConfig, ObjectId } from '$lib/db.js';
+import { getConfig, getMatches, getPlayers, ObjectId } from '$lib/db.js';
 import { computeElo } from '$lib/elo.js';
 import { validateNotation } from '$lib/notation.js';
 import { notifyMatchApproved, notifyPendingMatch } from '$lib/slack.js';
@@ -51,7 +51,7 @@ const notifyApprovedMatch = async (result, isDraw, eloChange, white, black, matc
 		isDraw,
 		winnerEloChange,
 		loserEloChange,
-		matchId
+		matchId,
 	});
 };
 
@@ -74,7 +74,7 @@ export const createMatch = async ({
 	timeFormat,
 	reportedBy,
 	reporterName,
-	requireNotation = false
+	requireNotation = false,
 }) => {
 	if (!whitePlayerId || !blackPlayerId || !result) {
 		throw createHttpError(400, 'Missing required fields');
@@ -102,11 +102,15 @@ export const createMatch = async ({
 	const blackId = parseObjectId(blackPlayerId, 'blackPlayerId');
 	const reporterId = reportedBy ? parseObjectId(reportedBy, 'reportedBy') : null;
 
-	const [playersCol, matchesCol, cfgCol] = await Promise.all([getPlayers(), getMatches(), getConfig()]);
+	const [playersCol, matchesCol, cfgCol] = await Promise.all([
+		getPlayers(),
+		getMatches(),
+		getConfig(),
+	]);
 	const [white, black, config] = await Promise.all([
 		playersCol.findOne({ _id: whiteId }),
 		playersCol.findOne({ _id: blackId }),
-		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }))
+		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' })),
 	]);
 
 	if (!white || !black) {
@@ -132,10 +136,10 @@ export const createMatch = async ({
 		timeFormat: parsedTimeFormat.value,
 		timeControl: {
 			baseSeconds: parsedTimeFormat.baseSeconds,
-			incrementSeconds: parsedTimeFormat.incrementSeconds
+			incrementSeconds: parsedTimeFormat.incrementSeconds,
 		},
 		reportedBy: reporterId,
-		playedAt: new Date()
+		playedAt: new Date(),
 	};
 
 	const inserted = await matchesCol.insertOne(match);
@@ -150,9 +154,9 @@ export const createMatch = async ({
 					$inc: {
 						'stats.wins': result === 'white' ? 1 : 0,
 						'stats.losses': result === 'black' ? 1 : 0,
-						'stats.draws': isDraw ? 1 : 0
-					}
-				}
+						'stats.draws': isDraw ? 1 : 0,
+					},
+				},
 			),
 			playersCol.updateOne(
 				{ _id: black._id },
@@ -161,13 +165,20 @@ export const createMatch = async ({
 					$inc: {
 						'stats.wins': result === 'black' ? 1 : 0,
 						'stats.losses': result === 'white' ? 1 : 0,
-						'stats.draws': isDraw ? 1 : 0
-					}
-				}
-			)
+						'stats.draws': isDraw ? 1 : 0,
+					},
+				},
+			),
 		]);
 
-		await notifyApprovedMatch(result, isDraw, eloChange, { name: whiteName }, { name: blackName }, matchId);
+		await notifyApprovedMatch(
+			result,
+			isDraw,
+			eloChange,
+			{ name: whiteName },
+			{ name: blackName },
+			matchId,
+		);
 	} else {
 		await notifyPendingMatch({
 			reporterName,
@@ -176,7 +187,7 @@ export const createMatch = async ({
 					? blackName
 					: whiteName
 				: `${whiteName} vs ${blackName}`,
-			matchId
+			matchId,
 		});
 	}
 

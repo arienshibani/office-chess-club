@@ -1,8 +1,8 @@
 import { dev } from '$app/environment';
-import { getPlayers, ObjectId, ensureIndexes } from '$lib/db.js';
+import { ensureIndexes, getPlayers, ObjectId } from '$lib/db.js';
 import { errorDetails } from '$lib/format-error.js';
 import { normalizePlayerStatus } from '$lib/player-status.js';
-import { verifySessionToken, COOKIE_NAME } from '$lib/session.js';
+import { COOKIE_NAME, verifySessionToken } from '$lib/session.js';
 import { normalizeTheme } from '$lib/theme.js';
 
 let indexesEnsured = false;
@@ -34,7 +34,7 @@ export async function handle({ event, resolve }) {
 						isAdmin: user.isAdmin,
 						status: normalizePlayerStatus(user.status),
 						stats: user.stats,
-						theme: normalizeTheme(user.theme)
+						theme: normalizeTheme(user.theme),
 					};
 				}
 			} catch {
@@ -53,7 +53,11 @@ export function handleError({ error, status, message }) {
 	console.error(`[${status}]`, error);
 
 	if (status === 404) {
-		return { message: "We couldn't find the page you're looking for.", details, stack: dev ? stack : undefined };
+		return {
+			message: "We couldn't find the page you're looking for.",
+			details,
+			stack: dev ? stack : undefined,
+		};
 	}
 
 	return {

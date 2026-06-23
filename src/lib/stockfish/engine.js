@@ -111,7 +111,7 @@ export const analyzePosition = (fen, options = {}) => {
 						const uci = line.split(/\s+/)[1] ?? '';
 						resolve({
 							...normalizeEvalForWhite(fen, lastRaw),
-							bestMove: parseUciMove(uci)
+							bestMove: parseUciMove(uci),
 						});
 					}
 				});

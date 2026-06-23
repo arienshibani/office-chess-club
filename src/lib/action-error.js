@@ -1,5 +1,5 @@
-import { dev } from '$app/environment';
 import { fail, isRedirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import { errorDetails } from '$lib/format-error.js';
 
 /**

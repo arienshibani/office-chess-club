@@ -2,9 +2,9 @@ import { fail, isRedirect, redirect } from '@sveltejs/kit';
 import { failFromError } from '$lib/action-error.js';
 import { setSessionCookie } from '$lib/auth.js';
 import { getConfig, getPlayers } from '$lib/db.js';
-import { isPublicViewEnabled } from '$lib/public-view-config.js';
 import { hashPassword, normalizeUsername, verifyPassword } from '$lib/password.js';
 import { registerPlayer } from '$lib/player-register.js';
+import { isPublicViewEnabled } from '$lib/public-view-config.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, url }) {
@@ -19,7 +19,7 @@ export async function load({ locals, url }) {
 
 	return {
 		clubName: clubNameRaw || 'Office',
-		publicViewEnabled: isPublicViewEnabled(config)
+		publicViewEnabled: isPublicViewEnabled(config),
 	};
 }
 
@@ -50,9 +50,13 @@ export const actions = {
 			redirect(302, next?.startsWith('/') ? next : '/');
 		} catch (err) {
 			if (isRedirect(err)) throw err;
-			return failFromError(err, 'Could not sign in — the server hit a problem. Try again in a moment.', {
-				action: 'login',
-			});
+			return failFromError(
+				err,
+				'Could not sign in — the server hit a problem. Try again in a moment.',
+				{
+					action: 'login',
+				},
+			);
 		}
 	},
 
@@ -100,5 +104,5 @@ export const actions = {
 				{ action: 'register' },
 			);
 		}
-	}
+	},
 };

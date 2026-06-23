@@ -5,7 +5,7 @@ export const debugLog = ({ hypothesisId, location, message, data = {}, runId = '
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json',
-			'X-Debug-Session-Id': 'b71ba4'
+			'X-Debug-Session-Id': 'b71ba4',
 		},
 		body: JSON.stringify({
 			sessionId: 'b71ba4',
@@ -14,8 +14,8 @@ export const debugLog = ({ hypothesisId, location, message, data = {}, runId = '
 			message,
 			data,
 			runId,
-			timestamp: Date.now()
-		})
+			timestamp: Date.now(),
+		}),
 	}).catch(() => {});
 	// #endregion
 };

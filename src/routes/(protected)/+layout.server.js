@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
 import { getConfig } from '$lib/db.js';
-import { isPublicBrowsePath, isPublicViewEnabled } from '$lib/public-view-config.js';
 import { canSubmitMatches } from '$lib/player-status.js';
+import { isPublicBrowsePath, isPublicViewEnabled } from '$lib/public-view-config.js';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load({ locals, url, depends }) {
@@ -24,6 +24,6 @@ export async function load({ locals, url, depends }) {
 		user: locals.user ?? null,
 		canSubmit: locals.user ? canSubmitMatches(locals.user) : false,
 		clubName: clubNameRaw || 'Office',
-		publicViewEnabled
+		publicViewEnabled,
 	};
 }
