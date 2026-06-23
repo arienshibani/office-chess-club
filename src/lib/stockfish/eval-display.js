@@ -11,6 +11,8 @@ export const normalizeEvalForWhite = (fen, raw) => {
 	const stm = fen.split(' ')[1];
 	const flip = stm === 'b';
 	if (raw.mate !== undefined) {
+		// `score mate 0`: side to move is checkmated; zero has no sign.
+		if (raw.mate === 0) return { mate: flip ? 1 : -1 };
 		const mate = flip ? -raw.mate : raw.mate;
 		return { mate };
 	}
