@@ -14,16 +14,16 @@ import {
 import { Chess } from "chess.js";
 import { browser } from "$app/environment";
 import { enhance } from "$app/forms";
-import { withActionToast } from "$lib/action-toast.js";
-import ChessBoard from "$lib/ChessBoard.svelte";
-import { buildSuggestionDisplay } from "$lib/chess-arrows.js";
-import EvalBar from "$lib/EvalBar.svelte";
-import MatchActionsMenu from "$lib/MatchActionsMenu.svelte";
-import { detectNotationType } from "$lib/notation.js";
-import PieceColor from "$lib/PieceColor.svelte";
-import PlayerAvatar from "$lib/PlayerAvatar.svelte";
-import { fenAtMoveIndex, INITIAL_FEN } from "$lib/pgn-replay.js";
-import ResultBadge from "$lib/ResultBadge.svelte";
+import { withActionToast } from "$lib/client/action-toast.js";
+import ChessBoard from "$lib/components/board/ChessBoard.svelte";
+import { buildSuggestionDisplay } from "$lib/chess/arrows.js";
+import EvalBar from "$lib/components/board/EvalBar.svelte";
+import MatchActionsMenu from "$lib/components/matches/MatchActionsMenu.svelte";
+import { detectNotationType } from "$lib/chess/notation.js";
+import PieceColor from "$lib/components/player/PieceColor.svelte";
+import PlayerAvatar from "$lib/components/player/PlayerAvatar.svelte";
+import { fenAtMoveIndex, INITIAL_FEN } from "$lib/chess/pgn-replay.js";
+import ResultBadge from "$lib/components/matches/ResultBadge.svelte";
 import { analyzeHistory } from "$lib/stockfish/analyze-timeline.js";
 import { stopEngine } from "$lib/stockfish/engine.js";
 import {
@@ -32,7 +32,7 @@ import {
 	formatClockSeconds,
 	getTimeFormatLabel,
 	parseTimeFormatValue,
-} from "$lib/time-control.js";
+} from "$lib/chess/time-control.js";
 
 const props = $props();
 const data = $derived(props.data);

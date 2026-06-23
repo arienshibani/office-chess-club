@@ -1,8 +1,8 @@
 <script>
 import { enhance } from "$app/forms";
 import { AlertTriangle, ClipboardPlus, Copy, Minus, Trophy } from "@lucide/svelte";
-import { withActionToast } from "$lib/action-toast.js";
-import PieceColor from "$lib/PieceColor.svelte";
+import { withActionToast } from "$lib/client/action-toast.js";
+import PieceColor from "$lib/components/player/PieceColor.svelte";
 
 const { data, form } = $props();
 

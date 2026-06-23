@@ -2,14 +2,14 @@
 	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
 	import { ExternalLink, History, KeyRound, Moon, Save, Sun, User } from '@lucide/svelte';
-	import { withActionToast } from '$lib/action-toast.js';
-	import ProfileStatsCharts from '$lib/ProfileStatsCharts.svelte';
-	import EmojiPicker from '$lib/EmojiPicker.svelte';
-	import PieceColor from '$lib/PieceColor.svelte';
-	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
-	import ResultBadge from '$lib/ResultBadge.svelte';
-	import { computeColorStats } from '$lib/player-stats.js';
-	import { applyTheme, normalizeTheme } from '$lib/theme.js';
+	import { withActionToast } from '$lib/client/action-toast.js';
+	import ProfileStatsCharts from '$lib/components/charts/ProfileStatsCharts.svelte';
+	import EmojiPicker from '$lib/components/player/EmojiPicker.svelte';
+	import PieceColor from '$lib/components/player/PieceColor.svelte';
+	import PlayerAvatar from '$lib/components/player/PlayerAvatar.svelte';
+	import ResultBadge from '$lib/components/matches/ResultBadge.svelte';
+	import { computeColorStats } from '$lib/chess/player-stats.js';
+	import { applyTheme, normalizeTheme } from '$lib/client/theme.js';
 
 	let { data, form } = $props();
 	let { player, matches, eloHistory, rank, isOwnProfile } = $derived(data);

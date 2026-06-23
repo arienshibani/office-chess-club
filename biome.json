@@ -9,8 +9,10 @@
 		"ignoreUnknown": true,
 		"includes": [
 			"src/**",
+			"tests/**",
 			"scripts/**",
 			"vite.config.js",
+			"vitest.config.js",
 			"svelte.config.js",
 			"jsconfig.json",
 			"package.json"

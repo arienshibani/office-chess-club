@@ -1,7 +1,7 @@
 import { redirect } from '@sveltejs/kit';
-import { getConfig } from '$lib/db.js';
-import { canSubmitMatches } from '$lib/player-status.js';
-import { isPublicBrowsePath, isPublicViewEnabled } from '$lib/public-view-config.js';
+import { isPublicBrowsePath, isPublicViewEnabled } from '$lib/server/config/public-view-config.js';
+import { getConfig } from '$lib/server/db.js';
+import { canSubmitMatches } from '$lib/server/players/player-status.js';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export async function load({ locals, url, depends }) {

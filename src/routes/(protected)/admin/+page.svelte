@@ -28,8 +28,8 @@ import {
 	Webhook,
 	X,
 } from "@lucide/svelte";
-import { ADMIN_INVALIDATE, withActionToast } from "$lib/action-toast.js";
-import PieceColor from "$lib/PieceColor.svelte";
+import { ADMIN_INVALIDATE, withActionToast } from "$lib/client/action-toast.js";
+import PieceColor from "$lib/components/player/PieceColor.svelte";
 
 const { data, form } = $props();
 let activeTab = $state(

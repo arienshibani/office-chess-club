@@ -14,7 +14,12 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./jsconfig.json --watch",
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
-		"format": "biome format --write ."
+		"format": "biome format --write .",
+		"test": "vitest run",
+		"test:unit": "vitest run src",
+		"test:integration": "vitest run tests/integration",
+		"test:watch": "vitest",
+		"seed:dev": "DOCKER_DEV=true node scripts/seed-dev-data.mjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.0",
@@ -26,7 +31,8 @@
 		"svelte": "^5.55.2",
 		"svelte-check": "^4.4.6",
 		"typescript": "^6.0.2",
-		"vite": "^8.0.7"
+		"vite": "^8.0.7",
+		"vitest": "^3.2.4"
 	},
 	"dependencies": {
 		"@lucide/svelte": "^1.17.0",

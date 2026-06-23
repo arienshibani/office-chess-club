@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
-import { getPlayers, ObjectId } from '$lib/db.js';
-import { normalizeTheme } from '$lib/theme.js';
+import { normalizeTheme } from '$lib/client/theme.js';
+import { getPlayers, ObjectId } from '$lib/server/db.js';
 
 /** @type {import('./$types').RequestHandler} */
 export const POST = async ({ request, locals }) => {

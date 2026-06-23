@@ -28,7 +28,8 @@ services:
       - ./docker/mongo-rs-init.sh:/mongo-rs-init.sh:ro
     entrypoint: ['bash', '/mongo-rs-init.sh']
     environment:
-      MONGO_HOST: mongo:27017
+      MONGO_CONNECT_HOST: mongo:27017
+      MONGO_RS_HOST: mongo:27017
     depends_on:
       mongo:
         condition: service_healthy

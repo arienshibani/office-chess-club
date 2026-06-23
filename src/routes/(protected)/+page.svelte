@@ -1,7 +1,7 @@
 <script>
 import { ArrowRight } from "@lucide/svelte";
-import MatchListTable from "$lib/MatchListTable.svelte";
-import PlayerAvatar from "$lib/PlayerAvatar.svelte";
+import MatchListTable from "$lib/components/matches/MatchListTable.svelte";
+import PlayerAvatar from "$lib/components/player/PlayerAvatar.svelte";
 
 const { data } = $props();
 

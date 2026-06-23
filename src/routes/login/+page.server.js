@@ -1,10 +1,10 @@
 import { fail, isRedirect, redirect } from '@sveltejs/kit';
-import { failFromError } from '$lib/action-error.js';
-import { setSessionCookie } from '$lib/auth.js';
-import { getConfig, getPlayers } from '$lib/db.js';
-import { hashPassword, normalizeUsername, verifyPassword } from '$lib/password.js';
-import { registerPlayer } from '$lib/player-register.js';
-import { isPublicViewEnabled } from '$lib/public-view-config.js';
+import { failFromError } from '$lib/server/actions/action-error.js';
+import { setSessionCookie } from '$lib/server/auth/auth.js';
+import { hashPassword, normalizeUsername, verifyPassword } from '$lib/server/auth/password.js';
+import { isPublicViewEnabled } from '$lib/server/config/public-view-config.js';
+import { getConfig, getPlayers } from '$lib/server/db.js';
+import { registerPlayer } from '$lib/server/players/player-register.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, url }) {

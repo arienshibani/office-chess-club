@@ -1,8 +1,8 @@
 <script>
 	import { dev } from '$app/environment';
 	import { page } from '$app/state';
-	import ClubMark from '$lib/ClubMark.svelte';
-	import ErrorAlert from '$lib/ErrorAlert.svelte';
+	import ClubMark from '$lib/components/common/ClubMark.svelte';
+	import ErrorAlert from '$lib/components/common/ErrorAlert.svelte';
 
 	let { error, status } = $props();
 

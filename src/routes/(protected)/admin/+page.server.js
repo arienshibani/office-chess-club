@@ -1,22 +1,22 @@
 import { error, fail } from '@sveltejs/kit';
+import { computeElo } from '$lib/chess/elo.js';
+import { generateHttpSubmitApiKey } from '$lib/server/config/http-submit-config.js';
+import { isPublicViewEnabled } from '$lib/server/config/public-view-config.js';
+import { getConfig, getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
+import { notifyMatchApproved, sendSlackTestNotification } from '$lib/server/integrations/slack.js';
+import {
+	getSlackWebhookStatus,
+	isSlackWebhookEnabled,
+	isValidSlackWebhookUrl,
+} from '$lib/server/integrations/slack-config.js';
+import { deleteMatchById } from '$lib/server/matches/match-delete.js';
 import {
 	approveUserById,
 	deleteUserById,
 	resetLadder as resetLadderSystem,
 	resetUserPasswordById,
-} from '$lib/admin-users.js';
-import { getConfig, getMatches, getPlayers, ObjectId } from '$lib/db.js';
-import { computeElo } from '$lib/elo.js';
-import { generateHttpSubmitApiKey } from '$lib/http-submit-config.js';
-import { deleteMatchById } from '$lib/match-delete.js';
-import { normalizePlayerStatus, PLAYER_STATUS_PENDING } from '$lib/player-status.js';
-import { isPublicViewEnabled } from '$lib/public-view-config.js';
-import { notifyMatchApproved, sendSlackTestNotification } from '$lib/slack.js';
-import {
-	getSlackWebhookStatus,
-	isSlackWebhookEnabled,
-	isValidSlackWebhookUrl,
-} from '$lib/slack-config.js';
+} from '$lib/server/players/admin-users.js';
+import { normalizePlayerStatus, PLAYER_STATUS_PENDING } from '$lib/server/players/player-status.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, depends }) {

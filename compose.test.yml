@@ -1,0 +1,36 @@
+# MongoDB only — for integration tests and CI (no app container).
+# Start with: docker compose -f compose.test.yml up -d
+name: office-chess-club-test
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_test_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/01-init-chess-club.js:ro
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mongo-rs-init:
+    image: mongo:7
+    restart: 'no'
+    volumes:
+      - ./docker/mongo-rs-init.sh:/mongo-rs-init.sh:ro
+    entrypoint: ['bash', '/mongo-rs-init.sh']
+    environment:
+      MONGO_CONNECT_HOST: mongo:27017
+      MONGO_RS_HOST: localhost:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+volumes:
+  mongo_test_data:

@@ -1,6 +1,6 @@
 <script>
 	import { ChevronLeft, ChevronRight } from '@lucide/svelte';
-	import MatchListTable from '$lib/MatchListTable.svelte';
+	import MatchListTable from '$lib/components/matches/MatchListTable.svelte';
 
 	let { data, form } = $props();
 	let { matches, pagination } = $derived(data);

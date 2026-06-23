@@ -1,9 +1,9 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
-import { deleteMatchById } from '$lib/match-delete.js';
-import { updateMatchResultById } from '$lib/match-result-update.js';
-import { validateNotation } from '$lib/notation.js';
-import { parseTimeFormatValue } from '$lib/time-control.js';
+import { validateNotation } from '$lib/chess/notation.js';
+import { parseTimeFormatValue } from '$lib/chess/time-control.js';
+import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
+import { deleteMatchById } from '$lib/server/matches/match-delete.js';
+import { updateMatchResultById } from '$lib/server/matches/match-result-update.js';
 
 /** @param {import('mongodb').ObjectId} whiteId @param {import('mongodb').ObjectId} blackId @param {string} userId */
 const isMatchParticipant = (whiteId, blackId, userId) =>

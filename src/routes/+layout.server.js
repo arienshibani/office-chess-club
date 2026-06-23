@@ -1,4 +1,4 @@
-import { normalizeTheme } from '$lib/theme.js';
+import { normalizeTheme } from '$lib/client/theme.js';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export function load({ locals, depends }) {

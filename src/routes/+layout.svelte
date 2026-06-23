@@ -1,6 +1,6 @@
 <script>
 	import '../app.css';
-	import ThemeApplier from '$lib/ThemeApplier.svelte';
+	import ThemeApplier from '$lib/components/theme/ThemeApplier.svelte';
 	import { Toaster } from 'svelte-french-toast';
 
 	let { data, children } = $props();

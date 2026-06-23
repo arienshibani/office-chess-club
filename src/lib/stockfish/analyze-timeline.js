@@ -1,4 +1,4 @@
-import { buildFenTimeline } from '$lib/pgn-replay.js';
+import { buildFenTimeline } from '$lib/chess/pgn-replay.js';
 import { analyzePosition, warmUpEngine } from './engine.js';
 
 export { buildFenTimeline };

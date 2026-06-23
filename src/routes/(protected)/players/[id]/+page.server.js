@@ -1,9 +1,9 @@
 import { error, fail } from '@sveltejs/kit';
-import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
-import { buildEloHistoryFromDocs } from '$lib/elo-history.js';
-import { hashPassword, verifyPassword } from '$lib/password.js';
-import { normalizePlayerIcon } from '$lib/player-icon.js';
-import { normalizeTheme } from '$lib/theme.js';
+import { buildEloHistoryFromDocs } from '$lib/chess/elo-history.js';
+import { normalizeTheme } from '$lib/client/theme.js';
+import { hashPassword, verifyPassword } from '$lib/server/auth/password.js';
+import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
+import { normalizePlayerIcon } from '$lib/utils/player-icon.js';
 
 /** @param {import('@sveltejs/kit').RequestEvent} event */
 const assertOwnProfile = ({ locals, params }) => {

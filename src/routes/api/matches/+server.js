@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { assertApiKey } from '$lib/api-auth.js';
-import { createMatch } from '$lib/match-submit.js';
-import { DEFAULT_TIME_FORMAT, parseTimeFormatValue } from '$lib/time-control.js';
+import { DEFAULT_TIME_FORMAT, parseTimeFormatValue } from '$lib/chess/time-control.js';
+import { assertApiKey } from '$lib/server/auth/api-auth.js';
+import { createMatch } from '$lib/server/matches/match-submit.js';
 
 const ALLOWED_RESULTS = new Set(['white', 'black', 'draw']);
 

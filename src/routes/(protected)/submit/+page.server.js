@@ -1,13 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { getConfig, getPlayers } from '$lib/db.js';
-import { getHttpSubmitConfig } from '$lib/http-submit-config.js';
-import { createMatch } from '$lib/match-submit.js';
-import { canSubmitMatches } from '$lib/player-status.js';
 import {
 	DEFAULT_TIME_FORMAT,
 	parseTimeFormatValue,
 	TIME_FORMAT_OPTIONS,
-} from '$lib/time-control.js';
+} from '$lib/chess/time-control.js';
+import { getHttpSubmitConfig } from '$lib/server/config/http-submit-config.js';
+import { getConfig, getPlayers } from '$lib/server/db.js';
+import { createMatch } from '$lib/server/matches/match-submit.js';
+import { canSubmitMatches } from '$lib/server/players/player-status.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ url, locals }) {

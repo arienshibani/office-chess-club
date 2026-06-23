@@ -1,9 +1,9 @@
 import { dev } from '$app/environment';
-import { ensureIndexes, getPlayers, ObjectId } from '$lib/db.js';
-import { errorDetails } from '$lib/format-error.js';
-import { normalizePlayerStatus } from '$lib/player-status.js';
-import { COOKIE_NAME, verifySessionToken } from '$lib/session.js';
-import { normalizeTheme } from '$lib/theme.js';
+import { normalizeTheme } from '$lib/client/theme.js';
+import { COOKIE_NAME, verifySessionToken } from '$lib/server/auth/session.js';
+import { ensureIndexes, getPlayers, ObjectId } from '$lib/server/db.js';
+import { normalizePlayerStatus } from '$lib/server/players/player-status.js';
+import { errorDetails } from '$lib/utils/format-error.js';
 
 let indexesEnsured = false;
 

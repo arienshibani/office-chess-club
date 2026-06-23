@@ -1,5 +1,5 @@
 import { browser } from '$app/environment';
-import { parseUciMove } from '$lib/chess-arrows.js';
+import { parseUciMove } from '$lib/chess/arrows.js';
 import { normalizeEvalForWhite } from './eval-display.js';
 
 const STOCKFISH_URL = '/stockfish.js';
@@ -130,7 +130,8 @@ export const analyzePosition = (fen, options = {}) => {
 			w.postMessage(`go depth ${depth}`);
 		});
 
-	return (searchChain = searchChain.then(run, run));
+	searchChain = /** @type {Promise<AnalysisResult>} */ (searchChain.then(run, run));
+	return searchChain;
 };
 
 /** Stop current search and reset queue (e.g. on navigation). */

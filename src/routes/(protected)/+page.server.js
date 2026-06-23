@@ -1,5 +1,5 @@
-import { getMatches, getPlayers, ObjectId } from '$lib/db.js';
-import { enrichMatches } from '$lib/matches.js';
+import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
+import { enrichMatches } from '$lib/server/matches/enrich.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load() {

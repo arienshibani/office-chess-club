@@ -10,9 +10,9 @@
 		Shield,
 		X
 	} from '@lucide/svelte';
-	import ClubMark from '$lib/ClubMark.svelte';
-	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
-	import ThemeToggle from '$lib/ThemeToggle.svelte';
+	import ClubMark from '$lib/components/common/ClubMark.svelte';
+	import PlayerAvatar from '$lib/components/player/PlayerAvatar.svelte';
+	import ThemeToggle from '$lib/components/theme/ThemeToggle.svelte';
 
 	const { data, children } = $props();
 	const user = $derived(data.user);
@@ -38,13 +38,13 @@
 
 		<div class="nav-panel">
 			<div class="nav-links">
-				<a href="/" class="with-icon" class:active={$page.url.pathname === '/'} onclick={closeMenu}>
+				<a href="/" class="nav-link with-icon" class:active={$page.url.pathname === '/'} onclick={closeMenu}>
 					<Home size={16} aria-hidden="true" />
 					Home
 				</a>
 				<a
 					href="/matches"
-					class="with-icon"
+					class="nav-link with-icon"
 					class:active={$page.url.pathname.startsWith('/matches')}
 					onclick={closeMenu}
 				>
@@ -54,7 +54,7 @@
 				{#if user}
 					<a
 						href="/submit"
-						class="with-icon"
+						class="nav-link with-icon"
 						class:active={$page.url.pathname === '/submit'}
 						class:restricted={!canSubmit}
 						onclick={closeMenu}
@@ -65,7 +65,7 @@
 					{#if user.isAdmin}
 					<a
 						href="/admin"
-						class="with-icon"
+						class="nav-link with-icon"
 						class:active={$page.url.pathname.startsWith('/admin')}
 						onclick={closeMenu}
 					>
@@ -77,9 +77,14 @@
 			</div>
 			<div class="user-area">
 				{#if user}
-					<a href="/players/{user._id}" class="user-profile-link" onclick={closeMenu}>
-						<PlayerAvatar icon={user.icon} avatarUrl={user.avatarUrl} size={28} alt={user.name} />
-						<span class="name">{user.name}</span>
+					<a
+						href="/players/{user._id}"
+						class="nav-link with-icon"
+						class:active={$page.url.pathname === `/players/${user._id}`}
+						onclick={closeMenu}
+					>
+						<PlayerAvatar icon={user.icon} avatarUrl={user.avatarUrl} size={16} alt="" />
+						<span class="nav-link-label">{user.name}</span>
 					</a>
 					<a href="/logout" class="logout-btn with-icon" data-sveltekit-reload onclick={closeMenu}>
 						<LogOut size={15} aria-hidden="true" />
@@ -193,7 +198,8 @@
 		flex: 1;
 	}
 
-	.nav-links a {
+	.nav-links a,
+	.user-area .nav-link {
 		text-decoration: none;
 		color: var(--color-nav-text);
 		font-size: 0.9rem;
@@ -203,14 +209,23 @@
 		white-space: nowrap;
 	}
 
-	.nav-links a.with-icon {
+	.nav-links a.with-icon,
+	.user-area .nav-link.with-icon {
 		padding: 4px 2px;
 	}
 
 	.nav-links a:hover,
-	.nav-links a.active {
+	.nav-links a.active,
+	.user-area .nav-link:hover,
+	.user-area .nav-link.active {
 		color: var(--color-nav-text);
 		border-color: var(--color-nav-text);
+	}
+
+	.nav-link-label {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 140px;
 	}
 
 	.nav-links a.restricted {
@@ -220,32 +235,9 @@
 	.user-area {
 		display: flex;
 		align-items: center;
-		gap: 0.6rem;
+		gap: 1rem;
 		margin-left: auto;
 		flex-shrink: 0;
-	}
-
-	.user-profile-link {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		text-decoration: none;
-		color: inherit;
-		min-width: 0;
-	}
-
-	.user-profile-link:hover .name {
-		opacity: 0.75;
-	}
-
-	.name {
-		font-size: 0.85rem;
-		color: var(--color-nav-text);
-		transition: opacity 0.15s;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		max-width: 140px;
 	}
 
 	.logout-btn {
@@ -324,13 +316,15 @@
 			padding: 0.5rem 0;
 		}
 
-		.nav-links a {
+		.nav-links a,
+		.user-area .nav-link {
 			padding: 12px 4px;
 			border-bottom: none;
 			border-left: 3px solid transparent;
 		}
 
-		.nav-links a.active {
+		.nav-links a.active,
+		.user-area .nav-link.active {
 			border-left-color: var(--color-nav-text);
 		}
 
@@ -341,7 +335,7 @@
 			flex-wrap: wrap;
 		}
 
-		.name {
+		.nav-link-label {
 			max-width: none;
 		}
 
