@@ -52,13 +52,16 @@ export async function getConfig() {
 export async function ensureIndexes() {
 	const db = await getDb();
 	const players = db.collection('players');
-	const existing = await players.indexes();
-	for (const idx of existing) {
-		const indexName = typeof idx.name === 'string' ? idx.name : '';
-		const isLegacySlackId =
-			indexName === 'slackId_1' || (idx.unique === true && Object.keys(idx.key).join(',') === 'slackId');
-		if (isLegacySlackId) {
-			await players.dropIndex(indexName);
+	const playersExists = (await db.listCollections({ name: 'players' }).toArray()).length > 0;
+	if (playersExists) {
+		const existing = await players.indexes();
+		for (const idx of existing) {
+			const indexName = typeof idx.name === 'string' ? idx.name : '';
+			const isLegacySlackId =
+				indexName === 'slackId_1' || (idx.unique === true && Object.keys(idx.key).join(',') === 'slackId');
+			if (isLegacySlackId) {
+				await players.dropIndex(indexName);
+			}
 		}
 	}
 

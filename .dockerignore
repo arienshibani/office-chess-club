@@ -1,0 +1,17 @@
+node_modules
+.svelte-kit
+.output
+.vercel
+.netlify
+.wrangler
+build
+.git
+.gitignore
+private
+.env
+.env.*
+!.env.docker
+!.env.example
+*.md
+.cursor
+.vscode
