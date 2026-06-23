@@ -123,9 +123,12 @@ If you submit a PGN notation, the match will be analyzed by Stockfish. The app u
 ```bash
 cp .env.example .env
 # Fill in MONGODB_URI and SESSION_SECRET
-npm install
-npm run dev
+just install      # host deps for IDE linting / LSP
+just setup        # first time: corepack enable + install
+pnpm run dev      # or: just start for Docker
 ```
+
+New dependency versions must be at least 24 hours old (`minimumReleaseAge` in `pnpm-workspace.yaml`).
 
 Open [http://localhost:5173/login](http://localhost:5173/login).
 

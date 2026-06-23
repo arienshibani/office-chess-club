@@ -1,0 +1,14 @@
+packages:
+  - .
+
+# Supply-chain: do not install versions published in the last 24 hours.
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+
+# Only esbuild may run install/build scripts.
+allowBuilds:
+  '@scarf/scarf': false
+  esbuild: true
+
+autoInstallPeers: true
+engineStrict: true
