@@ -1,6 +1,9 @@
 # Local development stack: SvelteKit app + MongoDB (single-node replica set for transactions).
 # Start everything with: just start
 # If Mongo previously ran without a replica set, reset the volume: docker compose down -v
+# If deps still look wrong after a rebuild, recreate the node_modules volume:
+#   docker compose down && docker volume rm office-chess-club_app_node_modules
+# The app entrypoint runs pnpm install + svelte-kit sync on each start.
 services:
   mongo:
     image: mongo:7

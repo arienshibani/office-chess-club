@@ -6,13 +6,12 @@ WORKDIR /app
 
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends ca-certificates \
-	&& rm -rf /var/lib/apt/lists/*
+	&& rm -rf /var/lib/apt/lists/* \
+	&& corepack enable
 
-COPY package.json package-lock.json .npmrc ./
-RUN npm install
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-EXPOSE 5173
-
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
+ENTRYPOINT ["bash", "docker/app-entrypoint.sh"]
