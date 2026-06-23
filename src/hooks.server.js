@@ -1,4 +1,6 @@
+import { dev } from '$app/environment';
 import { getPlayers, ObjectId, ensureIndexes } from '$lib/db.js';
+import { errorDetails } from '$lib/format-error.js';
 import { normalizePlayerStatus } from '$lib/player-status.js';
 import { verifySessionToken, COOKIE_NAME } from '$lib/session.js';
 import { normalizeTheme } from '$lib/theme.js';
@@ -43,4 +45,20 @@ export async function handle({ event, resolve }) {
 	}
 
 	return resolve(event);
+}
+
+/** @type {import('@sveltejs/kit').HandleServerError} */
+export function handleError({ error, status, message }) {
+	const { message: details, stack } = errorDetails(error);
+	console.error(`[${status}]`, error);
+
+	if (status === 404) {
+		return { message: "We couldn't find the page you're looking for.", details, stack: dev ? stack : undefined };
+	}
+
+	return {
+		message: status >= 500 ? 'The server hit an unexpected problem.' : message,
+		details,
+		stack: dev ? stack : undefined,
+	};
 }

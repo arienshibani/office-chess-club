@@ -19,6 +19,11 @@ declare global {
 		interface PageData {
 			user?: App.Locals['user'];
 		}
+		interface Error {
+			message: string;
+			details?: string;
+			stack?: string;
+		}
 	}
 }
 

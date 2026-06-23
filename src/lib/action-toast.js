@@ -25,7 +25,9 @@ export const toastFromResult = (result) => {
 	}
 
 	if (result.type === 'error') {
-		toast.error('Something went wrong. Please try again.');
+		const err = result.error;
+		const details = err instanceof Error ? err.message : String(err);
+		toast.error(details || 'Something went wrong. Please try again.', { duration: 6000 });
 	}
 };
 
