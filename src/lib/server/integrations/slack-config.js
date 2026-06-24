@@ -1,4 +1,4 @@
-import { SLACK_WEBHOOK_URL as ENV_SLACK_WEBHOOK_URL } from '$env/static/private';
+import { getEnvSlackWebhookUrl } from '$lib/server/env.js';
 import { getConfig } from '$lib/server/db.js';
 
 /** @param {string} url */
@@ -16,7 +16,7 @@ const resolveSlackWebhookUrl = (config) => {
 		return stored;
 	}
 
-	const env = typeof ENV_SLACK_WEBHOOK_URL === 'string' ? ENV_SLACK_WEBHOOK_URL.trim() : '';
+	const env = getEnvSlackWebhookUrl();
 	if (env && isValidSlackWebhookUrl(env)) {
 		return env;
 	}
@@ -44,7 +44,7 @@ export const getSlackWebhookStatus = async () => {
 	const cfgCol = await getConfig();
 	const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
 	const stored = typeof config?.slackWebhookUrl === 'string' ? config.slackWebhookUrl.trim() : '';
-	const env = typeof ENV_SLACK_WEBHOOK_URL === 'string' ? ENV_SLACK_WEBHOOK_URL.trim() : '';
+	const env = getEnvSlackWebhookUrl();
 
 	const storedValid = !!(stored && isValidSlackWebhookUrl(stored));
 	const envValid = !!(env && isValidSlackWebhookUrl(env));

@@ -1,4 +1,4 @@
-import { ORIGIN } from '$env/static/private';
+import { getOrigin } from '$lib/server/env.js';
 import {
 	getDiscordWebhookUrl,
 	getResolvedDiscordWebhookUrl,
@@ -27,7 +27,7 @@ export const notifyMatchApproved = async ({
 	loserEloChange,
 	matchId,
 }) => {
-	const replayUrl = `${ORIGIN}/matches/${matchId}`;
+	const replayUrl = `${getOrigin()}/matches/${matchId}`;
 	const content = isDraw
 		? `🤝 ${bold(winnerName)} and ${bold(loserName)} drew! (${winnerEloChange >= 0 ? '+' : ''}${winnerEloChange} / ${loserEloChange >= 0 ? '+' : ''}${loserEloChange} Elo) ${link(replayUrl, 'View match')}`
 		: `♞ ${bold(winnerName)} defeated ${bold(loserName)}! (+${winnerEloChange} / ${loserEloChange} Elo) ${link(replayUrl, 'Replay game here')}`;
@@ -41,7 +41,7 @@ export const notifyMatchApproved = async ({
  * @param {string} p.opponentName
  */
 export const notifyPendingMatch = async ({ reporterName, opponentName }) => {
-	const adminUrl = `${ORIGIN}/admin`;
+	const adminUrl = `${getOrigin()}/admin`;
 	const content = `⏳ ${bold(reporterName)} logged a match against ${bold(opponentName)}. Awaiting admin verification before leaderboard updates. ${link(adminUrl, 'Review here')}`;
 	await sendWebhook({ content });
 };

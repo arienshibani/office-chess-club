@@ -1,4 +1,4 @@
-import { DISCORD_WEBHOOK_URL as ENV_DISCORD_WEBHOOK_URL } from '$env/static/private';
+import { getEnvDiscordWebhookUrl } from '$lib/server/env.js';
 import { getConfig } from '$lib/server/db.js';
 
 /** @param {string} url */
@@ -18,8 +18,7 @@ const resolveDiscordWebhookUrl = (config) => {
 		return stored;
 	}
 
-	const env =
-		typeof ENV_DISCORD_WEBHOOK_URL === 'string' ? ENV_DISCORD_WEBHOOK_URL.trim() : '';
+	const env = getEnvDiscordWebhookUrl();
 	if (env && isValidDiscordWebhookUrl(env)) {
 		return env;
 	}
@@ -48,8 +47,7 @@ export const getDiscordWebhookStatus = async () => {
 	const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
 	const stored =
 		typeof config?.discordWebhookUrl === 'string' ? config.discordWebhookUrl.trim() : '';
-	const env =
-		typeof ENV_DISCORD_WEBHOOK_URL === 'string' ? ENV_DISCORD_WEBHOOK_URL.trim() : '';
+	const env = getEnvDiscordWebhookUrl();
 
 	const storedValid = !!(stored && isValidDiscordWebhookUrl(stored));
 	const envValid = !!(env && isValidDiscordWebhookUrl(env));

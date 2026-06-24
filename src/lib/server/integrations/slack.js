@@ -1,4 +1,4 @@
-import { ORIGIN } from '$env/static/private';
+import { getOrigin } from '$lib/server/env.js';
 import {
 	getResolvedSlackWebhookUrl,
 	getSlackWebhookUrl,
@@ -21,7 +21,7 @@ export async function notifyMatchApproved({
 	loserEloChange,
 	matchId,
 }) {
-	const replayUrl = `${ORIGIN}/matches/${matchId}`;
+	const replayUrl = `${getOrigin()}/matches/${matchId}`;
 	const text = isDraw
 		? `🤝 *${winnerName}* and *${loserName}* drew! (${winnerEloChange >= 0 ? '+' : ''}${winnerEloChange} / ${loserEloChange >= 0 ? '+' : ''}${loserEloChange} Elo) <${replayUrl}|View match>`
 		: `♞ *${winnerName}* defeated *${loserName}*! (+${winnerEloChange} / ${loserEloChange} Elo) <${replayUrl}|Replay game here>`;
@@ -36,7 +36,7 @@ export async function notifyMatchApproved({
 
  */
 export async function notifyPendingMatch({ reporterName, opponentName }) {
-	const adminUrl = `${ORIGIN}/admin`;
+	const adminUrl = `${getOrigin()}/admin`;
 	const text = `⏳ *${reporterName}* logged a match against *${opponentName}*. Awaiting admin verification before leaderboard updates. <${adminUrl}|Review here>`;
 	await sendWebhook({ text });
 }
