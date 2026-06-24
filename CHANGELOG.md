@@ -1,4 +1,3 @@
 # Changelog
 
-All notable changes to this project are documented in this file.
-Release notes are generated automatically from conventional commits.
+Release notes are published on [GitHub Releases](https://github.com/arienshibani/office-chess-club/releases), generated automatically from conventional commits.
