@@ -51,17 +51,17 @@
 					<History size={16} aria-hidden="true" />
 					Match History
 				</a>
+				<a
+					href="/submit"
+					class="nav-link with-icon"
+					class:active={$page.url.pathname === '/submit'}
+					class:restricted={user && !canSubmit}
+					onclick={closeMenu}
+				>
+					<PlusCircle size={16} aria-hidden="true" />
+					Submit Result
+				</a>
 				{#if user}
-					<a
-						href="/submit"
-						class="nav-link with-icon"
-						class:active={$page.url.pathname === '/submit'}
-						class:restricted={!canSubmit}
-						onclick={closeMenu}
-					>
-						<PlusCircle size={16} aria-hidden="true" />
-						Submit Result
-					</a>
 					{#if user.isAdmin}
 					<a
 						href="/admin"
