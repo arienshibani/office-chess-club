@@ -179,9 +179,23 @@ const ratingColor = (r) => {
 
 	.matches-showcase-row {
 		display: grid;
-		grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+		grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.72fr);
 		gap: 2rem;
 		align-items: start;
+	}
+
+	.recent-matches-col :global(.match-summary) {
+		flex-wrap: nowrap;
+	}
+
+	.recent-matches-col :global(.match-summary .name) {
+		white-space: nowrap;
+	}
+
+	.featured-match-col {
+		min-width: 0;
+		max-width: 300px;
+		justify-self: end;
 	}
 
 	.recent-matches-col,
@@ -189,10 +203,6 @@ const ratingColor = (r) => {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		min-width: 0;
-	}
-
-	.featured-match-col {
 		min-width: 0;
 	}
 
@@ -207,6 +217,11 @@ const ratingColor = (r) => {
 	@media (max-width: 900px) {
 		.matches-showcase-row {
 			grid-template-columns: 1fr;
+		}
+
+		.featured-match-col {
+			max-width: min(100%, 280px);
+			justify-self: center;
 		}
 	}
 

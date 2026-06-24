@@ -216,6 +216,8 @@ import { createSlideReplayDriver } from "$lib/chess/pgn-slide-animation.js";
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
+		align-items: flex-start;
+		min-width: 0;
 	}
 
 	.featured-header {
@@ -277,7 +279,7 @@ import { createSlideReplayDriver } from "$lib/chess/pgn-slide-animation.js";
 		flex-direction: column;
 		align-items: center;
 		gap: 0.5rem;
-		width: fit-content;
+		width: 100%;
 		max-width: 100%;
 	}
 
