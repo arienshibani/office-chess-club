@@ -51,6 +51,9 @@ jobs:
   integration:
     name: Integration tests
     runs-on: ubuntu-latest
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0
+      SESSION_SECRET: test-session-secret-at-least-32-characters-long
     steps:
       - uses: actions/checkout@v4
 
@@ -66,7 +69,25 @@ jobs:
       - name: Start MongoDB replica set
         run: |
           docker compose -f compose.test.yml up -d mongo
-          docker compose -f compose.test.yml run --rm mongo-rs-init
+          for i in $(seq 1 60); do
+            status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' office-chess-club-test-mongo-1 2>/dev/null || echo missing)
+            echo "MongoDB status: $status (attempt $i)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "MongoDB logs:"
+              docker logs office-chess-club-test-mongo-1 || true
+              exit 1
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "Timed out waiting for MongoDB"
+              docker logs office-chess-club-test-mongo-1 || true
+              exit 1
+            fi
+            sleep 2
+          done
+          docker compose -f compose.test.yml run --rm --no-deps mongo-rs-init
 
       - run: pnpm test:integration
 

@@ -5,19 +5,21 @@ name: office-chess-club-test
 services:
   mongo:
     image: mongo:7
-    restart: unless-stopped
     command: ['--replSet', 'rs0', '--bind_ip_all']
     ports:
       - '27017:27017'
     volumes:
       - mongo_test_data:/data/db
-      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/01-init-chess-club.js:ro
     healthcheck:
-      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      test:
+        [
+          'CMD-SHELL',
+          "mongosh --quiet --eval 'quit(db.adminCommand({ ping: 1 }).ok ? 0 : 2)'",
+        ]
       interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 40s
 
   mongo-rs-init:
     image: mongo:7
@@ -28,9 +30,6 @@ services:
     environment:
       MONGO_CONNECT_HOST: mongo:27017
       MONGO_RS_HOST: localhost:27017
-    depends_on:
-      mongo:
-        condition: service_healthy
 
 volumes:
   mongo_test_data:

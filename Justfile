@@ -42,7 +42,18 @@ test-integration:
 	set -euo pipefail
 	if ! docker compose -f compose.test.yml ps --status running --services 2>/dev/null | grep -qx mongo; then
 		docker compose -f compose.test.yml up -d mongo
-		docker compose -f compose.test.yml run --rm mongo-rs-init
+		for i in $(seq 1 60); do
+			status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' office-chess-club-test-mongo-1 2>/dev/null || echo missing)
+			if [ "$status" = "healthy" ]; then
+				break
+			fi
+			if [ "$status" = "unhealthy" ]; then
+				docker logs office-chess-club-test-mongo-1 || true
+				exit 1
+			fi
+			sleep 2
+		done
+		docker compose -f compose.test.yml run --rm --no-deps mongo-rs-init
 	fi
 	pnpm test:integration
 
