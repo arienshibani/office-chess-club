@@ -3,7 +3,14 @@ import { computeElo } from '$lib/chess/elo.js';
 import { generateHttpSubmitApiKey } from '$lib/server/config/http-submit-config.js';
 import { isPublicViewEnabled } from '$lib/server/config/public-view-config.js';
 import { getConfig, getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
-import { notifyMatchApproved, sendSlackTestNotification } from '$lib/server/integrations/slack.js';
+import { sendDiscordTestNotification } from '$lib/server/integrations/discord.js';
+import {
+	getDiscordWebhookStatus,
+	isDiscordWebhookEnabled,
+	isValidDiscordWebhookUrl,
+} from '$lib/server/integrations/discord-config.js';
+import { notifyMatchApproved } from '$lib/server/integrations/notifications.js';
+import { sendSlackTestNotification } from '$lib/server/integrations/slack.js';
 import {
 	getSlackWebhookStatus,
 	isSlackWebhookEnabled,
@@ -78,7 +85,10 @@ export async function load({ locals, depends }) {
 		blackRating: playerMap[m.blackPlayerId.toString()]?.rating ?? 0,
 	}));
 
-	const slackWebhook = await getSlackWebhookStatus();
+	const [slackWebhook, discordWebhook] = await Promise.all([
+		getSlackWebhookStatus(),
+		getDiscordWebhookStatus(),
+	]);
 
 	return {
 		pendingMatches: enriched,
@@ -101,6 +111,11 @@ export async function load({ locals, depends }) {
 		slackWebhookStoredInDb: slackWebhook.storedInDb,
 		slackWebhookFromEnv: slackWebhook.fromEnv,
 		slackWebhookUrl: slackWebhook.url,
+		discordWebhookConfigured: discordWebhook.configured,
+		discordWebhookEnabled: discordWebhook.enabled,
+		discordWebhookStoredInDb: discordWebhook.storedInDb,
+		discordWebhookFromEnv: discordWebhook.fromEnv,
+		discordWebhookUrl: discordWebhook.url,
 	};
 }
 
@@ -231,6 +246,75 @@ export const actions = {
 		}
 
 		return { success: true, message: 'Test notification sent to Slack.' };
+	},
+
+	updateDiscordWebhook: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const webhookUrl = String(form.get('discordWebhookUrl') ?? '').trim();
+		const cfgCol = await getConfig();
+
+		if (!webhookUrl) {
+			await cfgCol.updateOne(/** @type {any} */ ({ _id: 'global_settings' }), {
+				$unset: { discordWebhookUrl: '' },
+			});
+			return { success: true, message: 'Discord webhook removed.' };
+		}
+
+		if (!isValidDiscordWebhookUrl(webhookUrl)) {
+			return fail(400, {
+				error:
+					'Enter a valid Discord webhook URL (https://discord.com/api/webhooks/…).',
+			});
+		}
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { discordWebhookUrl: webhookUrl } },
+			{ upsert: true },
+		);
+
+		return { success: true, message: 'Discord webhook saved.' };
+	},
+
+	toggleDiscordWebhook: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const cfgCol = await getConfig();
+		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
+		const current = isDiscordWebhookEnabled(config);
+		const status = await getDiscordWebhookStatus();
+
+		if (!current && !status.configured) {
+			return fail(400, {
+				error: 'Save a webhook URL before enabling Discord notifications.',
+			});
+		}
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { discordWebhookEnabled: !current } },
+			{ upsert: true },
+		);
+
+		return {
+			success: true,
+			message: !current ? 'Discord notifications enabled.' : 'Discord notifications disabled.',
+		};
+	},
+
+	testDiscordWebhook: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const ok = await sendDiscordTestNotification();
+		if (!ok) {
+			return fail(400, {
+				error: 'Could not send test notification. Check that a webhook URL is configured.',
+			});
+		}
+
+		return { success: true, message: 'Test notification sent to Discord.' };
 	},
 
 	toggleHttpSubmit: async ({ locals }) => {

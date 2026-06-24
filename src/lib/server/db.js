@@ -86,6 +86,7 @@ export async function ensureIndexes() {
 				httpSubmitEnabled: false,
 				publicViewEnabled: true,
 				slackWebhookEnabled: true,
+				discordWebhookEnabled: true,
 			}),
 		},
 		{ upsert: true },

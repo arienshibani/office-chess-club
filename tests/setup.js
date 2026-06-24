@@ -13,7 +13,7 @@ vi.mock('$env/dynamic/private', () => ({
 	},
 }));
 
-vi.mock('$lib/server/integrations/slack.js', () => ({
+vi.mock('$lib/server/integrations/notifications.js', () => ({
 	notifyMatchApproved: vi.fn(async () => {}),
 	notifyPendingMatch: vi.fn(async () => {}),
 }));

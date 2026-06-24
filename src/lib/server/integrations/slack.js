@@ -33,9 +33,9 @@ export async function notifyMatchApproved({
  * @param {object} p
  * @param {string} p.reporterName
  * @param {string} p.opponentName
- * @param {string} p.matchId
+
  */
-export async function notifyPendingMatch({ reporterName, opponentName, matchId }) {
+export async function notifyPendingMatch({ reporterName, opponentName }) {
 	const adminUrl = `${ORIGIN}/admin`;
 	const text = `⏳ *${reporterName}* logged a match against *${opponentName}*. Awaiting admin verification before leaderboard updates. <${adminUrl}|Review here>`;
 	await sendWebhook({ text });

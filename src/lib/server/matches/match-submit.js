@@ -2,7 +2,7 @@ import { computeElo } from '$lib/chess/elo.js';
 import { validateNotation } from '$lib/chess/notation.js';
 import { parseTimeFormatValue } from '$lib/chess/time-control.js';
 import { getConfig, getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
-import { notifyMatchApproved, notifyPendingMatch } from '$lib/server/integrations/slack.js';
+import { notifyMatchApproved, notifyPendingMatch } from '$lib/server/integrations/notifications.js';
 
 /** @typedef {'white' | 'black' | 'draw'} MatchResult */
 
@@ -187,7 +187,6 @@ export const createMatch = async ({
 					? blackName
 					: whiteName
 				: `${whiteName} vs ${blackName}`,
-			matchId,
 		});
 	}
 
