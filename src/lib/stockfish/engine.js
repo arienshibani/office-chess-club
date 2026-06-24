@@ -5,12 +5,16 @@ import { normalizeEvalForWhite } from './eval-display.js';
 const STOCKFISH_URL = '/stockfish.js';
 const DEFAULT_DEPTH = 14;
 
+/**
+ * @typedef {{ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }} AnalysisResult
+ */
+
 /** @type {Worker | null} */
 let worker = null;
 /** @type {Promise<void> | null} */
 let readyPromise = null;
-/** @type {Promise<unknown> | null} */
-let searchChain = Promise.resolve();
+/** @type {Promise<AnalysisResult>} */
+let searchChain = Promise.resolve({ cp: 0 });
 
 /**
  * @param {string} line
@@ -70,10 +74,6 @@ const ensureReady = () => {
 };
 
 /**
- * @typedef {{ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }} AnalysisResult
- */
-
-/**
  * @param {string} fen
  * @param {{ depth?: number, signal?: AbortSignal }} [options]
  * @returns {Promise<AnalysisResult>}
@@ -130,7 +130,7 @@ export const analyzePosition = (fen, options = {}) => {
 			w.postMessage(`go depth ${depth}`);
 		});
 
-	searchChain = /** @type {Promise<AnalysisResult>} */ (searchChain.then(run, run));
+	searchChain = searchChain.then(run, run);
 	return searchChain;
 };
 
@@ -139,7 +139,7 @@ export const stopEngine = () => {
 	if (worker) {
 		worker.postMessage('stop');
 	}
-	searchChain = Promise.resolve();
+	searchChain = Promise.resolve({ cp: 0 });
 };
 
 /** @returns {Promise<void>} */

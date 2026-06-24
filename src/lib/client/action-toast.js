@@ -32,7 +32,15 @@ export const toastFromResult = (result) => {
 };
 
 /**
+ * @typedef {{
+ *   result: import('@sveltejs/kit').ActionResult,
+ *   update: (options?: { reset?: boolean; invalidateAll?: boolean }) => Promise<void>
+ * }} ActionToastContext
+ */
+
+/**
  * @param {{ redirectMessage?: string, invalidate?: string[] }} [options]
+ * @returns {(input: ActionToastContext) => Promise<void>}
  */
 export const withActionToast =
 	(options = {}) =>

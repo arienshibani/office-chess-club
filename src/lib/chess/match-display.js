@@ -1,4 +1,13 @@
-/** Plain-text match summary (no icons). Prefer MatchSummary.svelte in UI. */
+/**
+ * Plain-text match summary (no icons). Prefer MatchSummary.svelte in UI.
+ * @param {{
+ *   whiteName: string,
+ *   blackName: string,
+ *   isDraw: boolean,
+ *   winnerId: string | null,
+ *   whitePlayerId: string
+ * }} match
+ */
 export const matchSummary = (match) => {
 	const white = match.whiteName;
 	const black = match.blackName;
