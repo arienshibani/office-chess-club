@@ -1,4 +1,8 @@
-import adapter from '@sveltejs/adapter-vercel';
+import adapterNode from '@sveltejs/adapter-node';
+import adapterVercel from '@sveltejs/adapter-vercel';
+
+const adapter =
+	process.env.SVELTEKIT_ADAPTER === 'node' ? adapterNode() : adapterVercel();
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -7,7 +11,7 @@ const config = {
 		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true),
 	},
 	kit: {
-		adapter: adapter(),
+		adapter,
 	},
 };
 
