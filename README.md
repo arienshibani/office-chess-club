@@ -20,8 +20,11 @@
 ---
 
 <p align="center">
-  Self-hosted web app for running an office chess club. Elo ratings, match history, game review, and optional Slack / Discord match submission alerts.
+  Self-hosted web app for running a private chess club. Elo ratings, match history, game review, and Slack / Discord alerts
 </p>
+
+<img width="1411" height="810" alt="image" src="https://github.com/user-attachments/assets/1da1294a-b9c7-4db4-aae4-99bff5a7675a" />
+
 
 ## 📝 Table of Contents
 - [About](#about)
