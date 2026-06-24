@@ -264,8 +264,7 @@ export const actions = {
 
 		if (!isValidDiscordWebhookUrl(webhookUrl)) {
 			return fail(400, {
-				error:
-					'Enter a valid Discord webhook URL (https://discord.com/api/webhooks/…).',
+				error: 'Enter a valid Discord webhook URL (https://discord.com/api/webhooks/…).',
 			});
 		}
 

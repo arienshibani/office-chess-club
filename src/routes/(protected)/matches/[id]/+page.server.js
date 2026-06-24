@@ -3,8 +3,8 @@ import { validateNotation } from '$lib/chess/notation.js';
 import { parseTimeFormatValue } from '$lib/chess/time-control.js';
 import { getMatches, ObjectId } from '$lib/server/db.js';
 import { deleteMatchById } from '$lib/server/matches/match-delete.js';
-import { buildMatchReviewData } from '$lib/server/matches/match-review-data.js';
 import { updateMatchResultById } from '$lib/server/matches/match-result-update.js';
+import { buildMatchReviewData } from '$lib/server/matches/match-review-data.js';
 
 /** @param {import('mongodb').ObjectId} whiteId @param {import('mongodb').ObjectId} blackId @param {string} userId */
 const isMatchParticipant = (whiteId, blackId, userId) =>

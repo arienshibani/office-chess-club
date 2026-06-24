@@ -1,5 +1,5 @@
-import { getEnvDiscordWebhookUrl } from '$lib/server/env.js';
 import { getConfig } from '$lib/server/db.js';
+import { getEnvDiscordWebhookUrl } from '$lib/server/env.js';
 
 /** @param {string} url */
 export const isValidDiscordWebhookUrl = (url) =>

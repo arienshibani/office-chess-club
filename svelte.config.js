@@ -1,8 +1,7 @@
 import adapterNode from '@sveltejs/adapter-node';
 import adapterVercel from '@sveltejs/adapter-vercel';
 
-const adapter =
-	process.env.SVELTEKIT_ADAPTER === 'node' ? adapterNode() : adapterVercel();
+const adapter = process.env.SVELTEKIT_ADAPTER === 'node' ? adapterNode() : adapterVercel();
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {

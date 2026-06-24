@@ -238,16 +238,16 @@ import { createSlideReplayDriver } from "$lib/chess/pgn-slide-animation.js";
 		color: inherit;
 	}
 
-	.featured-title-link:hover h2 {
-		color: var(--color-link-hover);
-	}
-
 	.featured-title-block h2 {
 		margin: 0;
 		font-size: 1.1rem;
 		font-weight: 600;
 		color: var(--color-heading);
 		transition: color 0.15s;
+	}
+
+	.featured-title-link:hover h2 {
+		color: var(--color-link-hover);
 	}
 
 	.featured-players {

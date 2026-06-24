@@ -1,5 +1,5 @@
-import { getEnvSlackWebhookUrl } from '$lib/server/env.js';
 import { getConfig } from '$lib/server/db.js';
+import { getEnvSlackWebhookUrl } from '$lib/server/env.js';
 
 /** @param {string} url */
 export const isValidSlackWebhookUrl = (url) =>

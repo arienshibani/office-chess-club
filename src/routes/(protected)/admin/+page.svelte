@@ -1525,11 +1525,6 @@
 		gap: 4px;
 		flex: 1;
 	}
-	.signup-summary .mono {
-		font-family: ui-monospace, monospace;
-		font-size: 0.82rem;
-		color: var(--color-text-muted);
-	}
 	.signup-summary .date {
 		font-size: 0.78rem;
 		color: var(--color-text-faint);

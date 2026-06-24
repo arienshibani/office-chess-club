@@ -432,11 +432,6 @@
 		flex-direction: column;
 		gap: 1rem;
 	}
-	.settings-card h2 {
-		margin: 0;
-		font-size: 1rem;
-		color: var(--color-text-muted);
-	}
 	.settings-form {
 		display: flex;
 		flex-direction: column;
@@ -550,6 +545,9 @@
 	.stat-label { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 2px; }
 
 	h2 { margin: 0 0 0.75rem; font-size: 1rem; color: var(--color-text-muted); }
+	.settings-card h2 {
+		margin: 0;
+	}
 	.match-table { width: 100%; border-collapse: collapse; }
 	.match-table th {
 		text-align: left;

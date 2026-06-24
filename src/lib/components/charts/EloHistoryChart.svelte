@@ -163,16 +163,16 @@
 		outline: none;
 	}
 
-	.hit:focus-visible + .dot {
-		stroke: var(--color-accent-gold);
-		stroke-width: 2;
-	}
-
 	.dot {
 		fill: var(--color-accent-gold);
 		stroke: var(--color-surface);
 		stroke-width: 1.5;
 		transition: r 0.12s ease;
+	}
+
+	.hit:focus-visible + .dot {
+		stroke: var(--color-accent-gold);
+		stroke-width: 2;
 	}
 
 	.dot.active {

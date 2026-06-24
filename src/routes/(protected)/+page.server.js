@@ -1,9 +1,6 @@
 import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
 import { enrichMatches } from '$lib/server/matches/enrich.js';
-import {
-	buildMatchReviewData,
-	pickRandomPgnMatch,
-} from '$lib/server/matches/match-review-data.js';
+import { buildMatchReviewData, pickRandomPgnMatch } from '$lib/server/matches/match-review-data.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals }) {
@@ -32,4 +29,4 @@ export async function load({ locals }) {
 		recentMatches: enrichedMatches,
 		showcasedMatch,
 	};
-};
+}
