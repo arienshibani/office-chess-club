@@ -5,7 +5,7 @@
 	/** @type {{ eloHistory?: import('$lib/chess/elo-history.js').EloHistoryPoint[], colorStats?: { white: import('$lib/chess/player-stats.js').ColorRecord, black: import('$lib/chess/player-stats.js').ColorRecord } }} */
 	let { eloHistory = [], colorStats } = $props();
 
-	let activeChart = $state(/** @type {'rating' | 'color'} */ ('rating'));
+	let activeChart = $state(/** @type {'rating' | 'color'} */ ('color'));
 
 	/** @param {'rating' | 'color'} tab */
 	const setChart = (tab) => {
@@ -18,28 +18,28 @@
 		<button
 			type="button"
 			role="tab"
-			class:active={activeChart === 'rating'}
-			aria-selected={activeChart === 'rating'}
-			onclick={() => setChart('rating')}
-		>
-			Rating over time
-		</button>
-		<button
-			type="button"
-			role="tab"
 			class:active={activeChart === 'color'}
 			aria-selected={activeChart === 'color'}
 			onclick={() => setChart('color')}
 		>
 			Win rate by color
 		</button>
+		<button
+			type="button"
+			role="tab"
+			class:active={activeChart === 'rating'}
+			aria-selected={activeChart === 'rating'}
+			onclick={() => setChart('rating')}
+		>
+			Rating over time
+		</button>
 	</div>
 
 	<div class="chart-panel" role="tabpanel">
-		{#if activeChart === 'rating'}
-			<EloHistoryChart points={eloHistory} />
-		{:else if colorStats}
+		{#if activeChart === 'color' && colorStats}
 			<ColorWinRateChart stats={colorStats} />
+		{:else}
+			<EloHistoryChart points={eloHistory} />
 		{/if}
 	</div>
 </section>
