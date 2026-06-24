@@ -7,7 +7,8 @@ export const GET = async ({ url }) => {
 		info: {
 			title: 'Office Chess Club API',
 			version: '1.0.0',
-			description: 'Administrative and integration endpoints for automated match submission and player lookup.'
+			description:
+				'Administrative and integration endpoints for automated match submission and player lookup.',
 		},
 		servers: [{ url: url.origin }],
 		components: {
@@ -16,9 +17,9 @@ export const GET = async ({ url }) => {
 					type: 'http',
 					scheme: 'bearer',
 					bearerFormat: 'API Key',
-					description: 'Use the same API key from Admin > HTTP Match Submission.'
-				}
-			}
+					description: 'Use the same API key from Admin > HTTP Match Submission.',
+				},
+			},
 		},
 		paths: {
 			'/api/matches': {
@@ -34,22 +35,28 @@ export const GET = async ({ url }) => {
 									type: 'object',
 									required: ['whitePlayerId', 'blackPlayerId', 'result', 'notation'],
 									properties: {
-										whitePlayerId: { type: 'string', description: 'Mongo ObjectId string of white player' },
-										blackPlayerId: { type: 'string', description: 'Mongo ObjectId string of black player' },
+										whitePlayerId: {
+											type: 'string',
+											description: 'Mongo ObjectId string of white player',
+										},
+										blackPlayerId: {
+											type: 'string',
+											description: 'Mongo ObjectId string of black player',
+										},
 										result: { type: 'string', enum: ['white', 'black', 'draw'] },
 										notation: { type: 'string', description: 'PGN or FEN string' },
 										timeFormat: {
 											type: 'string',
 											description: 'Optional, defaults to 600+5 when omitted',
-											example: '600+0'
-										}
-									}
-								}
-							}
-						}
+											example: '600+0',
+										},
+									},
+								},
+							},
+						},
 					},
 					responses: {
-						'201': {
+						201: {
 							description: 'Match accepted',
 							content: {
 								'application/json': {
@@ -58,17 +65,17 @@ export const GET = async ({ url }) => {
 										properties: {
 											ok: { type: 'boolean' },
 											matchId: { type: 'string' },
-											status: { type: 'string', enum: ['approved', 'pending'] }
-										}
-									}
-								}
-							}
+											status: { type: 'string', enum: ['approved', 'pending'] },
+										},
+									},
+								},
+							},
 						},
-						'400': { description: 'Validation error' },
-						'401': { description: 'Invalid API key' },
-						'503': { description: 'HTTP submission API is disabled or not configured' }
-					}
-				}
+						400: { description: 'Validation error' },
+						401: { description: 'Invalid API key' },
+						503: { description: 'HTTP submission API is disabled or not configured' },
+					},
+				},
 			},
 			'/api/players': {
 				get: {
@@ -76,7 +83,7 @@ export const GET = async ({ url }) => {
 					summary: 'List registered users/players',
 					security: [{ BearerAuth: [] }],
 					responses: {
-						'200': {
+						200: {
 							description: 'List of registered players',
 							content: {
 								'application/json': {
@@ -95,19 +102,19 @@ export const GET = async ({ url }) => {
 														rating: { type: 'number' },
 														status: { type: 'string', enum: ['pending', 'member'] },
 														isAdmin: { type: 'boolean' },
-														createdAt: { type: ['string', 'null'], format: 'date-time' }
-													}
-												}
-											}
-										}
-									}
-								}
-							}
+														createdAt: { type: ['string', 'null'], format: 'date-time' },
+													},
+												},
+											},
+										},
+									},
+								},
+							},
 						},
-						'401': { description: 'Invalid API key' },
-						'503': { description: 'HTTP submission API is disabled or not configured' }
-					}
-				}
+						401: { description: 'Invalid API key' },
+						503: { description: 'HTTP submission API is disabled or not configured' },
+					},
+				},
 			},
 			'/api/theme': {
 				post: {
@@ -123,20 +130,20 @@ export const GET = async ({ url }) => {
 									properties: {
 										theme: {
 											type: 'string',
-											enum: ['dark', 'light', 'auto']
-										}
-									}
-								}
-							}
-						}
+											enum: ['dark', 'light', 'auto'],
+										},
+									},
+								},
+							},
+						},
 					},
 					responses: {
-						'200': { description: 'Theme saved' },
-						'401': { description: 'Not authenticated' }
-					}
-				}
-			}
-		}
+						200: { description: 'Theme saved' },
+						401: { description: 'Not authenticated' },
+					},
+				},
+			},
+		},
 	};
 
 	return json(openApi);

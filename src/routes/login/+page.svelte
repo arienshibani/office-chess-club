@@ -1,7 +1,9 @@
 <script>
+import { dev } from "$app/environment";
 import { enhance } from "$app/forms";
 import { ArrowLeft, ArrowRight, LogIn, UserPlus } from "@lucide/svelte";
-import ClubMark from "$lib/ClubMark.svelte";
+import ClubMark from "$lib/components/common/ClubMark.svelte";
+import ErrorAlert from "$lib/components/common/ErrorAlert.svelte";
 
 let { data, form } = $props();
 
@@ -15,6 +17,34 @@ let name = $state("");
 let password = $state("");
 let submitting = $state(false);
 let clientError = $state("");
+/** @type {{ message: string, details?: string, stack?: string } | null} */
+let actionError = $state(null);
+
+const handleEnhance = () => {
+	submitting = true;
+	actionError = null;
+	return async (
+		/** @type {{ result: import('@sveltejs/kit').ActionResult; update: (opts?: { reset?: boolean; invalidateAll?: boolean }) => Promise<void> }} */ {
+			result,
+			update,
+		},
+	) => {
+		try {
+			if (result.type === "error") {
+				const err = result.error;
+				actionError = {
+					message: "Something went wrong. Please try again.",
+					details: err instanceof Error ? err.message : String(err),
+					stack: dev && err instanceof Error ? err.stack : undefined,
+				};
+				return;
+			}
+			await update();
+		} finally {
+			submitting = false;
+		}
+	};
+};
 
 $effect(() => {
 	if (form?.action === "login") {
@@ -30,6 +60,7 @@ const resetStage = () => {
 	stage = 1;
 	password = "";
 	clientError = "";
+	actionError = null;
 };
 
 const switchMode = (/** @type {'sign-in' | 'sign-up'} */ next) => {
@@ -118,9 +149,21 @@ const subheading = $derived(
 			<p class="subtitle">{subheading}</p>
 
 			{#if form?.error}
-				<p class="error">{form.error}</p>
+				<ErrorAlert
+					message={form.error}
+					details={typeof form.details === 'string' ? form.details : ''}
+					stack={typeof form.stack === 'string' ? form.stack : ''}
+					compact
+				/>
+			{:else if actionError}
+				<ErrorAlert
+					message={actionError.message}
+					details={actionError.details ?? ''}
+					stack={actionError.stack ?? ''}
+					compact
+				/>
 			{:else if clientError}
-				<p class="error">{clientError}</p>
+				<ErrorAlert message={clientError} compact />
 			{/if}
 
 			{#if mode === 'sign-in'}
@@ -152,13 +195,7 @@ const subheading = $derived(
 						method="POST"
 						action="?/login"
 						class="stage-form"
-						use:enhance={() => {
-							submitting = true;
-							return async ({ update }) => {
-								await update();
-								submitting = false;
-							};
-						}}
+						use:enhance={handleEnhance}
 					>
 						<input type="hidden" name="username" value={username} />
 						<label>
@@ -210,13 +247,7 @@ const subheading = $derived(
 					method="POST"
 					action="?/register"
 					class="stage-form"
-					use:enhance={() => {
-						submitting = true;
-						return async ({ update }) => {
-							await update();
-							submitting = false;
-						};
-					}}
+					use:enhance={handleEnhance}
 				>
 					<input type="hidden" name="username" value={username} />
 					<label>
@@ -489,16 +520,6 @@ const subheading = $derived(
 
 	.link-btn:hover {
 		color: var(--color-link-hover);
-	}
-
-	.error {
-		background: var(--color-error-bg-soft);
-		border: 1px solid var(--color-error-border-soft);
-		border-radius: 8px;
-		padding: 0.65rem 0.85rem;
-		color: var(--color-error-soft);
-		font-size: 0.84rem;
-		margin: 0 0 0.85rem;
 	}
 
 	@media (max-width: 640px) {

@@ -1,7 +1,9 @@
-import { getPlayers, ObjectId, ensureIndexes } from '$lib/db.js';
-import { normalizePlayerStatus } from '$lib/player-status.js';
-import { verifySessionToken, COOKIE_NAME } from '$lib/session.js';
-import { normalizeTheme } from '$lib/theme.js';
+import { dev } from '$app/environment';
+import { normalizeTheme } from '$lib/client/theme.js';
+import { COOKIE_NAME, verifySessionToken } from '$lib/server/auth/session.js';
+import { ensureIndexes, getPlayers, ObjectId } from '$lib/server/db.js';
+import { normalizePlayerStatus } from '$lib/server/players/player-status.js';
+import { errorDetails } from '$lib/utils/format-error.js';
 
 let indexesEnsured = false;
 
@@ -32,7 +34,7 @@ export async function handle({ event, resolve }) {
 						isAdmin: user.isAdmin,
 						status: normalizePlayerStatus(user.status),
 						stats: user.stats,
-						theme: normalizeTheme(user.theme)
+						theme: normalizeTheme(user.theme),
 					};
 				}
 			} catch {
@@ -43,4 +45,24 @@ export async function handle({ event, resolve }) {
 	}
 
 	return resolve(event);
+}
+
+/** @type {import('@sveltejs/kit').HandleServerError} */
+export function handleError({ error, status, message }) {
+	const { message: details, stack } = errorDetails(error);
+	console.error(`[${status}]`, error);
+
+	if (status === 404) {
+		return {
+			message: "We couldn't find the page you're looking for.",
+			details,
+			stack: dev ? stack : undefined,
+		};
+	}
+
+	return {
+		message: status >= 500 ? 'The server hit an unexpected problem.' : message,
+		details,
+		stack: dev ? stack : undefined,
+	};
 }

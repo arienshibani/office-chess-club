@@ -1,0 +1,96 @@
+name: Test
+
+on:
+  workflow_call:
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, typecheck, build
+    runs-on: ubuntu-latest
+    env:
+      SESSION_SECRET: ci-build-secret-minimum-32-characters-long
+      MONGODB_URI: mongodb://127.0.0.1:27017
+      ORIGIN: http://localhost:5173
+      SLACK_WEBHOOK_URL: ''
+      DISCORD_WEBHOOK_URL: ''
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm check
+      - run: pnpm build
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:unit
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/?replicaSet=rs0
+      SESSION_SECRET: test-session-secret-at-least-32-characters-long
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Start MongoDB replica set
+        run: |
+          docker compose -f compose.test.yml up -d mongo
+          for i in $(seq 1 60); do
+            status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' office-chess-club-test-mongo-1 2>/dev/null || echo missing)
+            echo "MongoDB status: $status (attempt $i)"
+            if [ "$status" = "healthy" ]; then
+              break
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "MongoDB logs:"
+              docker logs office-chess-club-test-mongo-1 || true
+              exit 1
+            fi
+            if [ "$i" -eq 60 ]; then
+              echo "Timed out waiting for MongoDB"
+              docker logs office-chess-club-test-mongo-1 || true
+              exit 1
+            fi
+            sleep 2
+          done
+          docker compose -f compose.test.yml run --rm --no-deps mongo-rs-init
+
+      - run: pnpm test:integration
+
+      - name: Stop MongoDB
+        if: always()
+        run: docker compose -f compose.test.yml down -v

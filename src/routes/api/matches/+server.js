@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { assertApiKey } from '$lib/api-auth.js';
-import { createMatch } from '$lib/match-submit.js';
-import { DEFAULT_TIME_FORMAT, parseTimeFormatValue } from '$lib/time-control.js';
+import { DEFAULT_TIME_FORMAT, parseTimeFormatValue } from '$lib/chess/time-control.js';
+import { assertApiKey } from '$lib/server/auth/api-auth.js';
+import { createMatch } from '$lib/server/matches/match-submit.js';
 
 const ALLOWED_RESULTS = new Set(['white', 'black', 'draw']);
 
@@ -16,9 +16,10 @@ const parsePayload = (payload) => {
 		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid JSON body' };
 	}
 
-	const data = /** @type {{ whitePlayerId?: unknown; blackPlayerId?: unknown; result?: unknown; notation?: unknown; timeFormat?: unknown }} */ (
-		payload
-	);
+	const data =
+		/** @type {{ whitePlayerId?: unknown; blackPlayerId?: unknown; result?: unknown; notation?: unknown; timeFormat?: unknown }} */ (
+			payload
+		);
 
 	if (
 		typeof data.whitePlayerId !== 'string' ||
@@ -51,8 +52,8 @@ const parsePayload = (payload) => {
 			blackPlayerId: data.blackPlayerId.trim(),
 			result: /** @type {'white' | 'black' | 'draw'} */ (data.result),
 			notation: data.notation,
-			timeFormat: timeFormatRaw
-		}
+			timeFormat: timeFormatRaw,
+		},
 	};
 };
 
@@ -76,7 +77,7 @@ export const POST = async ({ request }) => {
 			...parsed.value,
 			reportedBy: null,
 			reporterName: 'External API',
-			requireNotation: true
+			requireNotation: true,
 		});
 
 		return json({ ok: true, matchId, status }, { status: 201 });
@@ -84,7 +85,7 @@ export const POST = async ({ request }) => {
 		if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 			return json(
 				{ error: /** @type {string} */ (err.message) },
-				{ status: /** @type {number} */ (err.status) }
+				{ status: /** @type {number} */ (err.status) },
 			);
 		}
 		throw err;

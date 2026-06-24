@@ -26,6 +26,7 @@ add_env MONGODB_URI "$MONGODB_URI"
 add_env MONGODB_DB_NAME "${MONGODB_DB_NAME:-chess-club}"
 add_env SESSION_SECRET "${SESSION_SECRET:-$(openssl rand -base64 32)}"
 add_env SLACK_WEBHOOK_URL "${SLACK_WEBHOOK_URL:-}"
+add_env DISCORD_WEBHOOK_URL "${DISCORD_WEBHOOK_URL:-}"
 
 echo "Deploying production..."
 vercel deploy --prod --yes

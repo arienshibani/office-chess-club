@@ -1,0 +1,63 @@
+# Office Chess Club — local development commands
+
+# Default command, list all commands.
+default:
+	just --list
+
+# Install dependencies on the host (IDE linting, LSP, pnpm run check, etc.)
+install:
+	pnpm install
+
+# First-time machine setup (pnpm on PATH, then install deps)
+setup:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	if command -v pnpm >/dev/null 2>&1; then
+		echo "pnpm $(pnpm --version) — $(command -v pnpm)"
+	else
+		if ! command -v corepack >/dev/null 2>&1; then
+			echo "pnpm not found. Install Node 22+ or: brew install pnpm"
+			exit 1
+		fi
+		if ! corepack enable 2>/dev/null; then
+			echo "corepack enable failed (cannot write to Node's bin directory)."
+			echo "Install pnpm directly instead: brew install pnpm"
+			exit 1
+		fi
+	fi
+	pnpm install
+
+# Start MongoDB + the SvelteKit dev server (http://localhost:5173/login)
+# First start seeds admin/admin, test users (password: password), and classic-game matches.
+start:
+	docker compose up --build
+
+# Run unit tests (no database required)
+test-unit:
+	pnpm test:unit
+
+# Run integration tests (requires MongoDB — starts compose.test.yml if needed)
+test-integration:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	if ! docker compose -f compose.test.yml ps --status running --services 2>/dev/null | grep -qx mongo; then
+		docker compose -f compose.test.yml up -d mongo
+		for i in $(seq 1 60); do
+			status=$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' office-chess-club-test-mongo-1 2>/dev/null || echo missing)
+			if [ "$status" = "healthy" ]; then
+				break
+			fi
+			if [ "$status" = "unhealthy" ]; then
+				docker logs office-chess-club-test-mongo-1 || true
+				exit 1
+			fi
+			sleep 2
+		done
+		docker compose -f compose.test.yml run --rm --no-deps mongo-rs-init
+	fi
+	pnpm test:integration
+
+# Run all tests
+test:
+	pnpm test:unit
+	just test-integration

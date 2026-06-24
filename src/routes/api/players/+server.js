@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
-import { assertApiKey } from '$lib/api-auth.js';
-import { getPlayers } from '$lib/db.js';
-import { normalizePlayerStatus } from '$lib/player-status.js';
+import { assertApiKey } from '$lib/server/auth/api-auth.js';
+import { getPlayers } from '$lib/server/db.js';
+import { normalizePlayerStatus } from '$lib/server/players/player-status.js';
 
 const methodNotAllowed = () =>
 	json({ error: 'Method not allowed' }, { status: 405, headers: { Allow: 'GET' } });
@@ -23,8 +23,8 @@ export const GET = async ({ request }) => {
 			rating: typeof player.rating === 'number' ? player.rating : 1200,
 			status: normalizePlayerStatus(player.status),
 			isAdmin: !!player.isAdmin,
-			createdAt: player.createdAt instanceof Date ? player.createdAt.toISOString() : null
-		}))
+			createdAt: player.createdAt instanceof Date ? player.createdAt.toISOString() : null,
+		})),
 	});
 };
 

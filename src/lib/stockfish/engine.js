@@ -1,16 +1,20 @@
 import { browser } from '$app/environment';
-import { parseUciMove } from '$lib/chess-arrows.js';
+import { parseUciMove } from '$lib/chess/arrows.js';
 import { normalizeEvalForWhite } from './eval-display.js';
 
 const STOCKFISH_URL = '/stockfish.js';
 const DEFAULT_DEPTH = 14;
 
+/**
+ * @typedef {{ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }} AnalysisResult
+ */
+
 /** @type {Worker | null} */
 let worker = null;
 /** @type {Promise<void> | null} */
 let readyPromise = null;
-/** @type {Promise<unknown> | null} */
-let searchChain = Promise.resolve();
+/** @type {Promise<AnalysisResult>} */
+let searchChain = Promise.resolve({ cp: 0 });
 
 /**
  * @param {string} line
@@ -70,10 +74,6 @@ const ensureReady = () => {
 };
 
 /**
- * @typedef {{ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }} AnalysisResult
- */
-
-/**
  * @param {string} fen
  * @param {{ depth?: number, signal?: AbortSignal }} [options]
  * @returns {Promise<AnalysisResult>}
@@ -111,7 +111,7 @@ export const analyzePosition = (fen, options = {}) => {
 						const uci = line.split(/\s+/)[1] ?? '';
 						resolve({
 							...normalizeEvalForWhite(fen, lastRaw),
-							bestMove: parseUciMove(uci)
+							bestMove: parseUciMove(uci),
 						});
 					}
 				});
@@ -130,7 +130,8 @@ export const analyzePosition = (fen, options = {}) => {
 			w.postMessage(`go depth ${depth}`);
 		});
 
-	return (searchChain = searchChain.then(run, run));
+	searchChain = searchChain.then(run, run);
+	return searchChain;
 };
 
 /** Stop current search and reset queue (e.g. on navigation). */
@@ -138,7 +139,7 @@ export const stopEngine = () => {
 	if (worker) {
 		worker.postMessage('stop');
 	}
-	searchChain = Promise.resolve();
+	searchChain = Promise.resolve({ cp: 0 });
 };
 
 /** @returns {Promise<void>} */

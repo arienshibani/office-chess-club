@@ -1,166 +1,214 @@
-# Office Chess Club ♟️
+<p align="center">
+  <a href="https://github.com/arienshibani/office-chess-club" rel="noopener">
+    <img width="120" height="120" src="static/favicon.svg" alt="Office Chess Club logo">
+  </a>
+</p>
 
-Who's _really_ the best at chess in your office?
---
+<h3 align="center">Office Chess Club ♟️</h3>
 
-Solution to let you self host your own web-based chess club. The code takes care of user signups, chess match submission (either manually or via HTTP), distributing ELO rating points and stockfish analysis of the submitted games. An admin panel lets you configure the solution however you want. The HTTP endpoint enables you to build an automatic bridge between a chess smartboard (DGT, Square Off, custom setups with webcam and RPi etc) and the hosted web-app, if you want to take the chess club to the next level.
+<div align="center">
 
-<img width="1058" height="969" alt="image" src="https://github.com/user-attachments/assets/4ffa9f86-ef19-4a85-ab40-6aae4beb188a" />
+[![CI](https://github.com/arienshibani/office-chess-club/actions/workflows/ci.yml/badge.svg)](https://github.com/arienshibani/office-chess-club/actions/workflows/ci.yml)
+[![Release](https://github.com/arienshibani/office-chess-club/actions/workflows/release.yml/badge.svg)](https://github.com/arienshibani/office-chess-club/actions/workflows/release.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![Node](https://img.shields.io/badge/node-22+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-11.8+-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-FF3E00?logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 
+</div>
 
-## Features 🌟
+---
 
-- **Instant Elo ratings** 📈 Every logged game updates the leaderboard's internal ELO system automatically (K=32, starting at 1200).
-- **Match history & stats** 📊 Per-player profiles, win/loss/draw records, and game review (Requires submission of PGN/FEN).
-- **Username / Password Auth** 🔒 Indiviudal accounts created and managed directly in your MongoDB. passwords are scrypt-hashed.
-- **API submission** 📡 Automate match logging with your own tools and result submission via secured HTTP POST requests.
-- **Optional match approval** 🧑‍⚖️ Turn off the honor system if you want an admin to approve results first.
-- **Optional Slack alerts** 🔔  Ping your own `#chess` channel when matches are logged, just setup a slack app have the admin paste in the webhook URL.
+<p align="center">
+  Self-hosted web app for running an office chess club. Elo ratings, match history, game review, and optional Slack / Discord match submission alerts.
+</p>
 
-## Quick start 🏁
+## 📝 Table of Contents
+- [About](#about)
+- [Getting Started](#getting_started)
+- [Running the tests](#tests)
+- [Usage](#usage)
+- [Deployment](#deployment)
+- [Built Using](#built_using)
+- [Third Party Integrations & APIs](#third-party-integrations)
 
-Three steps. No code changes required.
+## 🎓 About <a name="about"></a>
 
-### 1. Fork the repository 🔗
+Office Chess Club is a lightweight chess club management system you can host yourself. Players create accounts, log match results (manually or via HTTP API), and climb an automatically updated Elo leaderboard (K=32, starting at 1200). Admins can optionally require match approval, configure Slack or Discord webhooks for notifications, and issue API keys for automated result submission from smart chess boards, scripts, or other tools. Games submitted with PGN notation are analyzed in the browser with Stockfish for move-by-move review.
 
-Fork the repository to your GitHub account and clone it locally if you want to setup and host your own club.
+## 🏁 Getting Started <a name="getting_started"></a>
+
+These instructions get a development copy running on your machine. See [deployment](#deployment) for production hosting.
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 22+
+- [pnpm](https://pnpm.io/) 11.8+ (via Corepack or `brew install pnpm`)
+- [Docker](https://www.docker.com/) (for local MongoDB and `just start`, or integration tests)
+- [just](https://github.com/casey/just) (optional, recommended for local commands)
+
+### Installing
+
+**1. Clone the repository**
 
 ```bash
-gh repo fork arienshibani/office-chess-club --clone
+git clone https://github.com/arienshibani/office-chess-club.git
 cd office-chess-club
 ```
 
-### 2. Create a free MongoDB Atlas database 📊
+**2. Setup the `env` file**
 
-Atlas has a forever-free **M0** tier - more than enough for an office club.
-
-1. Go to [mongodb.com/cloud/atlas/register](https://www.mongodb.com/cloud/atlas/register) and create an account.
-2. Create a **free shared cluster** (M0). Any cloud provider/region is fine.
-3. **Database Access** → **Add New Database User**
-   - Choose **Password** authentication.
-   - Save the username and password somewhere safe.
-4. **Network Access** → **Add IP Address** → **Allow Access from Anywhere** (`0.0.0.0/0`)
-   - Required so Vercel’s serverless functions can reach your database.
-5. **Database** → **Connect** → **Drivers** → copy the connection string.
-
-It looks like:
-
-```txt
-mongodb+srv://USERNAME:PASSWORD@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
+```bash
+cp .env.example .env
 ```
 
-> All you need is your connection string. Indexes and default settings are created automatically on first request - you don’t need to create collections or run migrations.
+Set at minimum:
 
-### 3. Deploy to Vercel 🚀
+| Variable | Required | Notes |
+|----------|----------|-------|
+| `MONGODB_URI` | Yes | Atlas connection string, or `mongodb://127.0.0.1:27017/?replicaSet=rs0` when using Docker Compose |
+| `SESSION_SECRET` | Yes | Random string, 32+ characters ([generate one](https://generate-secret.vercel.app/32)) |
+| `ORIGIN` | Yes (prod) | Public site URL — used in Slack/Discord notification links |
 
-1. Go to [vercel.com/new](https://vercel.com/new) and **Import** your GitHub repo.
-2. Before deploying, open **Environment Variables** and add the following variables:
+**3. Install dependencies**
 
-| Variable | Required | Example / notes |
-|----------|----------|-----------------|
-| `MONGODB_URI` | Yes | Your Atlas connection string from step 2 |
-| `SESSION_SECRET` | Yes | Any random string, 32+ characters ([generate one](https://generate-secret.vercel.app/32)) |
-
-3. Click **Deploy**. Vercel detects SvelteKit automatically.
-
-When the deploy finishes, open:
-
-```txt
-https://YOUR-APP.vercel.app/login
+```bash
+just setup        # first time: Corepack + pnpm install
+# or: just install
 ```
 
-**That’s it.** Create an account, invite coworkers to do the same, and start logging games.
+**4. Start the app**
 
+Option A — Docker (MongoDB + dev server, seeds sample data on first run):
 
-## After deploy
+```bash
+just start
+```
+
+Option B — host-only dev server (bring your own MongoDB):
+
+```bash
+pnpm run dev
+```
+
+Open [http://localhost:5173/login](http://localhost:5173/login), create an account, and log a match from the dashboard.
+
+> New dependency versions must be at least 24 hours old (`minimumReleaseAge` in `pnpm-workspace.yaml`).
+
+## 🔧 Running the tests <a name="tests"></a>
+
+CI runs on every pull request: lint (Biome), typecheck (`svelte-check`), production build, unit tests, and integration tests against a MongoDB replica set.
+
+### Unit tests
+
+Fast tests for pure logic (Elo, PGN parsing, session helpers, etc.). No database required.
+
+```bash
+pnpm test:unit
+# or: just test-unit
+```
+
+### Integration tests
+
+API and database tests against a real MongoDB replica set. `just test-integration` starts `compose.test.yml` automatically if Mongo is not already running.
+
+```bash
+pnpm test:integration
+# or: just test-integration
+```
+
+### All tests
+
+```bash
+pnpm test
+# or: just test
+```
+
+### Lint and typecheck
+
+```bash
+pnpm lint      # Biome
+pnpm check     # svelte-check
+pnpm build     # production build smoke test
+```
+
+## 🎈 Usage <a name="usage"></a>
 
 ### Register players
 
-Everyone creates their own account at `/login`. There’s no invite flow - share the URL internally (Slack, email, whatever).
+Share your `/login` URL internally. Everyone creates their own account via a basic username / password authentication.
 
-### Make someone an admin (optional)
+### Admin setup (optional)
 
-Admins can approve pending matches, toggle honor system, configure Slack notifications, enable HTTP match submission (with an API key generated in the admin panel), and manage the club. To promote your first admin:
+Promote your first admin in MongoDB (`chess-club` → `players` → set `isAdmin: true`), or set `AUTO_PROMOTE_FIRST_USER=true` in the environment so the first registrant becomes admin automatically.
 
-1. Create your account via `/login`.
-2. In MongoDB Atlas → **Browse Collections** → `chess-club` → `players`.
-3. Find your user document and set `isAdmin` to `true`.
+From the admin panel you can:
 
-You only need this if you want the admin panel. With honor system on (the default), games count immediately without approval.
+- Toggle honor system (instant vs. approved matches)
+- Configure Slack and Discord webhook URLs
+- Generate API keys for automatic HTTP match submission
+- Browse the OpenAPI docs (Swagger UI)
 
-### Customize your club name (optional)
+### Submit game results
 
-In Atlas, edit the `config` collection → document `_id: "global_settings"` → change `clubName` from `"Office"` to whatever you like (e.g. `"Acme Corp"`). It shows on the login page.
+**Manual:** use **Submit Match** button in the nav bar. This is useful for quick matches or when you don't have a programmatic way to submit matches. You can update a submitted game later on with a PGN string if you want to perform detailed analysis.
 
-## Submitting Chess Games
-
-There's two ways to submit matches:
-
-1. Manually by any user via the "Submit Match" button on the top of the navigation bar. This is useful for quick matches or when you don't have a programmatic way to submit matches.
-
-<img width="531" height="515" alt="image" src="https://github.com/user-attachments/assets/84232911-3fe1-48dc-845e-bf8738ed9b3e" />
-
-2. Via HTTP POST request to the `/api/matches` endpoint. This is useful for programs, third-party services, smart chessboards or jank web-cam + raspberri pi setups. If you are using the HTTP submission feature, you will need to generate an API key in the admin panel, and use it to submit matches to the `/api/matches` endpoint.
-
-### Example HTTP POST request
+**HTTP API:**
 
 ```bash
-curl -X POST https://your-app.vercel.app/api/matches \
+curl -X POST https://your-app.example.com/api/matches \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"whitePlayerId": "PLAYER_ID", "blackPlayerId": "PLAYER_ID", "result": "white", "notation": "1. e4 e5 2. Nf3 Nc6 3. Bb5 a6"}'
 ```
 
-### PGN Notation and Stockfish Analysis
+PGN submissions are analyzed with Stockfish 17.1 (WASM, `popcnt`) in the match review UI.
 
-If you submit a PGN notation, the match will be analyzed by Stockfish. The app uses the latest version of Stockfish (17.1) compiled with the `popcnt` instruction set.
+## 🚀 Deployment <a name="deployment"></a>
 
-<img width="1073" height="927" alt="image" src="https://github.com/user-attachments/assets/6dddc9ec-3f89-4941-b5b3-d500730aeeac" />
+The following section describes how you can setup a production instance of the app and get started with your own chess club for free.
 
+1. Fork or import the repo at [vercel.com/new](https://vercel.com/new).
+2. Add `MONGODB_URI` and `SESSION_SECRET` as environment variables.
+3. Deploy - SvelteKit is detected automatically.
 
-## Local development
+Use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register) free M0 tier. Allow network access from anywhere (`0.0.0.0/0`) so Vercel serverless functions can connect. Indexes and defaults are created on first request.
+
+**CLI alternative:** `./scripts/deploy-vercel.sh` reads `.env` and deploys production via the Vercel CLI.
+
+### Docker (self-hosted)
+
+Production images are published to GHCR on merges to `main`:
 
 ```bash
-cp .env.example .env
-# Fill in MONGODB_URI and SESSION_SECRET
-npm install
-npm run dev
+docker pull ghcr.io/arienshibani/office-chess-club:latest
 ```
 
-Open [http://localhost:5173/login](http://localhost:5173/login).
+Run with `MONGODB_URI`, `SESSION_SECRET`, `ORIGIN`, and optional `SLACK_WEBHOOK_URL` / `DISCORD_WEBHOOK_URL`. See `Dockerfile.prod` and `compose.yml` for reference.
 
-**CLI deploy alternative:** if you use the Vercel CLI locally, `./scripts/deploy-vercel.sh` reads your `.env` and pushes env vars + deploys production.
+## ⛏️ Built Using <a name="built_using"></a>
 
+- [SvelteKit](https://kit.svelte.dev/) — Full-stack web framework
+- [Svelte 5](https://svelte.dev/) — UI components
+- [Vite](https://vitejs.dev/) — Build tooling and dev server
+- [MongoDB](https://www.mongodb.com/) — Database (Atlas or self-hosted replica set)
+- [chess.js](https://github.com/jhlywa/chess.js) — Chess logic and PGN parsing
+- [Stockfish](https://stockfishchess.org/) — In-browser engine analysis (WASM)
+- [Vitest](https://vitest.dev/) — Unit and integration tests
+- [Biome](https://biomejs.dev/) — Linting and formatting
+- [Vercel](https://vercel.com/) — Default production adapter
 
-## Architecture 📦
+## 🔌 Third Party Integrations & APIs <a name="third-party-integrations"></a>
 
-```txt
-src/
-├── hooks.server.js          # Session validation on every request
-├── lib/
-│   ├── db.js                # MongoDB singleton + ensureIndexes()
-│   ├── elo.js               # computeElo() using elo-rank (K=32)
-│   ├── password.js          # scrypt hash + verify
-│   ├── session.js           # HMAC-signed session tokens
-│   ├── slack.js             # Outbound webhook notifications (optional)
-│   └── ChessBoard.svelte    # Board driven by FEN (Lichess Cburnett SVG pieces)
-└── routes/
-    ├── login/               # Sign in + create account
-    ├── logout/              # Clears session cookie
-    └── (protected)/         # Auth-gated layout group
-        ├── +page            # Dashboard: leaderboard + log match + activity feed
-        ├── players/[id]/    # Profile: stats, rank, match history
-        ├── matches/[id]/    # Chess review: PGN stepper or FEN static view
-        └── admin/           # Honor system toggle + pending approval queue
-```
-
-**Stack:** SvelteKit · MongoDB · Vercel
+- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas) — Managed database hosting
+- [Vercel](https://vercel.com/docs) — Serverless deployment
+- [Slack Incoming Webhooks](https://api.slack.com/messaging/webhooks) — Match notifications
+- [Discord Webhooks](https://discord.com/developers/docs/resources/webhook) — Match notifications
+- [OpenAPI / Swagger UI](https://swagger.io/) — HTTP API docs at `/api/openapi` (admin panel)
+- [Lichess Cburnett pieces](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett) — Board SVG assets (GPLv2+)
 
 ---
 
 ## License
 
-Do what you like with this.
-
-
-**Third-party assets:** Board pieces in `static/pieces/cburnett/` are the [Cburnett](https://github.com/lichess-org/lila/tree/master/public/piece/cburnett) set (Colin M.L. Burnett), used by Lichess under [GPLv2+](https://www.gnu.org/licenses/gpl-2.0.html).
+[AGPL-3.0-or-later](LICENSE) — do what you like, share changes under the same license.

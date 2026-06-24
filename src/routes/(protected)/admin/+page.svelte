@@ -1,138 +1,152 @@
 <script>
-import { onMount, tick } from "svelte";
-import { browser } from "$app/environment";
-import { enhance } from "$app/forms";
-import "swagger-ui-dist/swagger-ui.css";
-import {
-	Check,
-	ClipboardClock,
-	Copy,
-	ExternalLink,
-	Eye,
-	EyeOff,
-	Globe,
-	Handshake,
-	KeyRound,
-	Landmark,
-	RefreshCw,
-	RotateCcw,
-	Save,
-	Send,
-	Settings,
-	ShieldCheck,
-	SlidersHorizontal,
-	Trash2,
-	TriangleAlert,
-	UserPlus,
-	Users,
-	Webhook,
-	X,
-} from "@lucide/svelte";
-import { ADMIN_INVALIDATE, withActionToast } from "$lib/action-toast.js";
-import PieceColor from "$lib/PieceColor.svelte";
+	import { onMount, tick } from "svelte";
+	import { browser } from "$app/environment";
+	import { enhance } from "$app/forms";
+	import "swagger-ui-dist/swagger-ui.css";
+	import {
+		Bell,
+		Check,
+		ClipboardClock,
+		Copy,
+		ExternalLink,
+		Eye,
+		EyeOff,
+		Globe,
+		Handshake,
+		KeyRound,
+		Landmark,
+		RefreshCw,
+		RotateCcw,
+		Save,
+		Send,
+		Settings,
+		ShieldCheck,
+		SlidersHorizontal,
+		Trash2,
+		TriangleAlert,
+		UserPlus,
+		Users,
+		X,
+	} from "@lucide/svelte";
+	import {
+		ADMIN_INVALIDATE,
+		withActionToast,
+	} from "$lib/client/action-toast.js";
+	import PieceColor from "$lib/components/player/PieceColor.svelte";
+	import DiscordIcon from "$lib/components/icons/DiscordIcon.svelte";
+	import SlackIcon from "$lib/components/icons/SlackIcon.svelte";
 
-const { data, form } = $props();
-let activeTab = $state(
-	/** @type {'settings' | 'advanced' | 'users' | 'danger'} */ ("settings"),
-);
-let toggling = $state(false);
-let togglingPublicView = $state(false);
-let savingName = $state(false);
-let togglingHttp = $state(false);
-let generatingKey = $state(false);
-let showHttpApiKey = $state(false);
-let savingSlack = $state(false);
-let togglingSlack = $state(false);
-let testingSlack = $state(false);
-let processing = $state(/** @type {string | null} */ (null));
-let approvingUser = $state(/** @type {string | null} */ (null));
-let resettingPassword = $state(/** @type {string | null} */ (null));
-let deletingUser = $state(/** @type {string | null} */ (null));
-let resettingLadder = $state(false);
-let swaggerMountEl = $state(/** @type {HTMLDivElement | null} */ (null));
-let swaggerReady = $state(false);
-let swaggerError = $state(/** @type {string | null} */ (null));
-let swaggerInitialized = $state(false);
-let clubNameDraft = $state("");
-let slackWebhookDraft = $state("");
-let ladderConfirmText = $state("");
-
-$effect(() => {
-	clubNameDraft = data.clubName;
-	slackWebhookDraft = data.slackWebhookUrl;
-});
-
-/** @param {'settings' | 'advanced' | 'users' | 'danger'} tab */
-const setTab = (tab) => {
-	activeTab = tab;
-};
-
-/** @param {{ name: string }} user */
-const confirmDeleteUser = (user) =>
-	confirm(
-		`Delete ${user.name}? All of their matches will be removed and opponent ratings will be reverted where applicable. This cannot be undone.`,
+	const { data, form } = $props();
+	let activeTab = $state(
+		/** @type {'settings' | 'notifications' | 'advanced' | 'users' | 'danger'} */ (
+			"settings"
+		),
 	);
+	let toggling = $state(false);
+	let togglingPublicView = $state(false);
+	let savingName = $state(false);
+	let togglingHttp = $state(false);
+	let generatingKey = $state(false);
+	let showHttpApiKey = $state(false);
+	let savingSlack = $state(false);
+	let togglingSlack = $state(false);
+	let testingSlack = $state(false);
+	let savingDiscord = $state(false);
+	let togglingDiscord = $state(false);
+	let testingDiscord = $state(false);
+	let processing = $state(/** @type {string | null} */ (null));
+	let approvingUser = $state(/** @type {string | null} */ (null));
+	let resettingPassword = $state(/** @type {string | null} */ (null));
+	let deletingUser = $state(/** @type {string | null} */ (null));
+	let resettingLadder = $state(false);
+	let swaggerMountEl = $state(/** @type {HTMLDivElement | null} */ (null));
+	let swaggerReady = $state(false);
+	let swaggerError = $state(/** @type {string | null} */ (null));
+	let swaggerInitialized = $state(false);
+	let clubNameDraft = $state("");
+	let slackWebhookDraft = $state("");
+	let discordWebhookDraft = $state("");
+	let ladderConfirmText = $state("");
 
-const confirmResetLadder = () =>
-	confirm(
-		"Reset the entire ladder? This permanently deletes every match and sets all players back to 1200 rating with zero wins, losses, and draws.",
-	);
+	$effect(() => {
+		clubNameDraft = data.clubName;
+		slackWebhookDraft = data.slackWebhookUrl;
+		discordWebhookDraft = data.discordWebhookUrl;
+	});
 
-/** @param {string} key */
-const copyApiKey = async (key) => {
-	try {
-		await navigator.clipboard.writeText(key);
-	} catch {
-		// clipboard may be unavailable
-	}
-};
+	/** @param {'settings' | 'notifications' | 'advanced' | 'users' | 'danger'} tab */
+	const setTab = (tab) => {
+		activeTab = tab;
+	};
 
-const adminToast = (extra = {}) =>
-	withActionToast({ invalidate: ADMIN_INVALIDATE, ...extra });
-
-const initSwaggerUi = async () => {
-	if (!browser || swaggerInitialized) return;
-	await tick();
-	if (!swaggerMountEl) return;
-	try {
-		const { default: SwaggerUI } = await import(
-			"swagger-ui-dist/swagger-ui-bundle.js"
+	/** @param {{ name: string }} user */
+	const confirmDeleteUser = (user) =>
+		confirm(
+			`Delete ${user.name}? All of their matches will be removed and opponent ratings will be reverted where applicable. This cannot be undone.`,
 		);
-		SwaggerUI({
-			domNode: swaggerMountEl,
-			url: "/api/openapi",
-			deepLinking: true,
-			persistAuthorization: true,
-			defaultModelsExpandDepth: -1,
-			docExpansion: "list",
-		});
-		swaggerReady = true;
-		swaggerInitialized = true;
-	} catch (err) {
-		swaggerError =
-			err instanceof Error ? err.message : "Could not load API explorer.";
-	}
-};
 
-onMount(() => {
-	if (activeTab === "advanced") {
-		void initSwaggerUi();
-	}
-});
+	const confirmResetLadder = () =>
+		confirm(
+			"Reset the entire ladder? This permanently deletes every match and sets all players back to 1200 rating with zero wins, losses, and draws.",
+		);
 
-$effect(() => {
-	if (activeTab === "advanced") {
-		void initSwaggerUi();
-	}
-});
+	/** @param {string} key */
+	const copyApiKey = async (key) => {
+		try {
+			await navigator.clipboard.writeText(key);
+		} catch {
+			// clipboard may be unavailable
+		}
+	};
 
-const httpApiKeyDisplay = $derived(
-	!data.httpSubmitApiKey
-		? ""
-		: showHttpApiKey
-			? data.httpSubmitApiKey
-			: "•".repeat(data.httpSubmitApiKey.length),
-);
+	const adminToast = (extra = {}) =>
+		withActionToast({ invalidate: ADMIN_INVALIDATE, ...extra });
+
+	const initSwaggerUi = async () => {
+		if (!browser || swaggerInitialized) return;
+		await tick();
+		if (!swaggerMountEl) return;
+		try {
+			const { default: SwaggerUI } = await import(
+				"swagger-ui-dist/swagger-ui-bundle.js"
+			);
+			SwaggerUI({
+				domNode: swaggerMountEl,
+				url: "/api/openapi",
+				deepLinking: true,
+				persistAuthorization: true,
+				defaultModelsExpandDepth: -1,
+				docExpansion: "list",
+			});
+			swaggerReady = true;
+			swaggerInitialized = true;
+		} catch (err) {
+			swaggerError =
+				err instanceof Error
+					? err.message
+					: "Could not load API explorer.";
+		}
+	};
+
+	onMount(() => {
+		if (activeTab === "advanced") {
+			void initSwaggerUi();
+		}
+	});
+
+	$effect(() => {
+		if (activeTab === "advanced") {
+			void initSwaggerUi();
+		}
+	});
+
+	const httpApiKeyDisplay = $derived(
+		!data.httpSubmitApiKey
+			? ""
+			: showHttpApiKey
+				? data.httpSubmitApiKey
+				: "•".repeat(data.httpSubmitApiKey.length),
+	);
 </script>
 
 <svelte:head><title>Admin — Office Chess Club</title></svelte:head>
@@ -149,9 +163,9 @@ const httpApiKeyDisplay = $derived(
 			type="button"
 			role="tab"
 			class="with-icon"
-			class:active={activeTab === 'settings'}
-			aria-selected={activeTab === 'settings'}
-			onclick={() => setTab('settings')}
+			class:active={activeTab === "settings"}
+			aria-selected={activeTab === "settings"}
+			onclick={() => setTab("settings")}
 		>
 			<Settings size={15} aria-hidden="true" />
 			Settings
@@ -163,9 +177,20 @@ const httpApiKeyDisplay = $derived(
 			type="button"
 			role="tab"
 			class="with-icon"
-			class:active={activeTab === 'advanced'}
-			aria-selected={activeTab === 'advanced'}
-			onclick={() => setTab('advanced')}
+			class:active={activeTab === "notifications"}
+			aria-selected={activeTab === "notifications"}
+			onclick={() => setTab("notifications")}
+		>
+			<Bell size={15} aria-hidden="true" />
+			Notifications
+		</button>
+		<button
+			type="button"
+			role="tab"
+			class="with-icon"
+			class:active={activeTab === "advanced"}
+			aria-selected={activeTab === "advanced"}
+			onclick={() => setTab("advanced")}
 		>
 			<SlidersHorizontal size={15} aria-hidden="true" />
 			Advanced Settings
@@ -174,9 +199,9 @@ const httpApiKeyDisplay = $derived(
 			type="button"
 			role="tab"
 			class="with-icon"
-			class:active={activeTab === 'users'}
-			aria-selected={activeTab === 'users'}
-			onclick={() => setTab('users')}
+			class:active={activeTab === "users"}
+			aria-selected={activeTab === "users"}
+			onclick={() => setTab("users")}
 		>
 			<Users size={15} aria-hidden="true" />
 			Users
@@ -189,713 +214,1063 @@ const httpApiKeyDisplay = $derived(
 			type="button"
 			role="tab"
 			class="with-icon"
-			class:active={activeTab === 'danger'}
-			aria-selected={activeTab === 'danger'}
-			onclick={() => setTab('danger')}
+			class:active={activeTab === "danger"}
+			aria-selected={activeTab === "danger"}
+			onclick={() => setTab("danger")}
 		>
 			<TriangleAlert size={15} aria-hidden="true" />
 			Danger zone
 		</button>
 	</div>
 
-	{#if activeTab === 'settings'}
-	<div class="tab-panel" role="tabpanel">
-	<!-- Public View Toggle -->
-	<section class="card">
-		<div class="section-header">
-			<h2 class="card-title">
-				<Globe size={18} aria-hidden="true" />
-				Public Viewing
-			</h2>
-			<div class="toggle-status" class:on={data.publicViewEnabled}>
-				{data.publicViewEnabled ? 'Enabled' : 'Disabled'}
-			</div>
-		</div>
-		<p class="description">
-			When <strong>enabled</strong>, anyone can browse the leaderboard, match history, and player profiles
-			without signing in. Match submission still requires an approved account.
-			When <strong>disabled</strong>, visitors must log in to view club data.
-		</p>
-		<form
-			method="POST"
-			action="?/togglePublicView"
-			use:enhance={() => {
-				togglingPublicView = true;
-				return async (ctx) => {
-					await adminToast()(ctx);
-					togglingPublicView = false;
-				};
-			}}
-		>
-			<button
-				type="submit"
-				disabled={togglingPublicView}
-				class="toggle-btn with-icon"
-				class:danger={data.publicViewEnabled}
-			>
-				<Globe size={15} aria-hidden="true" />
-				{togglingPublicView
-					? 'Updating…'
-					: data.publicViewEnabled
-						? 'Require Login to Browse'
-						: 'Allow Public Browsing'}
-			</button>
-		</form>
-	</section>
-
-	<!-- Honor System Toggle -->
-	<section class="card">
-		<div class="section-header">
-			<h2 class="card-title">
-				<Handshake size={18} aria-hidden="true" />
-				Honor System
-			</h2>
-			<div class="toggle-status" class:on={data.honorSystemEnabled}>
-				{data.honorSystemEnabled ? 'Enabled' : 'Disabled'}
-			</div>
-		</div>
-		<p class="description">
-			When <strong>enabled</strong>, match results are applied immediately without review.
-			When <strong>disabled</strong>, every match requires admin approval before ratings update.
-		</p>
-		<form
-			method="POST"
-			action="?/toggleHonorSystem"
-			use:enhance={() => {
-				toggling = true;
-				return async (ctx) => {
-					await adminToast()(ctx);
-					toggling = false;
-				};
-			}}
-		>
-			<button type="submit" disabled={toggling} class="toggle-btn with-icon" class:danger={data.honorSystemEnabled}>
-				<ShieldCheck size={15} aria-hidden="true" />
-				{toggling ? 'Updating…' : data.honorSystemEnabled ? 'Disable Honor System' : 'Enable Honor System'}
-			</button>
-		</form>
-	</section>
-
-	<section class="card">
-		<h2 class="card-title">
-			<Landmark size={18} aria-hidden="true" />
-			Club Name
-		</h2>
-		<p class="description">
-			Used across the app header and login screen. Defaults to <strong>Office</strong> when empty.
-		</p>
-		<form
-			method="POST"
-			action="?/updateClubName"
-			class="name-form"
-			use:enhance={() => {
-				savingName = true;
-				return async (ctx) => {
-					await adminToast()(ctx);
-					savingName = false;
-				};
-			}}
-		>
-			<label>
-				Club name
-				<input name="clubName" type="text" maxlength="40" bind:value={clubNameDraft} placeholder="Office" />
-			</label>
-			<button type="submit" class="toggle-btn with-icon" disabled={savingName}>
-				<Save size={15} aria-hidden="true" />
-				{savingName ? 'Saving…' : 'Save club name'}
-			</button>
-		</form>
-		<p class="preview">Preview: <strong>{data.clubName}</strong></p>
-	</section>
-
-	<!-- Pending Matches Queue -->
-	<section class="card">
-		<h2 class="card-title">
-			<ClipboardClock size={18} aria-hidden="true" />
-			Pending Matches
-			{#if data.pendingMatches.length > 0}
-				<span class="count-badge">{data.pendingMatches.length}</span>
-			{/if}
-		</h2>
-
-		{#if data.pendingMatches.length === 0}
-			<p class="empty">No matches awaiting approval.</p>
-		{:else}
-			<div class="match-queue">
-				{#each data.pendingMatches as match}
-					{@const isDraw = match.isDraw}
-					{@const result = isDraw ? 'Draw'
-						: match.winnerId === match.whitePlayerId
-							? `${match.whiteName} wins`
-							: `${match.blackName} wins`}
-					{@const wd = match.eloChange.white.after - match.eloChange.white.before}
-					{@const bd = match.eloChange.black.after - match.eloChange.black.before}
-					<div class="queue-item">
-						<div class="match-summary">
-							<div class="matchup">
-								<span class="player-name with-icon">
-									<PieceColor color="white" size={10} />
-									{match.whiteName}
-								</span>
-								<span class="vs">vs</span>
-								<span class="player-name with-icon">
-									<PieceColor color="black" size={10} />
-									{match.blackName}
-								</span>
-							</div>
-							<div class="match-meta">
-								<span class="result-label">{result}</span>
-								<span class="date">{new Date(match.playedAt).toLocaleDateString()}</span>
-								<a href="/matches/{match._id}" class="view-link with-icon">
-									View
-									<ExternalLink size={13} aria-hidden="true" />
-								</a>
-							</div>
-							<div class="elo-preview">
-								<span class="elo-label">Est. Elo change:</span>
-								<span class="elo-val" class:pos={wd > 0} class:neg={wd < 0}>
-									{match.whiteName}: {wd >= 0 ? '+' : ''}{wd}
-								</span>
-								<span class="elo-val" class:pos={bd > 0} class:neg={bd < 0}>
-									{match.blackName}: {bd >= 0 ? '+' : ''}{bd}
-								</span>
-							</div>
-						</div>
-						<div class="actions">
-							<form
-								method="POST"
-								action="?/approveMatch"
-								use:enhance={() => {
-									processing = match._id;
-									return async (ctx) => {
-										await adminToast()(ctx);
-										processing = null;
-									};
-								}}
-							>
-								<input type="hidden" name="matchId" value={match._id} />
-								<button
-									type="submit"
-									class="approve-btn with-icon"
-									disabled={processing === match._id}
-								>
-									<Check size={14} aria-hidden="true" />
-									{processing === match._id ? '…' : 'Approve'}
-								</button>
-							</form>
-							<form
-								method="POST"
-								action="?/rejectMatch"
-								use:enhance={() => {
-									processing = match._id;
-									return async (ctx) => {
-										await adminToast()(ctx);
-										processing = null;
-									};
-								}}
-							>
-								<input type="hidden" name="matchId" value={match._id} />
-								<button
-									type="submit"
-									class="reject-btn with-icon"
-									disabled={processing === match._id}
-								>
-									<X size={14} aria-hidden="true" />
-									Reject
-								</button>
-							</form>
-						</div>
+	{#if activeTab === "settings"}
+		<div class="tab-panel" role="tabpanel">
+			<!-- Public View Toggle -->
+			<section class="card">
+				<div class="section-header">
+					<h2 class="card-title">
+						<Globe size={18} aria-hidden="true" />
+						Public Viewing
+					</h2>
+					<div
+						class="toggle-status"
+						class:on={data.publicViewEnabled}
+					>
+						{data.publicViewEnabled ? "Enabled" : "Disabled"}
 					</div>
-				{/each}
-			</div>
-		{/if}
-	</section>
-	</div>
-	{:else if activeTab === 'advanced'}
-	<div class="tab-panel" role="tabpanel">
-	<section class="card">
-		<div class="section-header">
-			<h2 class="card-title">
-				<Webhook size={18} aria-hidden="true" />
-				Slack Notifications
-			</h2>
-			<div
-				class="toggle-status"
-				class:on={data.slackWebhookConfigured && data.slackWebhookEnabled}
-			>
-				{!data.slackWebhookConfigured
-					? 'Not configured'
-					: data.slackWebhookEnabled
-						? 'Enabled'
-						: 'Disabled'}
-			</div>
-		</div>
-		<p class="description">
-			Post match results and pending-match alerts to a Slack channel via an
-			<a href="https://api.slack.com/messaging/webhooks" target="_blank" rel="noopener noreferrer">incoming webhook</a>.
-			You can also set <code>SLACK_WEBHOOK_URL</code> in the environment as a fallback.
-			Save a URL here, then enable or disable notifications without removing it.
-			Clear the field and save to remove a stored webhook.
-		</p>
-		{#if data.slackWebhookFromEnv && !data.slackWebhookStoredInDb}
-			<p class="hint">Currently using the webhook from your environment variables.</p>
-		{/if}
-		<form
-			method="POST"
-			action="?/updateSlackWebhook"
-			class="name-form"
-			use:enhance={() => {
-				savingSlack = true;
-				return async (ctx) => {
-					await adminToast()(ctx);
-					savingSlack = false;
-				};
-			}}
-		>
-			<label>
-				Slack webhook URL
-				<input
-					name="slackWebhookUrl"
-					type="url"
-					bind:value={slackWebhookDraft}
-					placeholder="https://hooks.slack.com/services/…"
-					autocomplete="off"
-					spellcheck="false"
-				/>
-			</label>
-			<button
-				type="submit"
-				class="toggle-btn with-icon"
-				disabled={savingSlack || (!slackWebhookDraft.trim() && !data.slackWebhookStoredInDb)}
-			>
-				<Save size={15} aria-hidden="true" />
-				{savingSlack
-					? 'Saving…'
-					: !slackWebhookDraft.trim() && data.slackWebhookStoredInDb
-						? 'Remove webhook'
-						: data.slackWebhookStoredInDb
-							? 'Update webhook'
-							: 'Save webhook'}
-			</button>
-		</form>
-		<div class="http-admin-actions slack-admin-actions">
-			<form
-				method="POST"
-				action="?/toggleSlackWebhook"
-				use:enhance={() => {
-					togglingSlack = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						togglingSlack = false;
-					};
-				}}
-			>
-				<button
-					type="submit"
-					disabled={togglingSlack || (!data.slackWebhookEnabled && !data.slackWebhookConfigured)}
-					class="toggle-btn with-icon"
-					class:danger={data.slackWebhookEnabled}
-				>
-					<ShieldCheck size={15} aria-hidden="true" />
-					{togglingSlack
-						? 'Updating…'
-						: data.slackWebhookEnabled
-							? 'Disable notifications'
-							: 'Enable notifications'}
-				</button>
-			</form>
-			<form
-				method="POST"
-				action="?/testSlackWebhook"
-				use:enhance={() => {
-					testingSlack = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						testingSlack = false;
-					};
-				}}
-			>
-				<button type="submit" class="toggle-btn with-icon" disabled={testingSlack || !data.slackWebhookConfigured}>
-					<Send size={15} aria-hidden="true" />
-					{testingSlack ? 'Sending…' : 'Send test notification'}
-				</button>
-			</form>
-		</div>
-		{#if !data.slackWebhookConfigured}
-			<p class="hint">Save a webhook URL before enabling notifications.</p>
-		{:else if !data.slackWebhookEnabled}
-			<p class="hint">Notifications are paused — the saved URL is kept for when you re-enable.</p>
-		{/if}
-	</section>
-
-	<section class="card">
-		<div class="section-header">
-			<h2 class="card-title">
-				<KeyRound size={18} aria-hidden="true" />
-				HTTP Match Submission
-			</h2>
-			<div class="toggle-status" class:on={data.httpSubmitEnabled}>
-				{data.httpSubmitEnabled ? 'Enabled' : 'Disabled'}
-			</div>
-		</div>
-		<p class="description">
-			When <strong>enabled</strong>, scripts and third-party tools can log matches via
-			<code>POST /api/matches</code> using a bearer token. Off by default — generate a key,
-			then enable when you are ready.
-		</p>
-		<div class="api-key-field">
-			<label>
-				API key
-				<div class="api-key-input-row">
-					<input
-						type="text"
-						readonly
-						tabindex="-1"
-						value={httpApiKeyDisplay}
-						placeholder="No API key generated yet"
-						class="api-key-input"
-						aria-label="HTTP submission API key"
-					/>
-					<button
-						type="button"
-						class="toggle-btn with-icon"
-						disabled={!data.httpSubmitHasKey}
-						onclick={() => (showHttpApiKey = !showHttpApiKey)}
-					>
-						{#if showHttpApiKey}
-							<EyeOff size={15} aria-hidden="true" />
-							Hide key
-						{:else}
-							<Eye size={15} aria-hidden="true" />
-							Show key
-						{/if}
-					</button>
-					<button
-						type="button"
-						class="toggle-btn with-icon"
-						disabled={!data.httpSubmitHasKey}
-						onclick={() => copyApiKey(data.httpSubmitApiKey)}
-					>
-						<Copy size={15} aria-hidden="true" />
-						Copy
-					</button>
 				</div>
-			</label>
-		</div>
-		<div class="http-admin-actions">
-			<form
-				method="POST"
-				action="?/generateHttpSubmitKey"
-				use:enhance={() => {
-					generatingKey = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						if (ctx.result.type === 'success') {
-							showHttpApiKey = true;
-						}
-						generatingKey = false;
-					};
-				}}
-			>
-				<button type="submit" class="toggle-btn with-icon" disabled={generatingKey}>
-					<RefreshCw size={15} aria-hidden="true" />
-					{generatingKey ? 'Generating…' : data.httpSubmitHasKey ? 'Regenerate API key' : 'Generate API key'}
-				</button>
-			</form>
-			<form
-				method="POST"
-				action="?/toggleHttpSubmit"
-				use:enhance={() => {
-					togglingHttp = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						togglingHttp = false;
-					};
-				}}
-			>
-				<button
-					type="submit"
-					disabled={togglingHttp || (!data.httpSubmitEnabled && !data.httpSubmitHasKey)}
-					class="toggle-btn with-icon"
-					class:danger={data.httpSubmitEnabled}
+				<p class="description">
+					When <strong>enabled</strong>, anyone can browse the
+					leaderboard, match history, and player profiles without
+					signing in. Match submission still requires an approved
+					account. When <strong>disabled</strong>, visitors must log
+					in to view club data.
+				</p>
+				<form
+					method="POST"
+					action="?/togglePublicView"
+					use:enhance={() => {
+						togglingPublicView = true;
+						return async (ctx) => {
+							await adminToast()(ctx);
+							togglingPublicView = false;
+						};
+					}}
 				>
-					<ShieldCheck size={15} aria-hidden="true" />
-					{togglingHttp
-						? 'Updating…'
-						: data.httpSubmitEnabled
-							? 'Disable HTTP submissions'
-							: 'Enable HTTP submissions'}
-				</button>
-			</form>
-		</div>
-		{#if !data.httpSubmitHasKey}
-			<p class="hint">Generate an API key before enabling.</p>
-		{/if}
-	</section>
+					<button
+						type="submit"
+						disabled={togglingPublicView}
+						class="toggle-btn with-icon"
+						class:danger={data.publicViewEnabled}
+					>
+						<Globe size={15} aria-hidden="true" />
+						{togglingPublicView
+							? "Updating…"
+							: data.publicViewEnabled
+								? "Require Login to Browse"
+								: "Allow Public Browsing"}
+					</button>
+				</form>
+			</section>
 
-	<section class="card">
-		<h2 class="card-title">
-			<ExternalLink size={18} aria-hidden="true" />
-			API Explorer (Swagger)
-		</h2>
-		<p class="description">
-			Browse and test available endpoints directly from the admin panel.
-			For <code>/api/matches</code> and <code>/api/players</code>, click <strong>Authorize</strong> and paste the same API key used for HTTP submissions.
-		</p>
-		{#if swaggerError}
-			<p class="error">{swaggerError}</p>
-		{/if}
-		<div class="swagger-wrap" bind:this={swaggerMountEl}>
-			{#if !swaggerReady && !swaggerError}
-				<p class="hint">Loading API explorer…</p>
-			{/if}
-		</div>
-	</section>
-	</div>
-	{:else if activeTab === 'users'}
-	<div class="tab-panel" role="tabpanel">
-		{#if data.pendingUsers.length > 0}
+			<!-- Honor System Toggle -->
+			<section class="card">
+				<div class="section-header">
+					<h2 class="card-title">
+						<Handshake size={18} aria-hidden="true" />
+						Honor System
+					</h2>
+					<div
+						class="toggle-status"
+						class:on={data.honorSystemEnabled}
+					>
+						{data.honorSystemEnabled ? "Enabled" : "Disabled"}
+					</div>
+				</div>
+				<p class="description">
+					When <strong>enabled</strong>, match results are applied
+					immediately without review. When <strong>disabled</strong>,
+					every match requires admin approval before ratings update.
+				</p>
+				<form
+					method="POST"
+					action="?/toggleHonorSystem"
+					use:enhance={() => {
+						toggling = true;
+						return async (ctx) => {
+							await adminToast()(ctx);
+							toggling = false;
+						};
+					}}
+				>
+					<button
+						type="submit"
+						disabled={toggling}
+						class="toggle-btn with-icon"
+						class:danger={data.honorSystemEnabled}
+					>
+						<ShieldCheck size={15} aria-hidden="true" />
+						{toggling
+							? "Updating…"
+							: data.honorSystemEnabled
+								? "Disable Honor System"
+								: "Enable Honor System"}
+					</button>
+				</form>
+			</section>
+
 			<section class="card">
 				<h2 class="card-title">
-					<UserPlus size={18} aria-hidden="true" />
-					Pending Signups
-					<span class="count-badge">{data.pendingUsers.length}</span>
+					<Landmark size={18} aria-hidden="true" />
+					Club Name
 				</h2>
 				<p class="description">
-					New accounts can browse the club but cannot submit match results until approved.
+					Used across the app header and login screen. Defaults to <strong
+						>Office</strong
+					> when empty.
 				</p>
-				<div class="signup-queue">
-					{#each data.pendingUsers as user (user._id)}
-						<div class="queue-item">
-							<div class="signup-summary">
-								<a href="/players/{user._id}" class="user-link">{user.name}</a>
-								<span class="mono">@{user.username}</span>
-								{#if user.createdAt}
-									<span class="date">Signed up {new Date(user.createdAt).toLocaleDateString()}</span>
+				<form
+					method="POST"
+					action="?/updateClubName"
+					class="name-form"
+					use:enhance={() => {
+						savingName = true;
+						return async (ctx) => {
+							await adminToast()(ctx);
+							savingName = false;
+						};
+					}}
+				>
+					<label>
+						Club name
+						<input
+							name="clubName"
+							type="text"
+							maxlength="40"
+							bind:value={clubNameDraft}
+							placeholder="Office"
+						/>
+					</label>
+					<button
+						type="submit"
+						class="toggle-btn with-icon"
+						disabled={savingName}
+					>
+						<Save size={15} aria-hidden="true" />
+						{savingName ? "Saving…" : "Save club name"}
+					</button>
+				</form>
+				<p class="preview">Preview: <strong>{data.clubName}</strong></p>
+			</section>
+
+			<!-- Pending Matches Queue -->
+			<section class="card">
+				<h2 class="card-title">
+					<ClipboardClock size={18} aria-hidden="true" />
+					Pending Matches
+					{#if data.pendingMatches.length > 0}
+						<span class="count-badge"
+							>{data.pendingMatches.length}</span
+						>
+					{/if}
+				</h2>
+
+				{#if data.pendingMatches.length === 0}
+					<p class="empty">No matches awaiting approval.</p>
+				{:else}
+					<div class="match-queue">
+						{#each data.pendingMatches as match}
+							{@const isDraw = match.isDraw}
+							{@const result = isDraw
+								? "Draw"
+								: match.winnerId === match.whitePlayerId
+									? `${match.whiteName} wins`
+									: `${match.blackName} wins`}
+							{@const wd =
+								match.eloChange.white.after -
+								match.eloChange.white.before}
+							{@const bd =
+								match.eloChange.black.after -
+								match.eloChange.black.before}
+							<div class="queue-item">
+								<div class="match-summary">
+									<div class="matchup">
+										<span class="player-name with-icon">
+											<PieceColor
+												color="white"
+												size={10}
+											/>
+											{match.whiteName}
+										</span>
+										<span class="vs">vs</span>
+										<span class="player-name with-icon">
+											<PieceColor
+												color="black"
+												size={10}
+											/>
+											{match.blackName}
+										</span>
+									</div>
+									<div class="match-meta">
+										<span class="result-label"
+											>{result}</span
+										>
+										<span class="date"
+											>{new Date(
+												match.playedAt,
+											).toLocaleDateString()}</span
+										>
+										<a
+											href="/matches/{match._id}"
+											class="view-link with-icon"
+										>
+											View
+											<ExternalLink
+												size={13}
+												aria-hidden="true"
+											/>
+										</a>
+									</div>
+									<div class="elo-preview">
+										<span class="elo-label"
+											>Est. Elo change:</span
+										>
+										<span
+											class="elo-val"
+											class:pos={wd > 0}
+											class:neg={wd < 0}
+										>
+											{match.whiteName}: {wd >= 0
+												? "+"
+												: ""}{wd}
+										</span>
+										<span
+											class="elo-val"
+											class:pos={bd > 0}
+											class:neg={bd < 0}
+										>
+											{match.blackName}: {bd >= 0
+												? "+"
+												: ""}{bd}
+										</span>
+									</div>
+								</div>
+								<div class="actions">
+									<form
+										method="POST"
+										action="?/approveMatch"
+										use:enhance={() => {
+											processing = match._id;
+											return async (ctx) => {
+												await adminToast()(ctx);
+												processing = null;
+											};
+										}}
+									>
+										<input
+											type="hidden"
+											name="matchId"
+											value={match._id}
+										/>
+										<button
+											type="submit"
+											class="approve-btn with-icon"
+											disabled={processing === match._id}
+										>
+											<Check
+												size={14}
+												aria-hidden="true"
+											/>
+											{processing === match._id
+												? "…"
+												: "Approve"}
+										</button>
+									</form>
+									<form
+										method="POST"
+										action="?/rejectMatch"
+										use:enhance={() => {
+											processing = match._id;
+											return async (ctx) => {
+												await adminToast()(ctx);
+												processing = null;
+											};
+										}}
+									>
+										<input
+											type="hidden"
+											name="matchId"
+											value={match._id}
+										/>
+										<button
+											type="submit"
+											class="reject-btn with-icon"
+											disabled={processing === match._id}
+										>
+											<X size={14} aria-hidden="true" />
+											Reject
+										</button>
+									</form>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</section>
+		</div>
+	{:else if activeTab === "notifications"}
+		<div class="tab-panel" role="tabpanel">
+			<section class="card">
+				<div class="section-header">
+					<h2 class="card-title">
+						<SlackIcon size={18} />
+						Slack
+					</h2>
+					<div
+						class="toggle-status"
+						class:on={data.slackWebhookConfigured &&
+							data.slackWebhookEnabled}
+					>
+						{!data.slackWebhookConfigured
+							? "Not configured"
+							: data.slackWebhookEnabled
+								? "Enabled"
+								: "Disabled"}
+					</div>
+				</div>
+				<p class="description">
+					Post match results and pending-match alerts to a Slack
+					channel via an
+					<a
+						href="https://api.slack.com/messaging/webhooks"
+						target="_blank"
+						rel="noopener noreferrer">incoming webhook</a
+					>. You can also set <code>SLACK_WEBHOOK_URL</code> in the environment
+					as a fallback. Save a URL here, then enable or disable notifications
+					without removing it. Clear the field and save to remove a stored
+					webhook.
+				</p>
+				{#if data.slackWebhookFromEnv && !data.slackWebhookStoredInDb}
+					<p class="hint">
+						Currently using the webhook from your environment
+						variables.
+					</p>
+				{/if}
+				<form
+					method="POST"
+					action="?/updateSlackWebhook"
+					class="name-form"
+					use:enhance={() => {
+						savingSlack = true;
+						return async (ctx) => {
+							await adminToast()(ctx);
+							savingSlack = false;
+						};
+					}}
+				>
+					<label>
+						Slack webhook URL
+						<input
+							name="slackWebhookUrl"
+							type="url"
+							bind:value={slackWebhookDraft}
+							placeholder="https://hooks.slack.com/services/…"
+							autocomplete="off"
+							spellcheck="false"
+						/>
+					</label>
+					<button
+						type="submit"
+						class="toggle-btn with-icon"
+						disabled={savingSlack ||
+							(!slackWebhookDraft.trim() &&
+								!data.slackWebhookStoredInDb)}
+					>
+						<Save size={15} aria-hidden="true" />
+						{savingSlack
+							? "Saving…"
+							: !slackWebhookDraft.trim() &&
+								  data.slackWebhookStoredInDb
+								? "Remove webhook"
+								: data.slackWebhookStoredInDb
+									? "Update webhook"
+									: "Save webhook"}
+					</button>
+				</form>
+				<div class="http-admin-actions notification-admin-actions">
+					<form
+						method="POST"
+						action="?/toggleSlackWebhook"
+						use:enhance={() => {
+							togglingSlack = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								togglingSlack = false;
+							};
+						}}
+					>
+						<button
+							type="submit"
+							disabled={togglingSlack ||
+								(!data.slackWebhookEnabled &&
+									!data.slackWebhookConfigured)}
+							class="toggle-btn with-icon"
+							class:danger={data.slackWebhookEnabled}
+						>
+							<ShieldCheck size={15} aria-hidden="true" />
+							{togglingSlack
+								? "Updating…"
+								: data.slackWebhookEnabled
+									? "Disable notifications"
+									: "Enable notifications"}
+						</button>
+					</form>
+					<form
+						method="POST"
+						action="?/testSlackWebhook"
+						use:enhance={() => {
+							testingSlack = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								testingSlack = false;
+							};
+						}}
+					>
+						<button
+							type="submit"
+							class="toggle-btn with-icon"
+							disabled={testingSlack ||
+								!data.slackWebhookConfigured}
+						>
+							<Send size={15} aria-hidden="true" />
+							{testingSlack
+								? "Sending…"
+								: "Send test notification"}
+						</button>
+					</form>
+				</div>
+				{#if !data.slackWebhookConfigured}
+					<p class="hint">
+						Save a webhook URL before enabling notifications.
+					</p>
+				{:else if !data.slackWebhookEnabled}
+					<p class="hint">
+						Notifications are paused — the saved URL is kept for
+						when you re-enable.
+					</p>
+				{/if}
+			</section>
+
+			<section class="card">
+				<div class="section-header">
+					<h2 class="card-title">
+						<DiscordIcon size={18} />
+						Discord
+					</h2>
+					<div
+						class="toggle-status"
+						class:on={data.discordWebhookConfigured &&
+							data.discordWebhookEnabled}
+					>
+						{!data.discordWebhookConfigured
+							? "Not configured"
+							: data.discordWebhookEnabled
+								? "Enabled"
+								: "Disabled"}
+					</div>
+				</div>
+				<p class="description">
+					Post match results and pending-match alerts to a Discord
+					channel via a
+					<a
+						href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"
+						target="_blank"
+						rel="noopener noreferrer">channel webhook</a
+					>. You can also set <code>DISCORD_WEBHOOK_URL</code> in the environment
+					as a fallback. Slack and Discord can both be enabled at the same time.
+				</p>
+				{#if data.discordWebhookFromEnv && !data.discordWebhookStoredInDb}
+					<p class="hint">
+						Currently using the webhook from your environment
+						variables.
+					</p>
+				{/if}
+				<form
+					method="POST"
+					action="?/updateDiscordWebhook"
+					class="name-form"
+					use:enhance={() => {
+						savingDiscord = true;
+						return async (ctx) => {
+							await adminToast()(ctx);
+							savingDiscord = false;
+						};
+					}}
+				>
+					<label>
+						Discord webhook URL
+						<input
+							name="discordWebhookUrl"
+							type="url"
+							bind:value={discordWebhookDraft}
+							placeholder="https://discord.com/api/webhooks/…"
+							autocomplete="off"
+							spellcheck="false"
+						/>
+					</label>
+					<button
+						type="submit"
+						class="toggle-btn with-icon"
+						disabled={savingDiscord ||
+							(!discordWebhookDraft.trim() &&
+								!data.discordWebhookStoredInDb)}
+					>
+						<Save size={15} aria-hidden="true" />
+						{savingDiscord
+							? "Saving…"
+							: !discordWebhookDraft.trim() &&
+								  data.discordWebhookStoredInDb
+								? "Remove webhook"
+								: data.discordWebhookStoredInDb
+									? "Update webhook"
+									: "Save webhook"}
+					</button>
+				</form>
+				<div class="http-admin-actions notification-admin-actions">
+					<form
+						method="POST"
+						action="?/toggleDiscordWebhook"
+						use:enhance={() => {
+							togglingDiscord = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								togglingDiscord = false;
+							};
+						}}
+					>
+						<button
+							type="submit"
+							disabled={togglingDiscord ||
+								(!data.discordWebhookEnabled &&
+									!data.discordWebhookConfigured)}
+							class="toggle-btn with-icon"
+							class:danger={data.discordWebhookEnabled}
+						>
+							<ShieldCheck size={15} aria-hidden="true" />
+							{togglingDiscord
+								? "Updating…"
+								: data.discordWebhookEnabled
+									? "Disable notifications"
+									: "Enable notifications"}
+						</button>
+					</form>
+					<form
+						method="POST"
+						action="?/testDiscordWebhook"
+						use:enhance={() => {
+							testingDiscord = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								testingDiscord = false;
+							};
+						}}
+					>
+						<button
+							type="submit"
+							class="toggle-btn with-icon"
+							disabled={testingDiscord ||
+								!data.discordWebhookConfigured}
+						>
+							<Send size={15} aria-hidden="true" />
+							{testingDiscord
+								? "Sending…"
+								: "Send test notification"}
+						</button>
+					</form>
+				</div>
+				{#if !data.discordWebhookConfigured}
+					<p class="hint">
+						Save a webhook URL before enabling notifications.
+					</p>
+				{:else if !data.discordWebhookEnabled}
+					<p class="hint">
+						Notifications are paused — the saved URL is kept for
+						when you re-enable.
+					</p>
+				{/if}
+			</section>
+		</div>
+	{:else if activeTab === "advanced"}
+		<div class="tab-panel" role="tabpanel">
+			<section class="card">
+				<div class="section-header">
+					<h2 class="card-title">
+						<KeyRound size={18} aria-hidden="true" />
+						API Key
+					</h2>
+					<div
+						class="toggle-status"
+						class:on={data.httpSubmitEnabled}
+					>
+						{data.httpSubmitEnabled ? "Enabled" : "Disabled"}
+					</div>
+				</div>
+				<p class="description">
+					When <strong>enabled</strong>, scripts and third-party tools
+					can log matches via
+					<code>POST /api/matches</code> using a bearer token. Off by default
+					— generate a key, then enable when you are ready.
+				</p>
+				<div class="api-key-field">
+					<label>
+						API key
+						<div class="api-key-input-row">
+							<input
+								type="text"
+								readonly
+								tabindex="-1"
+								value={httpApiKeyDisplay}
+								placeholder="No API key generated yet"
+								class="api-key-input"
+								aria-label="HTTP submission API key"
+							/>
+							<button
+								type="button"
+								class="toggle-btn with-icon"
+								disabled={!data.httpSubmitHasKey}
+								onclick={() =>
+									(showHttpApiKey = !showHttpApiKey)}
+							>
+								{#if showHttpApiKey}
+									<EyeOff size={15} aria-hidden="true" />
+									Hide key
+								{:else}
+									<Eye size={15} aria-hidden="true" />
+									Show key
 								{/if}
-							</div>
-							<div class="actions">
-								<form
-									method="POST"
-									action="?/approveUser"
-									use:enhance={() => {
-										approvingUser = user._id;
-										return async (ctx) => {
-											await adminToast()(ctx);
-											approvingUser = null;
-										};
-									}}
-								>
-									<input type="hidden" name="playerId" value={user._id} />
-									<button
-										type="submit"
-										class="approve-btn with-icon"
-										disabled={approvingUser === user._id}
-									>
-										<Check size={14} aria-hidden="true" />
-										{approvingUser === user._id ? '…' : 'Approve as member'}
-									</button>
-								</form>
-								<form
-									method="POST"
-									action="?/deleteUser"
-									onsubmit={(e) => {
-										if (!confirmDeleteUser(user)) e.preventDefault();
-									}}
-									use:enhance={() => {
-										deletingUser = user._id;
-										return async (ctx) => {
-											await adminToast()(ctx);
-											deletingUser = null;
-										};
-									}}
-								>
-									<input type="hidden" name="playerId" value={user._id} />
-									<button
-										type="submit"
-										class="reject-btn with-icon"
-										disabled={deletingUser === user._id}
-									>
-										<X size={14} aria-hidden="true" />
-										{deletingUser === user._id ? '…' : 'Reject'}
-									</button>
-								</form>
-							</div>
+							</button>
+							<button
+								type="button"
+								class="toggle-btn with-icon"
+								disabled={!data.httpSubmitHasKey}
+								onclick={() =>
+									copyApiKey(data.httpSubmitApiKey)}
+							>
+								<Copy size={15} aria-hidden="true" />
+								Copy
+							</button>
 						</div>
-					{/each}
+					</label>
+				</div>
+				<div class="http-admin-actions">
+					<form
+						method="POST"
+						action="?/generateHttpSubmitKey"
+						use:enhance={() => {
+							generatingKey = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								if (ctx.result.type === "success") {
+									showHttpApiKey = true;
+								}
+								generatingKey = false;
+							};
+						}}
+					>
+						<button
+							type="submit"
+							class="toggle-btn with-icon"
+							disabled={generatingKey}
+						>
+							<RefreshCw size={15} aria-hidden="true" />
+							{generatingKey
+								? "Generating…"
+								: data.httpSubmitHasKey
+									? "Regenerate API key"
+									: "Generate API key"}
+						</button>
+					</form>
+					<form
+						method="POST"
+						action="?/toggleHttpSubmit"
+						use:enhance={() => {
+							togglingHttp = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								togglingHttp = false;
+							};
+						}}
+					>
+						<button
+							type="submit"
+							disabled={togglingHttp ||
+								(!data.httpSubmitEnabled &&
+									!data.httpSubmitHasKey)}
+							class="toggle-btn with-icon"
+							class:danger={data.httpSubmitEnabled}
+						>
+							<ShieldCheck size={15} aria-hidden="true" />
+							{togglingHttp
+								? "Updating…"
+								: data.httpSubmitEnabled
+									? "Disable HTTP submissions"
+									: "Enable HTTP submissions"}
+						</button>
+					</form>
+				</div>
+				{#if !data.httpSubmitHasKey}
+					<p class="hint">Generate an API key before enabling.</p>
+				{/if}
+			</section>
+
+			<section class="card">
+				<h2 class="card-title">
+					<ExternalLink size={18} aria-hidden="true" />
+					API Explorer (Swagger)
+				</h2>
+				<p class="description">
+					Browse and test available endpoints directly from the admin
+					panel. For <code>/api/matches</code> and
+					<code>/api/players</code>, click <strong>Authorize</strong> and
+					paste the same API key used for HTTP submissions.
+				</p>
+				{#if swaggerError}
+					<p class="error">{swaggerError}</p>
+				{/if}
+				<div class="swagger-wrap" bind:this={swaggerMountEl}>
+					{#if !swaggerReady && !swaggerError}
+						<p class="hint">Loading API explorer…</p>
+					{/if}
 				</div>
 			</section>
-		{/if}
-
-		<section class="card">
-			<h2 class="card-title">
-				<Users size={18} aria-hidden="true" />
-				Users
-			</h2>
-			<p class="description">
-				Manage club members. Approve pending signups, reset passwords, or remove accounts. You cannot delete
-				your own account or the only remaining admin.
-			</p>
-
-			{#if data.users.length === 0}
-				<p class="empty">No users found.</p>
-			{:else}
-				<div class="users-table-wrap">
-					<table class="users-table">
-						<thead>
-							<tr>
-								<th>Name</th>
-								<th>Username</th>
-								<th>Rating</th>
-								<th>Role</th>
-								<th>Reset password</th>
-								<th></th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each data.users as user (user._id)}
-								<tr>
-									<td>
-										<a href="/players/{user._id}" class="user-link">{user.name}</a>
-										{#if user.isSelf}
-											<span class="you-badge">You</span>
-										{/if}
-									</td>
-									<td class="mono">{user.username}</td>
-									<td>{user.rating}</td>
-									<td>
-										{#if user.isAdmin}
-											<span class="role-badge admin">Admin</span>
-										{:else if user.status === 'pending'}
-											<span class="role-badge pending">Pending</span>
-										{:else}
-											<span class="role-badge member">Member</span>
-										{/if}
-									</td>
-									<td>
-										<form
-											method="POST"
-											action="?/resetUserPassword"
-											class="password-form"
-											use:enhance={() => {
-												resettingPassword = user._id;
-												return async (ctx) => {
-													await adminToast()(ctx);
-													resettingPassword = null;
-												};
-											}}
+		</div>
+	{:else if activeTab === "users"}
+		<div class="tab-panel" role="tabpanel">
+			{#if data.pendingUsers.length > 0}
+				<section class="card">
+					<h2 class="card-title">
+						<UserPlus size={18} aria-hidden="true" />
+						Pending Signups
+						<span class="count-badge"
+							>{data.pendingUsers.length}</span
+						>
+					</h2>
+					<p class="description">
+						New accounts can browse the club but cannot submit match
+						results until approved.
+					</p>
+					<div class="signup-queue">
+						{#each data.pendingUsers as user (user._id)}
+							<div class="queue-item">
+								<div class="signup-summary">
+									<a
+										href="/players/{user._id}"
+										class="user-link">{user.name}</a
+									>
+									<span class="mono">@{user.username}</span>
+									{#if user.createdAt}
+										<span class="date"
+											>Signed up {new Date(
+												user.createdAt,
+											).toLocaleDateString()}</span
 										>
-											<input type="hidden" name="playerId" value={user._id} />
-											<input
-												name="newPassword"
-												type="password"
-												minlength="4"
-												placeholder="New password"
-												autocomplete="new-password"
-												required
+									{/if}
+								</div>
+								<div class="actions">
+									<form
+										method="POST"
+										action="?/approveUser"
+										use:enhance={() => {
+											approvingUser = user._id;
+											return async (ctx) => {
+												await adminToast()(ctx);
+												approvingUser = null;
+											};
+										}}
+									>
+										<input
+											type="hidden"
+											name="playerId"
+											value={user._id}
+										/>
+										<button
+											type="submit"
+											class="approve-btn with-icon"
+											disabled={approvingUser ===
+												user._id}
+										>
+											<Check
+												size={14}
+												aria-hidden="true"
 											/>
-											<button
-												type="submit"
-												class="toggle-btn with-icon"
-												disabled={resettingPassword === user._id}
-											>
-												<KeyRound size={14} aria-hidden="true" />
-												{resettingPassword === user._id ? 'Saving…' : 'Reset'}
-											</button>
-										</form>
-									</td>
-									<td>
-										<form
-											method="POST"
-											action="?/deleteUser"
-											onsubmit={(e) => {
-												if (!confirmDeleteUser(user)) e.preventDefault();
-											}}
-											use:enhance={() => {
-												deletingUser = user._id;
-												return async (ctx) => {
-													await adminToast()(ctx);
-													deletingUser = null;
-												};
-											}}
+											{approvingUser === user._id
+												? "…"
+												: "Approve as member"}
+										</button>
+									</form>
+									<form
+										method="POST"
+										action="?/deleteUser"
+										onsubmit={(e) => {
+											if (!confirmDeleteUser(user))
+												e.preventDefault();
+										}}
+										use:enhance={() => {
+											deletingUser = user._id;
+											return async (ctx) => {
+												await adminToast()(ctx);
+												deletingUser = null;
+											};
+										}}
+									>
+										<input
+											type="hidden"
+											name="playerId"
+											value={user._id}
+										/>
+										<button
+											type="submit"
+											class="reject-btn with-icon"
+											disabled={deletingUser === user._id}
 										>
-											<input type="hidden" name="playerId" value={user._id} />
-											<button
-												type="submit"
-												class="toggle-btn danger with-icon"
-												disabled={user.isSelf || deletingUser === user._id}
-												title={user.isSelf ? 'You cannot delete your own account' : 'Delete user'}
-											>
-												<Trash2 size={14} aria-hidden="true" />
-												{deletingUser === user._id ? 'Deleting…' : 'Delete'}
-											</button>
-										</form>
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				</div>
+											<X size={14} aria-hidden="true" />
+											{deletingUser === user._id
+												? "…"
+												: "Reject"}
+										</button>
+									</form>
+								</div>
+							</div>
+						{/each}
+					</div>
+				</section>
 			{/if}
-		</section>
-	</div>
+
+			<section class="card">
+				<h2 class="card-title">
+					<Users size={18} aria-hidden="true" />
+					Users
+				</h2>
+				<p class="description">
+					Manage club members. Approve pending signups, reset
+					passwords, or remove accounts. You cannot delete your own
+					account or the only remaining admin.
+				</p>
+
+				{#if data.users.length === 0}
+					<p class="empty">No users found.</p>
+				{:else}
+					<div class="users-table-wrap">
+						<table class="users-table">
+							<thead>
+								<tr>
+									<th>Name</th>
+									<th>Username</th>
+									<th>Rating</th>
+									<th>Role</th>
+									<th>Reset password</th>
+									<th></th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each data.users as user (user._id)}
+									<tr>
+										<td>
+											<a
+												href="/players/{user._id}"
+												class="user-link">{user.name}</a
+											>
+											{#if user.isSelf}
+												<span class="you-badge"
+													>You</span
+												>
+											{/if}
+										</td>
+										<td class="mono">{user.username}</td>
+										<td>{user.rating}</td>
+										<td>
+											{#if user.isAdmin}
+												<span class="role-badge admin"
+													>Admin</span
+												>
+											{:else if user.status === "pending"}
+												<span class="role-badge pending"
+													>Pending</span
+												>
+											{:else}
+												<span class="role-badge member"
+													>Member</span
+												>
+											{/if}
+										</td>
+										<td>
+											<form
+												method="POST"
+												action="?/resetUserPassword"
+												class="password-form"
+												use:enhance={() => {
+													resettingPassword =
+														user._id;
+													return async (ctx) => {
+														await adminToast()(ctx);
+														resettingPassword =
+															null;
+													};
+												}}
+											>
+												<input
+													type="hidden"
+													name="playerId"
+													value={user._id}
+												/>
+												<input
+													name="newPassword"
+													type="password"
+													minlength="4"
+													placeholder="New password"
+													autocomplete="new-password"
+													required
+												/>
+												<button
+													type="submit"
+													class="toggle-btn with-icon"
+													disabled={resettingPassword ===
+														user._id}
+												>
+													<KeyRound
+														size={14}
+														aria-hidden="true"
+													/>
+													{resettingPassword ===
+													user._id
+														? "Saving…"
+														: "Reset"}
+												</button>
+											</form>
+										</td>
+										<td>
+											<form
+												method="POST"
+												action="?/deleteUser"
+												onsubmit={(e) => {
+													if (
+														!confirmDeleteUser(user)
+													)
+														e.preventDefault();
+												}}
+												use:enhance={() => {
+													deletingUser = user._id;
+													return async (ctx) => {
+														await adminToast()(ctx);
+														deletingUser = null;
+													};
+												}}
+											>
+												<input
+													type="hidden"
+													name="playerId"
+													value={user._id}
+												/>
+												<button
+													type="submit"
+													class="toggle-btn danger with-icon"
+													disabled={user.isSelf ||
+														deletingUser ===
+															user._id}
+													title={user.isSelf
+														? "You cannot delete your own account"
+														: "Delete user"}
+												>
+													<Trash2
+														size={14}
+														aria-hidden="true"
+													/>
+													{deletingUser === user._id
+														? "Deleting…"
+														: "Delete"}
+												</button>
+											</form>
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					</div>
+				{/if}
+			</section>
+		</div>
 	{:else}
-	<div class="tab-panel" role="tabpanel">
-		<section class="card danger-zone">
-			<h2 class="card-title">
-				<RotateCcw size={18} aria-hidden="true" />
-				Reset entire ladder
-			</h2>
-			<p class="description">
-				Permanently delete <strong>all matches</strong> and reset every player's rating to
-				<strong>1200</strong> with zero wins, losses, and draws. User accounts are kept.
-				This cannot be undone.
-			</p>
-			<form
-				method="POST"
-				action="?/resetLadder"
-				class="danger-form"
-				onsubmit={(e) => {
-					if (!confirmResetLadder()) e.preventDefault();
-				}}
-				use:enhance={() => {
-					resettingLadder = true;
-					return async (ctx) => {
-						await adminToast()(ctx);
-						resettingLadder = false;
-						ladderConfirmText = '';
-					};
-				}}
-			>
-				<label>
-					Type <code>RESET LADDER</code> to confirm
-					<input
-						name="confirmText"
-						type="text"
-						bind:value={ladderConfirmText}
-						placeholder="RESET LADDER"
-						autocomplete="off"
-						spellcheck="false"
-					/>
-				</label>
-				<button
-					type="submit"
-					class="toggle-btn danger with-icon"
-					disabled={resettingLadder || ladderConfirmText !== 'RESET LADDER'}
+		<div class="tab-panel" role="tabpanel">
+			<section class="card danger-zone">
+				<h2 class="card-title">
+					<RotateCcw size={18} aria-hidden="true" />
+					Reset entire ladder
+				</h2>
+				<p class="description">
+					Permanently delete <strong>all matches</strong> and reset
+					every player's rating to
+					<strong>1200</strong> with zero wins, losses, and draws. User
+					accounts are kept. This cannot be undone.
+				</p>
+				<form
+					method="POST"
+					action="?/resetLadder"
+					class="danger-form"
+					onsubmit={(e) => {
+						if (!confirmResetLadder()) e.preventDefault();
+					}}
+					use:enhance={() => {
+						resettingLadder = true;
+						return async (ctx) => {
+							await adminToast()(ctx);
+							resettingLadder = false;
+							ladderConfirmText = "";
+						};
+					}}
 				>
-					<TriangleAlert size={15} aria-hidden="true" />
-					{resettingLadder ? 'Resetting…' : 'Reset entire ladder'}
-				</button>
-			</form>
-		</section>
-	</div>
+					<label>
+						Type <code>RESET LADDER</code> to confirm
+						<input
+							name="confirmText"
+							type="text"
+							bind:value={ladderConfirmText}
+							placeholder="RESET LADDER"
+							autocomplete="off"
+							spellcheck="false"
+						/>
+					</label>
+					<button
+						type="submit"
+						class="toggle-btn danger with-icon"
+						disabled={resettingLadder ||
+							ladderConfirmText !== "RESET LADDER"}
+					>
+						<TriangleAlert size={15} aria-hidden="true" />
+						{resettingLadder ? "Resetting…" : "Reset entire ladder"}
+					</button>
+				</form>
+			</section>
+		</div>
 	{/if}
 </div>
 
 <style>
-	.admin-page { display: flex; flex-direction: column; gap: 1.5rem; max-width: 960px; }
-	h1 { margin: 0 0 0.5rem; font-size: 1.4rem; }
-	h2 { margin: 0; font-size: 1rem; font-weight: 600; color: var(--color-heading); }
+	.admin-page {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		max-width: 960px;
+	}
+	h1 {
+		margin: 0 0 0.5rem;
+		font-size: 1.4rem;
+	}
+	h2 {
+		margin: 0;
+		font-size: 1rem;
+		font-weight: 600;
+		color: var(--color-heading);
+	}
 
 	.tabs {
 		display: flex;
@@ -912,18 +1287,26 @@ const httpApiKeyDisplay = $derived(
 		font-size: 0.88rem;
 		color: var(--color-tab-inactive);
 		cursor: pointer;
-		transition: color 0.15s, border-color 0.15s;
+		transition:
+			color 0.15s,
+			border-color 0.15s;
 		font-family: inherit;
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
 	}
-	.tabs button:hover { color: var(--color-tab-hover); }
+	.tabs button:hover {
+		color: var(--color-tab-hover);
+	}
 	.tabs button.active {
 		color: var(--color-tab-active);
 		border-bottom-color: var(--color-tab-active);
 	}
-	.tab-panel { display: flex; flex-direction: column; gap: 1.5rem; }
+	.tab-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
 	.tab-badge {
 		display: inline-flex;
 		align-items: center;
@@ -963,8 +1346,16 @@ const httpApiKeyDisplay = $derived(
 		flex-wrap: wrap;
 	}
 
-	.section-header { display: flex; align-items: center; gap: 1rem; justify-content: space-between; }
-	.section-header .card-title { flex: 1; min-width: 0; }
+	.section-header {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		justify-content: space-between;
+	}
+	.section-header .card-title {
+		flex: 1;
+		min-width: 0;
+	}
 	.toggle-status {
 		font-size: 0.78rem;
 		font-weight: 600;
@@ -973,11 +1364,30 @@ const httpApiKeyDisplay = $derived(
 		border: 1px solid var(--color-border-nav);
 		color: var(--color-text-faint);
 	}
-	.toggle-status.on { color: var(--color-success); border-color: var(--color-badge-win-border); background: var(--color-admin-toggle-on-bg); }
+	.toggle-status.on {
+		color: var(--color-success);
+		border-color: var(--color-badge-win-border);
+		background: var(--color-admin-toggle-on-bg);
+	}
 
-	.description { font-size: 0.85rem; color: var(--color-text-faint); margin: 0; line-height: 1.5; }
-	.name-form { display: flex; flex-direction: column; gap: 0.65rem; }
-	.name-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.82rem; color: var(--color-text-subtle); }
+	.description {
+		font-size: 0.85rem;
+		color: var(--color-text-faint);
+		margin: 0;
+		line-height: 1.5;
+	}
+	.name-form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+	}
+	.name-form label {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 0.82rem;
+		color: var(--color-text-subtle);
+	}
 	.name-form input {
 		background: var(--color-input-bg);
 		border: 1px solid var(--color-border-strong);
@@ -986,7 +1396,11 @@ const httpApiKeyDisplay = $derived(
 		padding: 8px 10px;
 		font-size: 0.9rem;
 	}
-	.preview { margin: 0; font-size: 0.82rem; color: var(--color-text-faint); }
+	.preview {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--color-text-faint);
+	}
 
 	.http-admin-actions {
 		display: flex;
@@ -994,7 +1408,7 @@ const httpApiKeyDisplay = $derived(
 		gap: 8px;
 	}
 
-	.slack-admin-actions form:last-child {
+	.notification-admin-actions form:last-child {
 		margin-left: auto;
 	}
 
@@ -1016,7 +1430,8 @@ const httpApiKeyDisplay = $derived(
 	.api-key-input {
 		flex: 1 1 220px;
 		min-width: 0;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+			monospace;
 		font-size: 0.82rem;
 		background: var(--color-bg);
 		border: 1px solid var(--color-border-strong);
@@ -1050,10 +1465,21 @@ const httpApiKeyDisplay = $derived(
 		align-items: center;
 		gap: 6px;
 	}
-	.toggle-btn:hover:not(:disabled) { border-color: var(--color-text-dim); color: var(--color-link-hover); }
-	.toggle-btn.danger { border-color: var(--color-admin-reject-border); color: var(--color-error); }
-	.toggle-btn.danger:hover:not(:disabled) { background: var(--color-admin-danger-hover-bg); }
-	.toggle-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+	.toggle-btn:hover:not(:disabled) {
+		border-color: var(--color-text-dim);
+		color: var(--color-link-hover);
+	}
+	.toggle-btn.danger {
+		border-color: var(--color-admin-reject-border);
+		color: var(--color-error);
+	}
+	.toggle-btn.danger:hover:not(:disabled) {
+		background: var(--color-admin-danger-hover-bg);
+	}
+	.toggle-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
 
 	.count-badge {
 		display: inline-flex;
@@ -1069,21 +1495,35 @@ const httpApiKeyDisplay = $derived(
 		margin-left: 6px;
 	}
 
-	.empty { color: var(--color-text-dim); font-size: 0.9rem; margin: 0; }
-	.error { color: var(--color-error); background: var(--color-error-bg); border: 1px solid var(--color-error-border); border-radius: 6px; padding: 8px 10px; font-size: 0.85rem; }
+	.empty {
+		color: var(--color-text-dim);
+		font-size: 0.9rem;
+		margin: 0;
+	}
+	.error {
+		color: var(--color-error);
+		background: var(--color-error-bg);
+		border: 1px solid var(--color-error-border);
+		border-radius: 6px;
+		padding: 8px 10px;
+		font-size: 0.85rem;
+	}
 
-	.match-queue { display: flex; flex-direction: column; gap: 10px; }
-	.signup-queue { display: flex; flex-direction: column; gap: 10px; }
+	.match-queue {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
+	.signup-queue {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+	}
 	.signup-summary {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
 		flex: 1;
-	}
-	.signup-summary .mono {
-		font-family: ui-monospace, monospace;
-		font-size: 0.82rem;
-		color: var(--color-text-muted);
 	}
 	.signup-summary .date {
 		font-size: 0.78rem;
@@ -1100,23 +1540,73 @@ const httpApiKeyDisplay = $derived(
 		gap: 1rem;
 		flex-wrap: wrap;
 	}
-	.match-summary { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-	.matchup { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
-	.player-name { font-weight: 600; color: var(--color-heading); }
-	.vs { color: var(--color-text-extra-dim); font-size: 0.8rem; }
-	.match-meta { display: flex; align-items: center; gap: 12px; font-size: 0.8rem; color: var(--color-text-faint); }
-	.result-label { color: var(--color-text-muted); }
-	.view-link { color: var(--color-text-dim); text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem; }
-	.view-link:hover { color: var(--color-text-muted); }
+	.match-summary {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		flex: 1;
+	}
+	.matchup {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		font-size: 0.92rem;
+	}
+	.player-name {
+		font-weight: 600;
+		color: var(--color-heading);
+	}
+	.vs {
+		color: var(--color-text-extra-dim);
+		font-size: 0.8rem;
+	}
+	.match-meta {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		font-size: 0.8rem;
+		color: var(--color-text-faint);
+	}
+	.result-label {
+		color: var(--color-text-muted);
+	}
+	.view-link {
+		color: var(--color-text-dim);
+		text-decoration: none;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+	}
+	.view-link:hover {
+		color: var(--color-text-muted);
+	}
 
-	.elo-preview { display: flex; align-items: center; gap: 10px; font-size: 0.78rem; flex-wrap: wrap; }
-	.elo-label { color: var(--color-text-extra-dim); }
-	.elo-val { font-weight: 600; }
-	.elo-val.pos { color: var(--color-success); }
-	.elo-val.neg { color: var(--color-error); }
+	.elo-preview {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		font-size: 0.78rem;
+		flex-wrap: wrap;
+	}
+	.elo-label {
+		color: var(--color-text-extra-dim);
+	}
+	.elo-val {
+		font-weight: 600;
+	}
+	.elo-val.pos {
+		color: var(--color-success);
+	}
+	.elo-val.neg {
+		color: var(--color-error);
+	}
 
-	.actions { display: flex; gap: 8px; }
-	.approve-btn, .reject-btn {
+	.actions {
+		display: flex;
+		gap: 8px;
+	}
+	.approve-btn,
+	.reject-btn {
 		border: none;
 		border-radius: 5px;
 		padding: 6px 12px;
@@ -1128,11 +1618,27 @@ const httpApiKeyDisplay = $derived(
 		align-items: center;
 		gap: 5px;
 	}
-	.approve-btn { background: var(--color-admin-approve-bg); color: var(--color-success); border: 1px solid var(--color-admin-approve-border); }
-	.approve-btn:hover:not(:disabled) { background: var(--color-admin-approve-hover-bg); }
-	.reject-btn { background: var(--color-admin-reject-bg); color: var(--color-error); border: 1px solid var(--color-admin-reject-border); }
-	.reject-btn:hover:not(:disabled) { background: var(--color-admin-reject-hover-bg); }
-	.approve-btn:disabled, .reject-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+	.approve-btn {
+		background: var(--color-admin-approve-bg);
+		color: var(--color-success);
+		border: 1px solid var(--color-admin-approve-border);
+	}
+	.approve-btn:hover:not(:disabled) {
+		background: var(--color-admin-approve-hover-bg);
+	}
+	.reject-btn {
+		background: var(--color-admin-reject-bg);
+		color: var(--color-error);
+		border: 1px solid var(--color-admin-reject-border);
+	}
+	.reject-btn:hover:not(:disabled) {
+		background: var(--color-admin-reject-hover-bg);
+	}
+	.approve-btn:disabled,
+	.reject-btn:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
 
 	.users-table-wrap {
 		overflow-x: auto;
@@ -1163,7 +1669,9 @@ const httpApiKeyDisplay = $derived(
 		text-decoration: none;
 		font-weight: 600;
 	}
-	.user-link:hover { color: var(--color-link-hover); }
+	.user-link:hover {
+		color: var(--color-link-hover);
+	}
 	.you-badge {
 		display: inline-block;
 		margin-left: 6px;
@@ -1174,7 +1682,11 @@ const httpApiKeyDisplay = $derived(
 		background: var(--color-surface-muted);
 		color: var(--color-text-faint);
 	}
-	.mono { font-family: ui-monospace, monospace; font-size: 0.82rem; color: var(--color-text-muted); }
+	.mono {
+		font-family: ui-monospace, monospace;
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+	}
 	.role-badge {
 		display: inline-block;
 		font-size: 0.72rem;

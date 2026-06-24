@@ -2,14 +2,14 @@
 	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
 	import { ExternalLink, History, KeyRound, Moon, Save, Sun, User } from '@lucide/svelte';
-	import { withActionToast } from '$lib/action-toast.js';
-	import ProfileStatsCharts from '$lib/ProfileStatsCharts.svelte';
-	import EmojiPicker from '$lib/EmojiPicker.svelte';
-	import PieceColor from '$lib/PieceColor.svelte';
-	import PlayerAvatar from '$lib/PlayerAvatar.svelte';
-	import ResultBadge from '$lib/ResultBadge.svelte';
-	import { computeColorStats } from '$lib/player-stats.js';
-	import { applyTheme, normalizeTheme } from '$lib/theme.js';
+	import { withActionToast } from '$lib/client/action-toast.js';
+	import ProfileStatsCharts from '$lib/components/charts/ProfileStatsCharts.svelte';
+	import EmojiPicker from '$lib/components/player/EmojiPicker.svelte';
+	import PieceColor from '$lib/components/player/PieceColor.svelte';
+	import PlayerAvatar from '$lib/components/player/PlayerAvatar.svelte';
+	import ResultBadge from '$lib/components/matches/ResultBadge.svelte';
+	import { computeColorStats } from '$lib/chess/player-stats.js';
+	import { applyTheme, normalizeTheme } from '$lib/client/theme.js';
 
 	let { data, form } = $props();
 	let { player, matches, eloHistory, rank, isOwnProfile } = $derived(data);
@@ -432,11 +432,6 @@
 		flex-direction: column;
 		gap: 1rem;
 	}
-	.settings-card h2 {
-		margin: 0;
-		font-size: 1rem;
-		color: var(--color-text-muted);
-	}
 	.settings-form {
 		display: flex;
 		flex-direction: column;
@@ -483,16 +478,6 @@
 		border-radius: 6px;
 		padding: 8px 10px;
 	}
-	.success {
-		margin: 0;
-		font-size: 0.82rem;
-		color: var(--color-success);
-		background: var(--color-success-bg);
-		border: 1px solid var(--color-success-border);
-		border-radius: 6px;
-		padding: 8px 10px;
-	}
-
 	.theme-fieldset {
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
@@ -550,6 +535,9 @@
 	.stat-label { font-size: 0.75rem; color: var(--color-text-faint); margin-top: 2px; }
 
 	h2 { margin: 0 0 0.75rem; font-size: 1rem; color: var(--color-text-muted); }
+	.settings-card h2 {
+		margin: 0;
+	}
 	.match-table { width: 100%; border-collapse: collapse; }
 	.match-table th {
 		text-align: left;
@@ -576,18 +564,6 @@
 	.view-link { color: var(--color-text-dim); text-decoration: none; font-size: 0.8rem; }
 	.view-link:hover { color: var(--color-text-muted); }
 	.empty { color: var(--color-text-dim); text-align: center; padding: 1.5rem; }
-
-	.badge {
-		display: inline-block;
-		padding: 2px 7px;
-		border-radius: 4px;
-		font-size: 0.78rem;
-		font-weight: 500;
-	}
-	.win-badge { background: var(--color-badge-win-bg); color: var(--color-success); border: 1px solid var(--color-badge-win-border); }
-	.loss-badge { background: var(--color-badge-loss-bg); color: var(--color-error); border: 1px solid var(--color-badge-loss-border); }
-	.draw-badge { background: var(--color-badge-draw-bg); color: var(--color-text-muted); border: 1px solid var(--color-badge-draw-border); }
-	.pending-badge { background: var(--color-badge-pending-bg); color: var(--color-warning); border: 1px solid var(--color-badge-pending-border); }
 
 	@media (max-width: 640px) {
 		.header-card {

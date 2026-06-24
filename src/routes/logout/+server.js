@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { COOKIE_NAME } from '$lib/session.js';
+import { COOKIE_NAME } from '$lib/server/auth/session.js';
 
 /** @type {import('./$types').RequestHandler} */
 export function GET({ cookies }) {

@@ -1,0 +1,62 @@
+import toast from 'svelte-french-toast';
+import { invalidate } from '$app/navigation';
+
+export { toast };
+
+/**
+ * @param {import('@sveltejs/kit').ActionResult} result
+ */
+export const toastFromResult = (result) => {
+	if (result.type === 'success') {
+		const data = /** @type {Record<string, unknown>} */ (result.data ?? {});
+		if (typeof data.message === 'string') {
+			toast.success(data.message);
+		}
+		return;
+	}
+
+	if (result.type === 'failure') {
+		const data = /** @type {Record<string, unknown>} */ (result.data ?? {});
+		const message = data.error ?? data.profileError ?? data.passwordError;
+		if (typeof message === 'string') {
+			toast.error(message);
+		}
+		return;
+	}
+
+	if (result.type === 'error') {
+		const err = result.error;
+		const details = err instanceof Error ? err.message : String(err);
+		toast.error(details || 'Something went wrong. Please try again.', { duration: 6000 });
+	}
+};
+
+/**
+ * @typedef {{
+ *   result: import('@sveltejs/kit').ActionResult,
+ *   update: (options?: { reset?: boolean; invalidateAll?: boolean }) => Promise<void>
+ * }} ActionToastContext
+ */
+
+/**
+ * @param {{ redirectMessage?: string, invalidate?: string[] }} [options]
+ * @returns {(input: ActionToastContext) => Promise<void>}
+ */
+export const withActionToast =
+	(options = {}) =>
+	async ({ result, update }) => {
+		await update({ invalidateAll: true });
+
+		if (options.invalidate?.length) {
+			await Promise.all(options.invalidate.map((key) => invalidate(key)));
+		}
+
+		if (result.type === 'redirect' && options.redirectMessage) {
+			toast.success(options.redirectMessage);
+		} else {
+			toastFromResult(result);
+		}
+	};
+
+/** Keys for targeted admin/config reloads after settings change. */
+export const ADMIN_INVALIDATE = ['app:admin', 'app:config'];

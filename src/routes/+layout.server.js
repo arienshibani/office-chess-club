@@ -1,10 +1,10 @@
-import { normalizeTheme } from '$lib/theme.js';
+import { normalizeTheme } from '$lib/client/theme.js';
 
 /** @type {import('./$types').LayoutServerLoad} */
 export function load({ locals, depends }) {
 	depends('app:session');
 
 	return {
-		theme: locals.user?.theme ? normalizeTheme(locals.user.theme) : null
+		theme: locals.user?.theme ? normalizeTheme(locals.user.theme) : null,
 	};
-};
+}

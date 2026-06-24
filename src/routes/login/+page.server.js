@@ -1,9 +1,10 @@
-import { fail, redirect } from '@sveltejs/kit';
-import { setSessionCookie } from '$lib/auth.js';
-import { getConfig, getPlayers } from '$lib/db.js';
-import { isPublicViewEnabled } from '$lib/public-view-config.js';
-import { PLAYER_STATUS_PENDING } from '$lib/player-status.js';
-import { hashPassword, normalizeUsername, verifyPassword } from '$lib/password.js';
+import { fail, isRedirect, redirect } from '@sveltejs/kit';
+import { failFromError } from '$lib/server/actions/action-error.js';
+import { setSessionCookie } from '$lib/server/auth/auth.js';
+import { hashPassword, normalizeUsername, verifyPassword } from '$lib/server/auth/password.js';
+import { isPublicViewEnabled } from '$lib/server/config/public-view-config.js';
+import { getConfig, getPlayers } from '$lib/server/db.js';
+import { registerPlayer } from '$lib/server/players/player-register.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, url }) {
@@ -18,23 +19,9 @@ export async function load({ locals, url }) {
 
 	return {
 		clubName: clubNameRaw || 'Office',
-		publicViewEnabled: isPublicViewEnabled(config)
+		publicViewEnabled: isPublicViewEnabled(config),
 	};
 }
-
-/** @param {string} username @param {string} name @param {string} passwordHash */
-const newPlayerDoc = (username, name, passwordHash) => ({
-	username,
-	passwordHash,
-	name,
-	icon: '',
-	avatarUrl: '',
-	rating: 1200,
-	isAdmin: false,
-	status: PLAYER_STATUS_PENDING,
-	stats: { wins: 0, losses: 0, draws: 0 },
-	createdAt: new Date()
-});
 
 /** @type {import('./$types').Actions} */
 export const actions = {
@@ -47,19 +34,30 @@ export const actions = {
 			return fail(400, { error: 'Username and password required.', action: 'login' });
 		}
 
-		const players = await getPlayers();
-		const user = await players.findOne({ username });
-		if (
-			!user ||
-			typeof user.passwordHash !== 'string' ||
-			!(await verifyPassword(password, user.passwordHash))
-		) {
-			return fail(401, { error: 'Invalid username or password.', action: 'login' });
-		}
+		try {
+			const players = await getPlayers();
+			const user = await players.findOne({ username });
+			if (
+				!user ||
+				typeof user.passwordHash !== 'string' ||
+				!(await verifyPassword(password, user.passwordHash))
+			) {
+				return fail(401, { error: 'Invalid username or password.', action: 'login' });
+			}
 
-		setSessionCookie(cookies, user._id.toString());
-		const next = url.searchParams.get('next');
-		redirect(302, next?.startsWith('/') ? next : '/');
+			setSessionCookie(cookies, user._id.toString());
+			const next = url.searchParams.get('next');
+			redirect(302, next?.startsWith('/') ? next : '/');
+		} catch (err) {
+			if (isRedirect(err)) throw err;
+			return failFromError(
+				err,
+				'Could not sign in — the server hit a problem. Try again in a moment.',
+				{
+					action: 'login',
+				},
+			);
+		}
 	},
 
 	register: async ({ request, cookies }) => {
@@ -75,24 +73,36 @@ export const actions = {
 			return fail(400, { error: 'Password must be at least 4 characters.', action: 'register' });
 		}
 
-		const players = await getPlayers();
-		if (await players.findOne({ username })) {
-			return fail(409, { error: 'Username already taken.', action: 'register' });
-		}
-
-		const passwordHash = await hashPassword(password);
-		let insertedId;
 		try {
-			const inserted = await players.insertOne(newPlayerDoc(username, name, passwordHash));
-			insertedId = inserted.insertedId;
-		} catch (err) {
-			const maybeCode = /** @type {{ code?: number }} */ (err).code;
-			if (maybeCode === 11000) {
+			const players = await getPlayers();
+			if (await players.findOne({ username })) {
 				return fail(409, { error: 'Username already taken.', action: 'register' });
 			}
-			throw err;
+
+			const passwordHash = await hashPassword(password);
+			let insertedId;
+			try {
+				insertedId = await registerPlayer({ username, name, passwordHash });
+			} catch (err) {
+				const maybeCode = /** @type {{ code?: number }} */ (err).code;
+				if (maybeCode === 11000) {
+					return fail(409, { error: 'Username already taken.', action: 'register' });
+				}
+				return failFromError(
+					err,
+					'Could not create your account — the server hit a problem. Try again in a moment.',
+					{ action: 'register' },
+				);
+			}
+			setSessionCookie(cookies, insertedId.toString());
+			redirect(302, '/');
+		} catch (err) {
+			if (isRedirect(err)) throw err;
+			return failFromError(
+				err,
+				'Could not create your account — the server hit a problem. Try again in a moment.',
+				{ action: 'register' },
+			);
 		}
-		setSessionCookie(cookies, insertedId.toString());
-		redirect(302, '/');
-	}
+	},
 };

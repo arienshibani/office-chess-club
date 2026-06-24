@@ -1,18 +1,29 @@
+import { error, fail } from '@sveltejs/kit';
+import { computeElo } from '$lib/chess/elo.js';
+import { generateHttpSubmitApiKey } from '$lib/server/config/http-submit-config.js';
+import { isPublicViewEnabled } from '$lib/server/config/public-view-config.js';
+import { getConfig, getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
+import { sendDiscordTestNotification } from '$lib/server/integrations/discord.js';
+import {
+	getDiscordWebhookStatus,
+	isDiscordWebhookEnabled,
+	isValidDiscordWebhookUrl,
+} from '$lib/server/integrations/discord-config.js';
+import { notifyMatchApproved } from '$lib/server/integrations/notifications.js';
+import { sendSlackTestNotification } from '$lib/server/integrations/slack.js';
+import {
+	getSlackWebhookStatus,
+	isSlackWebhookEnabled,
+	isValidSlackWebhookUrl,
+} from '$lib/server/integrations/slack-config.js';
+import { deleteMatchById } from '$lib/server/matches/match-delete.js';
 import {
 	approveUserById,
 	deleteUserById,
 	resetLadder as resetLadderSystem,
-	resetUserPasswordById
-} from '$lib/admin-users.js';
-import { getMatches, getPlayers, getConfig, ObjectId } from '$lib/db.js';
-import { computeElo } from '$lib/elo.js';
-import { deleteMatchById } from '$lib/match-delete.js';
-import { generateHttpSubmitApiKey } from '$lib/http-submit-config.js';
-import { isPublicViewEnabled } from '$lib/public-view-config.js';
-import { isValidSlackWebhookUrl, getSlackWebhookStatus, isSlackWebhookEnabled } from '$lib/slack-config.js';
-import { notifyMatchApproved, sendSlackTestNotification } from '$lib/slack.js';
-import { normalizePlayerStatus, PLAYER_STATUS_PENDING } from '$lib/player-status.js';
-import { error, fail } from '@sveltejs/kit';
+	resetUserPasswordById,
+} from '$lib/server/players/admin-users.js';
+import { normalizePlayerStatus, PLAYER_STATUS_PENDING } from '$lib/server/players/player-status.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals, depends }) {
@@ -24,13 +35,13 @@ export async function load({ locals, depends }) {
 	const [matchesCol, playersCol, cfgCol] = await Promise.all([
 		getMatches(),
 		getPlayers(),
-		getConfig()
+		getConfig(),
 	]);
 
 	const [pendingMatches, config, allPlayers] = await Promise.all([
 		matchesCol.find({ status: 'pending' }).sort({ playedAt: -1 }).toArray(),
 		cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' })),
-		playersCol.find({}).sort({ name: 1 }).toArray()
+		playersCol.find({}).sort({ name: 1 }).toArray(),
 	]);
 
 	const currentAdminId = locals.user._id;
@@ -42,24 +53,19 @@ export async function load({ locals, depends }) {
 		isAdmin: !!p.isAdmin,
 		status: normalizePlayerStatus(p.status),
 		isSelf: p._id.toString() === currentAdminId,
-		createdAt: p.createdAt ?? null
+		createdAt: p.createdAt ?? null,
 	}));
 
 	const pendingUsers = users.filter((u) => u.status === PLAYER_STATUS_PENDING);
 
 	const playerIds = [
 		...new Set(
-			pendingMatches.flatMap((m) => [
-				m.whitePlayerId.toString(),
-				m.blackPlayerId.toString()
-			])
-		)
+			pendingMatches.flatMap((m) => [m.whitePlayerId.toString(), m.blackPlayerId.toString()]),
+		),
 	];
 
 	const playerDocs = playerIds.length
-		? await playersCol
-				.find({ _id: { $in: playerIds.map((id) => new ObjectId(id)) } })
-				.toArray()
+		? await playersCol.find({ _id: { $in: playerIds.map((id) => new ObjectId(id)) } }).toArray()
 		: [];
 
 	/** @type {Record<string, any>} */
@@ -76,10 +82,13 @@ export async function load({ locals, depends }) {
 		whiteName: playerMap[m.whitePlayerId.toString()]?.name ?? 'Unknown',
 		blackName: playerMap[m.blackPlayerId.toString()]?.name ?? 'Unknown',
 		whiteRating: playerMap[m.whitePlayerId.toString()]?.rating ?? 0,
-		blackRating: playerMap[m.blackPlayerId.toString()]?.rating ?? 0
+		blackRating: playerMap[m.blackPlayerId.toString()]?.rating ?? 0,
 	}));
 
-	const slackWebhook = await getSlackWebhookStatus();
+	const [slackWebhook, discordWebhook] = await Promise.all([
+		getSlackWebhookStatus(),
+		getDiscordWebhookStatus(),
+	]);
 
 	return {
 		pendingMatches: enriched,
@@ -88,16 +97,25 @@ export async function load({ locals, depends }) {
 		currentAdminId,
 		honorSystemEnabled: config?.honorSystemEnabled ?? true,
 		publicViewEnabled: isPublicViewEnabled(config),
-		clubName: typeof config?.clubName === 'string' && config.clubName.trim() ? config.clubName.trim() : 'Office',
+		clubName:
+			typeof config?.clubName === 'string' && config.clubName.trim()
+				? config.clubName.trim()
+				: 'Office',
 		httpSubmitEnabled: config?.httpSubmitEnabled === true,
 		httpSubmitApiKey:
 			typeof config?.httpSubmitApiKey === 'string' ? config.httpSubmitApiKey.trim() : '',
-		httpSubmitHasKey: typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim(),
+		httpSubmitHasKey:
+			typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim(),
 		slackWebhookConfigured: slackWebhook.configured,
 		slackWebhookEnabled: slackWebhook.enabled,
 		slackWebhookStoredInDb: slackWebhook.storedInDb,
 		slackWebhookFromEnv: slackWebhook.fromEnv,
-		slackWebhookUrl: slackWebhook.url
+		slackWebhookUrl: slackWebhook.url,
+		discordWebhookConfigured: discordWebhook.configured,
+		discordWebhookEnabled: discordWebhook.enabled,
+		discordWebhookStoredInDb: discordWebhook.storedInDb,
+		discordWebhookFromEnv: discordWebhook.fromEnv,
+		discordWebhookUrl: discordWebhook.url,
 	};
 }
 
@@ -113,14 +131,14 @@ export const actions = {
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { publicViewEnabled: !current } },
-			{ upsert: true }
+			{ upsert: true },
 		);
 
 		return {
 			success: true,
 			message: !current
 				? 'Public viewing enabled — leaderboards and profiles are visible without login.'
-				: 'Public viewing disabled — login required to browse.'
+				: 'Public viewing disabled — login required to browse.',
 		};
 	},
 
@@ -131,14 +149,13 @@ export const actions = {
 		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
 		const current = config?.honorSystemEnabled ?? true;
 
-		await cfgCol.updateOne(
-			/** @type {any} */ ({ _id: 'global_settings' }),
-			{ $set: { honorSystemEnabled: !current } }
-		);
+		await cfgCol.updateOne(/** @type {any} */ ({ _id: 'global_settings' }), {
+			$set: { honorSystemEnabled: !current },
+		});
 
 		return {
 			success: true,
-			message: !current ? 'Honor system enabled.' : 'Honor system disabled.'
+			message: !current ? 'Honor system enabled.' : 'Honor system disabled.',
 		};
 	},
 
@@ -157,7 +174,7 @@ export const actions = {
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { clubName } },
-			{ upsert: true }
+			{ upsert: true },
 		);
 
 		return { success: true, message: 'Club name saved.' };
@@ -171,23 +188,22 @@ export const actions = {
 		const cfgCol = await getConfig();
 
 		if (!webhookUrl) {
-			await cfgCol.updateOne(
-				/** @type {any} */ ({ _id: 'global_settings' }),
-				{ $unset: { slackWebhookUrl: '' } }
-			);
+			await cfgCol.updateOne(/** @type {any} */ ({ _id: 'global_settings' }), {
+				$unset: { slackWebhookUrl: '' },
+			});
 			return { success: true, message: 'Slack webhook removed.' };
 		}
 
 		if (!isValidSlackWebhookUrl(webhookUrl)) {
 			return fail(400, {
-				error: 'Enter a valid Slack incoming webhook URL (https://hooks.slack.com/services/…).'
+				error: 'Enter a valid Slack incoming webhook URL (https://hooks.slack.com/services/…).',
 			});
 		}
 
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { slackWebhookUrl: webhookUrl } },
-			{ upsert: true }
+			{ upsert: true },
 		);
 
 		return { success: true, message: 'Slack webhook saved.' };
@@ -203,19 +219,19 @@ export const actions = {
 
 		if (!current && !status.configured) {
 			return fail(400, {
-				error: 'Save a webhook URL before enabling Slack notifications.'
+				error: 'Save a webhook URL before enabling Slack notifications.',
 			});
 		}
 
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { slackWebhookEnabled: !current } },
-			{ upsert: true }
+			{ upsert: true },
 		);
 
 		return {
 			success: true,
-			message: !current ? 'Slack notifications enabled.' : 'Slack notifications disabled.'
+			message: !current ? 'Slack notifications enabled.' : 'Slack notifications disabled.',
 		};
 	},
 
@@ -225,11 +241,79 @@ export const actions = {
 		const ok = await sendSlackTestNotification();
 		if (!ok) {
 			return fail(400, {
-				error: 'Could not send test notification. Check that a webhook URL is configured.'
+				error: 'Could not send test notification. Check that a webhook URL is configured.',
 			});
 		}
 
 		return { success: true, message: 'Test notification sent to Slack.' };
+	},
+
+	updateDiscordWebhook: async ({ request, locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const form = await request.formData();
+		const webhookUrl = String(form.get('discordWebhookUrl') ?? '').trim();
+		const cfgCol = await getConfig();
+
+		if (!webhookUrl) {
+			await cfgCol.updateOne(/** @type {any} */ ({ _id: 'global_settings' }), {
+				$unset: { discordWebhookUrl: '' },
+			});
+			return { success: true, message: 'Discord webhook removed.' };
+		}
+
+		if (!isValidDiscordWebhookUrl(webhookUrl)) {
+			return fail(400, {
+				error: 'Enter a valid Discord webhook URL (https://discord.com/api/webhooks/…).',
+			});
+		}
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { discordWebhookUrl: webhookUrl } },
+			{ upsert: true },
+		);
+
+		return { success: true, message: 'Discord webhook saved.' };
+	},
+
+	toggleDiscordWebhook: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const cfgCol = await getConfig();
+		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
+		const current = isDiscordWebhookEnabled(config);
+		const status = await getDiscordWebhookStatus();
+
+		if (!current && !status.configured) {
+			return fail(400, {
+				error: 'Save a webhook URL before enabling Discord notifications.',
+			});
+		}
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { discordWebhookEnabled: !current } },
+			{ upsert: true },
+		);
+
+		return {
+			success: true,
+			message: !current ? 'Discord notifications enabled.' : 'Discord notifications disabled.',
+		};
+	},
+
+	testDiscordWebhook: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const ok = await sendDiscordTestNotification();
+		if (!ok) {
+			return fail(400, {
+				error: 'Could not send test notification. Check that a webhook URL is configured.',
+			});
+		}
+
+		return { success: true, message: 'Test notification sent to Discord.' };
 	},
 
 	toggleHttpSubmit: async ({ locals }) => {
@@ -238,24 +322,23 @@ export const actions = {
 		const cfgCol = await getConfig();
 		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
 		const current = config?.httpSubmitEnabled === true;
-		const hasKey =
-			typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim();
+		const hasKey = typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim();
 
 		if (!current && !hasKey) {
 			return fail(400, {
-				error: 'Generate an API key before enabling HTTP submissions.'
+				error: 'Generate an API key before enabling HTTP submissions.',
 			});
 		}
 
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { httpSubmitEnabled: !current } },
-			{ upsert: true }
+			{ upsert: true },
 		);
 
 		return {
 			success: true,
-			message: !current ? 'HTTP submissions enabled.' : 'HTTP submissions disabled.'
+			message: !current ? 'HTTP submissions enabled.' : 'HTTP submissions disabled.',
 		};
 	},
 
@@ -268,12 +351,12 @@ export const actions = {
 		await cfgCol.updateOne(
 			/** @type {any} */ ({ _id: 'global_settings' }),
 			{ $set: { httpSubmitApiKey: apiKey } },
-			{ upsert: true }
+			{ upsert: true },
 		);
 
 		return {
 			success: true,
-			message: 'New API key generated.'
+			message: 'New API key generated.',
 		};
 	},
 
@@ -287,14 +370,18 @@ export const actions = {
 		const [matchesCol, playersCol] = await Promise.all([getMatches(), getPlayers()]);
 
 		let oid;
-		try { oid = new ObjectId(matchId); } catch { return fail(400, { error: 'Invalid match ID' }); }
+		try {
+			oid = new ObjectId(matchId);
+		} catch {
+			return fail(400, { error: 'Invalid match ID' });
+		}
 
 		const match = await matchesCol.findOne({ _id: oid, status: 'pending' });
 		if (!match) return fail(404, { error: 'Match not found or already processed' });
 
 		const [white, black] = await Promise.all([
 			playersCol.findOne({ _id: match.whitePlayerId }),
-			playersCol.findOne({ _id: match.blackPlayerId })
+			playersCol.findOne({ _id: match.blackPlayerId }),
 		]);
 		if (!white || !black) return fail(400, { error: 'Players not found' });
 
@@ -314,9 +401,9 @@ export const actions = {
 					$inc: {
 						'stats.wins': result === 'white' ? 1 : 0,
 						'stats.losses': result === 'black' ? 1 : 0,
-						'stats.draws': match.isDraw ? 1 : 0
-					}
-				}
+						'stats.draws': match.isDraw ? 1 : 0,
+					},
+				},
 			),
 			playersCol.updateOne(
 				{ _id: black._id },
@@ -325,14 +412,11 @@ export const actions = {
 					$inc: {
 						'stats.wins': result === 'black' ? 1 : 0,
 						'stats.losses': result === 'white' ? 1 : 0,
-						'stats.draws': match.isDraw ? 1 : 0
-					}
-				}
+						'stats.draws': match.isDraw ? 1 : 0,
+					},
+				},
 			),
-			matchesCol.updateOne(
-				{ _id: oid },
-				{ $set: { status: 'approved', eloChange } }
-			)
+			matchesCol.updateOne({ _id: oid }, { $set: { status: 'approved', eloChange } }),
 		]);
 
 		const isDraw = match.isDraw;
@@ -354,7 +438,7 @@ export const actions = {
 			isDraw,
 			winnerEloChange,
 			loserEloChange,
-			matchId
+			matchId,
 		});
 
 		return { success: true, message: 'Match approved.' };
@@ -372,7 +456,7 @@ export const actions = {
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
@@ -393,7 +477,7 @@ export const actions = {
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
@@ -416,7 +500,7 @@ export const actions = {
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
@@ -437,7 +521,7 @@ export const actions = {
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
-					error: /** @type {string} */ (err.message)
+					error: /** @type {string} */ (err.message),
 				});
 			}
 			throw err;
@@ -460,7 +544,7 @@ export const actions = {
 
 		return {
 			success: true,
-			message: 'Ladder reset. All matches deleted and ratings restored to 1200.'
+			message: 'Ladder reset. All matches deleted and ratings restored to 1200.',
 		};
-	}
+	},
 };

@@ -1,0 +1,60 @@
+# Local development stack: SvelteKit app + MongoDB (single-node replica set for transactions).
+# Start everything with: just start
+# If Mongo previously ran without a replica set, reset the volume: docker compose down -v
+# If deps still look wrong after a rebuild, recreate the node_modules volume:
+#   docker compose down && docker volume rm office-chess-club_app_node_modules
+# The app entrypoint runs pnpm install + svelte-kit sync on each start.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    command: ['--replSet', 'rs0', '--bind_ip_all']
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/01-init-chess-club.js:ro
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  mongo-rs-init:
+    image: mongo:7
+    restart: 'no'
+    volumes:
+      - ./docker/mongo-rs-init.sh:/mongo-rs-init.sh:ro
+    entrypoint: ['bash', '/mongo-rs-init.sh']
+    environment:
+      MONGO_CONNECT_HOST: mongo:27017
+      MONGO_RS_HOST: mongo:27017
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - '5173:5173'
+    volumes:
+      - .:/app
+      - app_node_modules:/app/node_modules
+    env_file:
+      - .env.docker
+    environment:
+      # Compose network hostname — overrides any URI in .env.docker when present.
+      MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
+      DOCKER_DEV: 'true'
+      CHOKIDAR_USEPOLLING: 'true'
+    depends_on:
+      mongo:
+        condition: service_healthy
+      mongo-rs-init:
+        condition: service_completed_successfully
+
+volumes:
+  mongo_data:
+  app_node_modules:

@@ -1,7 +1,8 @@
 <script>
 import { ArrowRight } from "@lucide/svelte";
-import MatchListTable from "$lib/MatchListTable.svelte";
-import PlayerAvatar from "$lib/PlayerAvatar.svelte";
+import FeaturedMatchShowcase from "$lib/components/matches/FeaturedMatchShowcase.svelte";
+import MatchListTable from "$lib/components/matches/MatchListTable.svelte";
+import PlayerAvatar from "$lib/components/player/PlayerAvatar.svelte";
 
 const { data } = $props();
 
@@ -63,16 +64,34 @@ const ratingColor = (r) => {
 		</div>
 	</section>
 
-	<section class="recent-matches">
-		<h2>Recent Matches</h2>
-		<MatchListTable matches={data.recentMatches} isAdmin={!!data.user?.isAdmin} />
-		{#if data.recentMatches.length > 0}
-			<a href="/matches" class="view-all with-icon">
-				View all matches
-				<ArrowRight size={15} aria-hidden="true" />
-			</a>
-		{/if}
-	</section>
+	{#if data.showcasedMatch}
+		<section class="matches-showcase-row">
+			<div class="recent-matches-col">
+				<h2>Recent Matches</h2>
+				<MatchListTable matches={data.recentMatches} isAdmin={!!data.user?.isAdmin} />
+				{#if data.recentMatches.length > 0}
+					<a href="/matches" class="view-all with-icon">
+						View all matches
+						<ArrowRight size={15} aria-hidden="true" />
+					</a>
+				{/if}
+			</div>
+			<div class="featured-match-col">
+				<FeaturedMatchShowcase {...data.showcasedMatch} />
+			</div>
+		</section>
+	{:else}
+		<section class="recent-matches">
+			<h2>Recent Matches</h2>
+			<MatchListTable matches={data.recentMatches} isAdmin={!!data.user?.isAdmin} />
+			{#if data.recentMatches.length > 0}
+				<a href="/matches" class="view-all with-icon">
+					View all matches
+					<ArrowRight size={15} aria-hidden="true" />
+				</a>
+			{/if}
+		</section>
+	{/if}
 	</div>
 
 	<footer class="repo-footer">
@@ -158,7 +177,35 @@ const ratingColor = (r) => {
 	.player-link:hover { color: var(--color-link-hover); }
 	.empty { color: var(--color-text-dim); padding: 1rem; text-align: center; }
 
-	.recent-matches { display: flex; flex-direction: column; gap: 0.75rem; }
+	.matches-showcase-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1.5fr) minmax(0, 0.72fr);
+		gap: 2rem;
+		align-items: start;
+	}
+
+	.recent-matches-col :global(.match-summary) {
+		flex-wrap: nowrap;
+	}
+
+	.recent-matches-col :global(.match-summary .name) {
+		white-space: nowrap;
+	}
+
+	.featured-match-col {
+		min-width: 0;
+		max-width: 300px;
+		justify-self: end;
+	}
+
+	.recent-matches-col,
+	.recent-matches {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		min-width: 0;
+	}
+
 	.view-all {
 		align-self: flex-start;
 		font-size: 0.85rem;
@@ -166,6 +213,17 @@ const ratingColor = (r) => {
 		text-decoration: none;
 	}
 	.view-all:hover { color: var(--color-link-hover); }
+
+	@media (max-width: 900px) {
+		.matches-showcase-row {
+			grid-template-columns: 1fr;
+		}
+
+		.featured-match-col {
+			max-width: min(100%, 280px);
+			justify-self: center;
+		}
+	}
 
 	@media (max-width: 640px) {
 		.leaderboard th.col-stats,
