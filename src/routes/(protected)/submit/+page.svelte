@@ -269,7 +269,6 @@ const copyCurl = async () => {
 	button:disabled { opacity: 0.4; cursor: not-allowed; }
 	.notice { font-size: 0.82rem; color: var(--color-warning); background: var(--color-notice-bg); border: 1px solid var(--color-notice-border); border-radius: 6px; padding: 8px 10px; margin: 0; align-items: flex-start; }
 	.error { font-size: 0.82rem; color: var(--color-error); background: var(--color-error-bg); border: 1px solid var(--color-error-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
-	.success { font-size: 0.82rem; color: var(--color-success); background: var(--color-success-bg); border: 1px solid var(--color-success-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
 	.http-submit {
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);

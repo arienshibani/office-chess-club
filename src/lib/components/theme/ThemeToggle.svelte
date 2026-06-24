@@ -6,7 +6,7 @@
 	/** @type {{ theme?: 'light' | 'dark' | string, class?: string }} */
 	let { theme = 'dark', class: className = '' } = $props();
 
-	let current = $state(normalizeTheme(theme));
+	let current = $state('dark');
 	let saving = $state(false);
 
 	$effect(() => {

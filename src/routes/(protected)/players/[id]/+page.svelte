@@ -478,16 +478,6 @@
 		border-radius: 6px;
 		padding: 8px 10px;
 	}
-	.success {
-		margin: 0;
-		font-size: 0.82rem;
-		color: var(--color-success);
-		background: var(--color-success-bg);
-		border: 1px solid var(--color-success-border);
-		border-radius: 6px;
-		padding: 8px 10px;
-	}
-
 	.theme-fieldset {
 		border: 1px solid var(--color-border);
 		border-radius: 6px;
@@ -574,18 +564,6 @@
 	.view-link { color: var(--color-text-dim); text-decoration: none; font-size: 0.8rem; }
 	.view-link:hover { color: var(--color-text-muted); }
 	.empty { color: var(--color-text-dim); text-align: center; padding: 1.5rem; }
-
-	.badge {
-		display: inline-block;
-		padding: 2px 7px;
-		border-radius: 4px;
-		font-size: 0.78rem;
-		font-weight: 500;
-	}
-	.win-badge { background: var(--color-badge-win-bg); color: var(--color-success); border: 1px solid var(--color-badge-win-border); }
-	.loss-badge { background: var(--color-badge-loss-bg); color: var(--color-error); border: 1px solid var(--color-badge-loss-border); }
-	.draw-badge { background: var(--color-badge-draw-bg); color: var(--color-text-muted); border: 1px solid var(--color-badge-draw-border); }
-	.pending-badge { background: var(--color-badge-pending-bg); color: var(--color-warning); border: 1px solid var(--color-badge-pending-border); }
 
 	@media (max-width: 640px) {
 		.header-card {

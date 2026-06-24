@@ -1003,15 +1003,6 @@ const moveRows = $derived.by(() => {
 		overflow-y: auto;
 	}
 
-	.badge {
-		display: inline-block;
-		padding: 3px 9px;
-		border-radius: 5px;
-		font-size: 0.78rem;
-		font-weight: 500;
-	}
-	.pending-badge { background: var(--color-badge-pending-bg); color: var(--color-warning); border: 1px solid var(--color-badge-pending-border); }
-
 	.admin-err { margin-top: 0; }
 
 	.notation-form-card {

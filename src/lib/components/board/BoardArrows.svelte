@@ -1,7 +1,7 @@
 <script>
 	import { arrowLine, squareToPercent } from '$lib/chess/arrows.js';
 
-	/** @type {{ from: string, to: string } | null | undefined} */
+	/** @type {{ arrow?: { from: string, to: string } | null }} */
 	let { arrow = null } = $props();
 
 	let line = $derived.by(() => {

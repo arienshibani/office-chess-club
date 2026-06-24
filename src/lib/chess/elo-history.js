@@ -54,8 +54,41 @@ export const buildEloHistoryFromDocs = (docs, playerId, startingRating = DEFAULT
 };
 
 /**
+ * @typedef {object} EloChartPadding
+ * @property {number} top
+ * @property {number} right
+ * @property {number} bottom
+ * @property {number} left
+ *
+ * @typedef {object} EloChartDot
+ * @property {number} x
+ * @property {number} y
+ * @property {number} rating
+ * @property {number} delta
+ * @property {string} playedAt
+ * @property {boolean} isStart
+ *
+ * @typedef {object} EloChartEmpty
+ * @property {true} empty
+ * @property {number} width
+ * @property {number} height
+ * @property {EloChartPadding} pad
+ *
+ * @typedef {object} EloChartData
+ * @property {false} empty
+ * @property {number} width
+ * @property {number} height
+ * @property {EloChartPadding} pad
+ * @property {string} line
+ * @property {EloChartDot[]} dots
+ * @property {{ y: number, label: string }[]} yLabels
+ * @property {string} xStart
+ * @property {string} xEnd
+ * @property {number[]} gridYs
+ *
  * @param {EloHistoryPoint[]} points
  * @param {{ width?: number, height?: number }} [options]
+ * @returns {EloChartEmpty | EloChartData}
  */
 export const buildEloChartGeometry = (points, options = {}) => {
 	const width = options.width ?? 480;

@@ -1,11 +1,6 @@
 # Office Chess Club ♟️
 
-Who's _really_ the best at chess in your office?
---
-
-Solution to let you self host your own web-based chess club. The code takes care of user signups, chess match submission (either manually or via HTTP), distributing ELO rating points and stockfish analysis of the submitted games. An admin panel lets you configure the solution however you want. The HTTP endpoint enables you to build an automatic bridge between a chess smartboard (DGT, Square Off, custom setups with webcam and RPi etc) and the hosted web-app, if you want to take the chess club to the next level.
-
-<img width="1058" height="969" alt="image" src="https://github.com/user-attachments/assets/4ffa9f86-ef19-4a85-ab40-6aae4beb188a" />
+Self hosted web-based chess club management system.
 
 
 ## Features 🌟

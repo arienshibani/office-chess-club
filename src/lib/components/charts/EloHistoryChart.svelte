@@ -15,7 +15,7 @@
 	const dotKey = (dot) => `${dot.playedAt}:${dot.rating}`;
 
 	let hovered = $derived(
-		hoveredKey && chart.dots
+		hoveredKey && !chart.empty
 			? (chart.dots.find((d) => dotKey(d) === hoveredKey) ?? null)
 			: null
 	);
