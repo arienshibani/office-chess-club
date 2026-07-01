@@ -8,12 +8,12 @@
 
 <div align="center">
 
-[![CI](https://github.com/arienshibani/office-chess-club/actions/workflows/ci.yml/badge.svg)](https://github.com/arienshibani/office-chess-club/actions/workflows/ci.yml)
-[![Release](https://github.com/arienshibani/office-chess-club/actions/workflows/release.yml/badge.svg)](https://github.com/arienshibani/office-chess-club/actions/workflows/release.yml)
-[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-FF3E00?logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Node](https://img.shields.io/badge/node-22+-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![pnpm](https://img.shields.io/badge/pnpm-11.8+-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
-[![SvelteKit](https://img.shields.io/badge/SvelteKit-FF3E00?logo=svelte&logoColor=white)](https://kit.svelte.dev/)
+[![GitHub Release](https://shields.io/github/v/release/arienshibani/office-chess-club)](https://github.com/arienshibani/office-chess-club/releases)
+[![CI](https://github.com/arienshibani/office-chess-club/actions/workflows/ci.yml/badge.svg)](https://github.com/arienshibani/office-chess-club/actions/workflows/ci.yml)
+
 
 </div>
 
