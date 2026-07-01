@@ -12,6 +12,7 @@ import {
 } from "@lucide/svelte";
 import { Chess } from "chess.js";
 import { browser } from "$app/environment";
+import { page } from "$app/state";
 import { enhance } from "$app/forms";
 import { withActionToast } from "$lib/client/action-toast.js";
 import ChessBoard from "$lib/components/board/ChessBoard.svelte";
@@ -20,6 +21,12 @@ import EvalBar from "$lib/components/board/EvalBar.svelte";
 import MatchActionsMenu from "$lib/components/matches/MatchActionsMenu.svelte";
 import { detectNotationType } from "$lib/chess/notation.js";
 import PieceColor from "$lib/components/player/PieceColor.svelte";
+import {
+	clampMoveIndex,
+	formatMoveHash,
+	moveAnchorId,
+	parseMoveHash,
+} from "$lib/chess/move-hash.js";
 import { INITIAL_FEN } from "$lib/chess/pgn-replay.js";
 import { createSlideReplayDriver } from "$lib/chess/pgn-slide-animation.js";
 import ResultBadge from "$lib/components/matches/ResultBadge.svelte";
@@ -151,6 +158,35 @@ const snapToIndex = (/** @type {number} */ index) => {
 	syncNav();
 };
 
+const scrollMoveIntoView = (/** @type {number} */ index) => {
+	if (!browser || index < 0) return;
+	requestAnimationFrame(() => {
+		document.getElementById(moveAnchorId(index))?.scrollIntoView({
+			block: "nearest",
+			behavior: "smooth",
+		});
+	});
+};
+
+const syncMoveHashToIndex = (/** @type {number} */ index) => {
+	if (!browser || embedded) return;
+	const hash = formatMoveHash(index);
+	const current = window.location.hash.replace(/^#/, "").toLowerCase();
+	if (current === hash) return;
+	const url = new URL(window.location.href);
+	url.hash = hash;
+	window.history.replaceState(window.history.state, "", url);
+};
+
+const resolveInitialViewIndex = (/** @type {number} */ moveCount) => {
+	if (moveCount === 0) return -1;
+	if (!embedded && browser) {
+		const fromHash = clampMoveIndex(parseMoveHash(page.url.hash), moveCount);
+		if (fromHash != null) return fromHash;
+	}
+	return moveCount - 1;
+};
+
 $effect(() => {
 	const notation = match.notation ?? "";
 	const key = `${match._id}:${notation}`;
@@ -160,7 +196,12 @@ $effect(() => {
 		try {
 			const c = new Chess();
 			c.loadPgn(notation);
-			snapToIndex(c.history().length - 1);
+			const moves = c.history();
+			const initialIndex = resolveInitialViewIndex(moves.length);
+			snapToIndex(initialIndex);
+			if (!embedded && browser && page.url.hash) {
+				scrollMoveIntoView(initialIndex);
+			}
 		} catch {
 			snapToIndex(-1);
 		}
@@ -197,28 +238,33 @@ const activeSuggestion = $derived(
 		: null,
 );
 
+const navigateReplay = (/** @type {number} */ index) => {
+	replayDriver.requestIndex(index);
+	syncNav();
+	syncMoveHashToIndex(index);
+};
+
 /** @param {number} idx */
 const goToMove = (idx) => {
-	replayDriver.requestIndex(idx);
-	syncNav();
+	navigateReplay(idx);
 };
 
 const stepBack = () => {
 	replayDriver.stepBack();
 	syncNav();
+	syncMoveHashToIndex(replayDriver.getTargetIndex());
 };
 const stepForward = () => {
 	replayDriver.stepForward();
 	syncNav();
+	syncMoveHashToIndex(replayDriver.getTargetIndex());
 };
 const goToStart = () => {
-	replayDriver.requestIndex(-1);
-	syncNav();
+	navigateReplay(-1);
 };
 const goToEnd = () => {
 	if (history.length > 0) {
-		replayDriver.requestIndex(history.length - 1);
-		syncNav();
+		navigateReplay(history.length - 1);
 	}
 };
 
@@ -346,6 +392,23 @@ $effect(() => {
 
 	window.addEventListener("keydown", onKeyDown);
 	return () => window.removeEventListener("keydown", onKeyDown);
+});
+
+$effect(() => {
+	if (!browser || embedded || !replayActive) return;
+
+	const onHashChange = () => {
+		const index = clampMoveIndex(
+			parseMoveHash(window.location.hash),
+			history.length,
+		);
+		if (index == null || index === replayDriver.getTargetIndex()) return;
+		snapToIndex(index);
+		scrollMoveIntoView(index);
+	};
+
+	window.addEventListener("hashchange", onHashChange);
+	return () => window.removeEventListener("hashchange", onHashChange);
 });
 
 // Elo display helpers
@@ -586,6 +649,7 @@ const moveRows = $derived.by(() => {
 								<span class="move-num">{row.number}.</span>
 								<button
 									type="button"
+									id={moveAnchorId(row.whiteIndex)}
 									class="move-btn"
 									class:active={row.whiteIndex === viewIndex}
 									onclick={() => goToMove(row.whiteIndex)}
@@ -598,6 +662,7 @@ const moveRows = $derived.by(() => {
 								{#if row.black}
 									<button
 										type="button"
+										id={row.blackIndex != null ? moveAnchorId(row.blackIndex) : undefined}
 										class="move-btn"
 										class:active={row.blackIndex === viewIndex}
 										onclick={() => row.blackIndex != null && goToMove(row.blackIndex)}
