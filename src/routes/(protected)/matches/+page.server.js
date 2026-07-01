@@ -2,6 +2,7 @@ import { fail, redirect } from '@sveltejs/kit';
 import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
 import { enrichMatches } from '$lib/server/matches/enrich.js';
 import { deleteMatchById } from '$lib/server/matches/match-delete.js';
+import { PUBLIC_MATCH_FILTER } from '$lib/server/matches/match-status.js';
 import { updateMatchResultById } from '$lib/server/matches/match-result-update.js';
 
 const PER_PAGE = 10;
@@ -13,13 +14,13 @@ export async function load({ url }) {
 
 	const [playersCol, matchesCol] = await Promise.all([getPlayers(), getMatches()]);
 
-	const total = await matchesCol.countDocuments({});
+	const total = await matchesCol.countDocuments(PUBLIC_MATCH_FILTER);
 	const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
 	const page = Math.min(requestedPage, totalPages);
 	const skip = (page - 1) * PER_PAGE;
 
 	const matches = await matchesCol
-		.find({})
+		.find(PUBLIC_MATCH_FILTER)
 		.sort({ playedAt: -1 })
 		.skip(skip)
 		.limit(PER_PAGE)

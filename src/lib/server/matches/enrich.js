@@ -5,7 +5,14 @@
  */
 export const enrichMatches = async (playersCol, matches, ObjectId) => {
 	const playerIds = [
-		...new Set(matches.flatMap((m) => [m.whitePlayerId.toString(), m.blackPlayerId.toString()])),
+		...new Set(
+			matches.flatMap((m) => {
+				const ids = [];
+				if (m.whitePlayerId) ids.push(m.whitePlayerId.toString());
+				if (m.blackPlayerId) ids.push(m.blackPlayerId.toString());
+				return ids;
+			}),
+		),
 	];
 
 	const playerDocs = playerIds.length
@@ -22,14 +29,18 @@ export const enrichMatches = async (playersCol, matches, ObjectId) => {
 		eloChange: m.eloChange,
 		playedAt: m.playedAt,
 		timeFormat: typeof m.timeFormat === 'string' ? m.timeFormat : null,
-		whitePlayerId: m.whitePlayerId.toString(),
-		blackPlayerId: m.blackPlayerId.toString(),
+		whitePlayerId: m.whitePlayerId?.toString() ?? null,
+		blackPlayerId: m.blackPlayerId?.toString() ?? null,
 		winnerId: m.winnerId?.toString() ?? null,
-		whiteName: playerMap[m.whitePlayerId.toString()]?.name ?? 'Unknown',
-		blackName: playerMap[m.blackPlayerId.toString()]?.name ?? 'Unknown',
-		whiteIcon: playerMap[m.whitePlayerId.toString()]?.icon ?? '',
-		whiteAvatar: playerMap[m.whitePlayerId.toString()]?.avatarUrl ?? '',
-		blackIcon: playerMap[m.blackPlayerId.toString()]?.icon ?? '',
-		blackAvatar: playerMap[m.blackPlayerId.toString()]?.avatarUrl ?? '',
+		whiteName: m.whitePlayerId
+			? (playerMap[m.whitePlayerId.toString()]?.name ?? 'Unknown')
+			: 'Unknown',
+		blackName: m.blackPlayerId
+			? (playerMap[m.blackPlayerId.toString()]?.name ?? 'Unknown')
+			: 'Unknown',
+		whiteIcon: m.whitePlayerId ? (playerMap[m.whitePlayerId.toString()]?.icon ?? '') : '',
+		whiteAvatar: m.whitePlayerId ? (playerMap[m.whitePlayerId.toString()]?.avatarUrl ?? '') : '',
+		blackIcon: m.blackPlayerId ? (playerMap[m.blackPlayerId.toString()]?.icon ?? '') : '',
+		blackAvatar: m.blackPlayerId ? (playerMap[m.blackPlayerId.toString()]?.avatarUrl ?? '') : '',
 	}));
 };

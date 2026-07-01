@@ -80,3 +80,16 @@ export const setHonorSystem = async (honorSystemEnabled) => {
 		{ upsert: true },
 	);
 };
+
+/**
+ * @param {boolean} httpSubmitEnabled
+ */
+export const setHttpSubmit = async (httpSubmitEnabled) => {
+	const { getConfig } = await import('$lib/server/db.js');
+	const config = await getConfig();
+	await config.updateOne(
+		/** @type {any} */ ({ _id: 'global_settings' }),
+		{ $set: { httpSubmitEnabled, httpSubmitApiKey: 'test-api-key' } },
+		{ upsert: true },
+	);
+};
