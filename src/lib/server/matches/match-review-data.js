@@ -82,16 +82,15 @@ export const buildMatchReviewData = async (match, user) => {
 };
 
 /** @param {import('mongodb').Collection} matchesCol */
-export const pickRandomPgnMatch = async (matchesCol) => {
+export const pickLatestFeaturedMatch = async (matchesCol) => {
 	const candidates = await matchesCol
 		.find({
 			status: 'approved',
 			notation: { $exists: true, $type: 'string', $ne: '' },
 		})
+		.sort({ playedAt: -1 })
+		.limit(25)
 		.toArray();
 
-	const valid = candidates.filter(hasReplayablePgn);
-	if (!valid.length) return null;
-
-	return valid[Math.floor(Math.random() * valid.length)];
+	return candidates.find(hasReplayablePgn) ?? null;
 };
