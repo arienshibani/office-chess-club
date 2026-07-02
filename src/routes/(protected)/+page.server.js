@@ -1,7 +1,10 @@
 import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
 import { enrichMatches } from '$lib/server/matches/enrich.js';
+import {
+	buildMatchReviewData,
+	pickLatestFeaturedMatch,
+} from '$lib/server/matches/match-review-data.js';
 import { PUBLIC_MATCH_FILTER } from '$lib/server/matches/match-status.js';
-import { buildMatchReviewData, pickLatestFeaturedMatch } from '$lib/server/matches/match-review-data.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals }) {

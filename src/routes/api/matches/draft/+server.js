@@ -16,8 +16,9 @@ const parsePayload = (payload) => {
 		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid JSON body' };
 	}
 
-	const data =
-		/** @type {{ result?: unknown; notation?: unknown; timeFormat?: unknown }} */ (payload);
+	const data = /** @type {{ result?: unknown; notation?: unknown; timeFormat?: unknown }} */ (
+		payload
+	);
 
 	if (
 		typeof data.result !== 'string' ||

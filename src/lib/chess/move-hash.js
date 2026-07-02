@@ -6,14 +6,14 @@
  * @returns {number | null}
  */
 export const parseMoveHash = (hash) => {
-	const h = hash.replace(/^#/, "").trim().toLowerCase();
+	const h = hash.replace(/^#/, '').trim().toLowerCase();
 	if (!h) return null;
-	if (h === "start" || h === "0") return -1;
+	if (h === 'start' || h === '0') return -1;
 	const m = /^(?:m)?(\d+)([wb])$/.exec(h);
 	if (!m) return null;
 	const moveNumber = Number(m[1]);
 	if (!Number.isInteger(moveNumber) || moveNumber < 1) return null;
-	return (moveNumber - 1) * 2 + (m[2] === "b" ? 1 : 0);
+	return (moveNumber - 1) * 2 + (m[2] === 'b' ? 1 : 0);
 };
 
 /**
@@ -21,9 +21,9 @@ export const parseMoveHash = (hash) => {
  * @returns {string} hash fragment without leading # (e.g. "8w", "start")
  */
 export const formatMoveHash = (viewIndex) => {
-	if (viewIndex < 0) return "start";
+	if (viewIndex < 0) return 'start';
 	const moveNumber = Math.floor(viewIndex / 2) + 1;
-	const color = viewIndex % 2 === 0 ? "w" : "b";
+	const color = viewIndex % 2 === 0 ? 'w' : 'b';
 	return `${moveNumber}${color}`;
 };
 

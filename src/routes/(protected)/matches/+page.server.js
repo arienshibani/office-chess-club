@@ -2,8 +2,8 @@ import { fail, redirect } from '@sveltejs/kit';
 import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
 import { enrichMatches } from '$lib/server/matches/enrich.js';
 import { deleteMatchById } from '$lib/server/matches/match-delete.js';
-import { PUBLIC_MATCH_FILTER } from '$lib/server/matches/match-status.js';
 import { updateMatchResultById } from '$lib/server/matches/match-result-update.js';
+import { PUBLIC_MATCH_FILTER } from '$lib/server/matches/match-status.js';
 
 const PER_PAGE = 10;
 

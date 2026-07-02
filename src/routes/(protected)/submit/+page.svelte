@@ -398,7 +398,7 @@ const copyCurl = async (/** @type {string} */ text) => {
 		gap: 1rem;
 	}
 
-	.empty-state h2 {
+	h2 {
 		margin: 0;
 		font-size: 1rem;
 		color: var(--color-heading);
@@ -498,7 +498,6 @@ const copyCurl = async (/** @type {string} */ text) => {
 		flex-direction: column;
 		gap: 0.6rem;
 	}
-	h2 { margin: 0; font-size: 1rem; color: var(--color-heading); }
 	.http-help, .http-disabled, .http-note {
 		margin: 0;
 		font-size: 0.82rem;
