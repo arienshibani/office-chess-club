@@ -1,3 +1,18 @@
+# [1.1.0](https://github.com/arienshibani/office-chess-club/compare/v1.0.0...v1.1.0) (2026-08-31)
+
+
+### Bug Fixes
+
+* **docker:** start MongoDB replica set before app depends on it ([f285fe4](https://github.com/arienshibani/office-chess-club/commit/f285fe47b485d3e8131c758fc2f1c59b0564738d))
+
+
+### Features
+
+* **admin:** unify settings toggles and add board draft assignment control ([5b7613b](https://github.com/arienshibani/office-chess-club/commit/5b7613bde09527c227d956bffb7f613bda11add9))
+* **DOM anchor IDs for chess moves:** implement move hash parsing to the URL. ([277bc62](https://github.com/arienshibani/office-chess-club/commit/277bc622c6f9de695bc85d7490c9292b2c3a71ba))
+* **matches:** add board draft creation, finalization, and filtering ([5ebb601](https://github.com/arienshibani/office-chess-club/commit/5ebb6015c36ce6c69b6369d2e18daa154b206ad6))
+* **submit:** add board drafts tab with game preview and player assignment ([271329e](https://github.com/arienshibani/office-chess-club/commit/271329e3b7488acecb8b56c3715098e426c96ab5))
+
 # 1.0.0 (2026-06-24)
 
 
