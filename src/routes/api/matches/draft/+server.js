@@ -1,0 +1,90 @@
+import { json } from '@sveltejs/kit';
+import { DEFAULT_TIME_FORMAT, parseTimeFormatValue } from '$lib/chess/time-control.js';
+import { assertApiKey } from '$lib/server/auth/api-auth.js';
+import { createDraftMatch } from '$lib/server/matches/match-submit.js';
+
+const ALLOWED_RESULTS = new Set(['white', 'black', 'draw']);
+
+const methodNotAllowed = () =>
+	json({ error: 'Method not allowed' }, { status: 405, headers: { Allow: 'POST' } });
+
+/**
+ * @param {unknown} payload
+ */
+const parsePayload = (payload) => {
+	if (!payload || typeof payload !== 'object') {
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid JSON body' };
+	}
+
+	const data = /** @type {{ result?: unknown; notation?: unknown; timeFormat?: unknown }} */ (
+		payload
+	);
+
+	if (
+		typeof data.result !== 'string' ||
+		typeof data.notation !== 'string' ||
+		!data.result.trim() ||
+		!data.notation.trim()
+	) {
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Missing required fields' };
+	}
+
+	if (!ALLOWED_RESULTS.has(data.result)) {
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid result' };
+	}
+
+	const timeFormatRaw =
+		typeof data.timeFormat === 'string' && data.timeFormat.trim()
+			? data.timeFormat.trim()
+			: DEFAULT_TIME_FORMAT;
+	if (!parseTimeFormatValue(timeFormatRaw)) {
+		return { ok: /** @type {const} */ (false), status: 400, error: 'Invalid time format' };
+	}
+
+	return {
+		ok: /** @type {const} */ (true),
+		value: {
+			result: /** @type {'white' | 'black' | 'draw'} */ (data.result),
+			notation: data.notation,
+			timeFormat: timeFormatRaw,
+		},
+	};
+};
+
+/** @type {import('./$types').RequestHandler} */
+export const POST = async ({ request }) => {
+	const auth = await assertApiKey(request);
+	if (!auth.ok) return json({ error: auth.message }, { status: auth.status });
+
+	let body;
+	try {
+		body = await request.json();
+	} catch {
+		return json({ error: 'Invalid JSON body' }, { status: 400 });
+	}
+
+	const parsed = parsePayload(body);
+	if (!parsed.ok) return json({ error: parsed.error }, { status: parsed.status });
+
+	try {
+		const { matchId, status } = await createDraftMatch(parsed.value);
+		return json({ ok: true, matchId, status }, { status: 201 });
+	} catch (err) {
+		if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+			return json(
+				{ error: /** @type {string} */ (err.message) },
+				{ status: /** @type {number} */ (err.status) },
+			);
+		}
+		throw err;
+	}
+};
+
+/** @type {import('./$types').RequestHandler} */
+export const GET = methodNotAllowed;
+/** @type {import('./$types').RequestHandler} */
+export const PUT = methodNotAllowed;
+/** @type {import('./$types').RequestHandler} */
+export const PATCH = methodNotAllowed;
+/** @type {import('./$types').RequestHandler} */
+export const DELETE = methodNotAllowed;

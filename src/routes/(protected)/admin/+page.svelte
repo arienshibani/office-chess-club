@@ -20,7 +20,6 @@
 		Save,
 		Send,
 		Settings,
-		ShieldCheck,
 		SlidersHorizontal,
 		Trash2,
 		TriangleAlert,
@@ -33,6 +32,7 @@
 		withActionToast,
 	} from "$lib/client/action-toast.js";
 	import PieceColor from "$lib/components/player/PieceColor.svelte";
+	import AdminSettingSwitch from "$lib/components/admin/AdminSettingSwitch.svelte";
 	import DiscordIcon from "$lib/components/icons/DiscordIcon.svelte";
 	import SlackIcon from "$lib/components/icons/SlackIcon.svelte";
 
@@ -46,6 +46,7 @@
 	let togglingPublicView = $state(false);
 	let savingName = $state(false);
 	let togglingHttp = $state(false);
+	let togglingDraftAssign = $state(false);
 	let generatingKey = $state(false);
 	let showHttpApiKey = $state(false);
 	let savingSlack = $state(false);
@@ -193,7 +194,7 @@
 			onclick={() => setTab("advanced")}
 		>
 			<SlidersHorizontal size={15} aria-hidden="true" />
-			Advanced Settings
+			API Settings
 		</button>
 		<button
 			type="button"
@@ -225,100 +226,6 @@
 
 	{#if activeTab === "settings"}
 		<div class="tab-panel" role="tabpanel">
-			<!-- Public View Toggle -->
-			<section class="card">
-				<div class="section-header">
-					<h2 class="card-title">
-						<Globe size={18} aria-hidden="true" />
-						Public Viewing
-					</h2>
-					<div
-						class="toggle-status"
-						class:on={data.publicViewEnabled}
-					>
-						{data.publicViewEnabled ? "Enabled" : "Disabled"}
-					</div>
-				</div>
-				<p class="description">
-					When <strong>enabled</strong>, anyone can browse the
-					leaderboard, match history, and player profiles without
-					signing in. Match submission still requires an approved
-					account. When <strong>disabled</strong>, visitors must log
-					in to view club data.
-				</p>
-				<form
-					method="POST"
-					action="?/togglePublicView"
-					use:enhance={() => {
-						togglingPublicView = true;
-						return async (ctx) => {
-							await adminToast()(ctx);
-							togglingPublicView = false;
-						};
-					}}
-				>
-					<button
-						type="submit"
-						disabled={togglingPublicView}
-						class="toggle-btn with-icon"
-						class:danger={data.publicViewEnabled}
-					>
-						<Globe size={15} aria-hidden="true" />
-						{togglingPublicView
-							? "Updating…"
-							: data.publicViewEnabled
-								? "Require Login to Browse"
-								: "Allow Public Browsing"}
-					</button>
-				</form>
-			</section>
-
-			<!-- Honor System Toggle -->
-			<section class="card">
-				<div class="section-header">
-					<h2 class="card-title">
-						<Handshake size={18} aria-hidden="true" />
-						Honor System
-					</h2>
-					<div
-						class="toggle-status"
-						class:on={data.honorSystemEnabled}
-					>
-						{data.honorSystemEnabled ? "Enabled" : "Disabled"}
-					</div>
-				</div>
-				<p class="description">
-					When <strong>enabled</strong>, match results are applied
-					immediately without review. When <strong>disabled</strong>,
-					every match requires admin approval before ratings update.
-				</p>
-				<form
-					method="POST"
-					action="?/toggleHonorSystem"
-					use:enhance={() => {
-						toggling = true;
-						return async (ctx) => {
-							await adminToast()(ctx);
-							toggling = false;
-						};
-					}}
-				>
-					<button
-						type="submit"
-						disabled={toggling}
-						class="toggle-btn with-icon"
-						class:danger={data.honorSystemEnabled}
-					>
-						<ShieldCheck size={15} aria-hidden="true" />
-						{toggling
-							? "Updating…"
-							: data.honorSystemEnabled
-								? "Disable Honor System"
-								: "Enable Honor System"}
-					</button>
-				</form>
-			</section>
-
 			<section class="card">
 				<h2 class="card-title">
 					<Landmark size={18} aria-hidden="true" />
@@ -361,6 +268,79 @@
 					</button>
 				</form>
 				<p class="preview">Preview: <strong>{data.clubName}</strong></p>
+			</section>
+
+			<section class="card preferences-card">
+				<h2 class="card-title">
+					<SlidersHorizontal size={18} aria-hidden="true" />
+					Preferences
+				</h2>
+
+				<div class="setting-rows">
+					<div class="setting-row">
+						<div class="setting-info">
+							<h3 class="setting-title with-icon">
+								<Globe size={16} aria-hidden="true" />
+								Public viewing
+							</h3>
+							<p class="setting-description">
+								Allow visitors to browse the leaderboard,
+								matches, and profiles without signing in. Match
+								submission still requires an approved account.
+							</p>
+						</div>
+						<form
+							method="POST"
+							action="?/togglePublicView"
+							class="setting-switch-form"
+							use:enhance={() => {
+								togglingPublicView = true;
+								return async (ctx) => {
+									await adminToast()(ctx);
+									togglingPublicView = false;
+								};
+							}}
+						>
+							<AdminSettingSwitch
+								checked={data.publicViewEnabled}
+								disabled={togglingPublicView}
+								ariaLabel="Public viewing"
+							/>
+						</form>
+					</div>
+
+					<div class="setting-row">
+						<div class="setting-info">
+							<h3 class="setting-title with-icon">
+								<Handshake size={16} aria-hidden="true" />
+								Honor system
+							</h3>
+							<p class="setting-description">
+								Apply match results immediately without review.
+								When off, every match requires admin approval
+								before ratings update.
+							</p>
+						</div>
+						<form
+							method="POST"
+							action="?/toggleHonorSystem"
+							class="setting-switch-form"
+							use:enhance={() => {
+								toggling = true;
+								return async (ctx) => {
+									await adminToast()(ctx);
+									toggling = false;
+								};
+							}}
+						>
+							<AdminSettingSwitch
+								checked={data.honorSystemEnabled}
+								disabled={toggling}
+								ariaLabel="Honor system"
+							/>
+						</form>
+					</div>
+				</div>
 			</section>
 
 			<!-- Pending Matches Queue -->
@@ -521,34 +501,47 @@
 	{:else if activeTab === "notifications"}
 		<div class="tab-panel" role="tabpanel">
 			<section class="card">
-				<div class="section-header">
-					<h2 class="card-title">
-						<SlackIcon size={18} />
-						Slack
-					</h2>
-					<div
-						class="toggle-status"
-						class:on={data.slackWebhookConfigured &&
-							data.slackWebhookEnabled}
-					>
-						{!data.slackWebhookConfigured
-							? "Not configured"
-							: data.slackWebhookEnabled
-								? "Enabled"
-								: "Disabled"}
+				<div class="setting-row card-setting-row">
+					<div class="setting-info">
+						<h2 class="card-title setting-card-title">
+							<SlackIcon size={18} />
+							Slack
+						</h2>
+						<p class="setting-description">
+							Post match results and pending-match alerts to a
+							Slack channel.
+						</p>
 					</div>
+					<form
+						method="POST"
+						action="?/toggleSlackWebhook"
+						class="setting-switch-form"
+						use:enhance={() => {
+							togglingSlack = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								togglingSlack = false;
+							};
+						}}
+					>
+						<AdminSettingSwitch
+							checked={data.slackWebhookEnabled &&
+								data.slackWebhookConfigured}
+							disabled={togglingSlack ||
+								!data.slackWebhookConfigured}
+							ariaLabel="Slack notifications"
+						/>
+					</form>
 				</div>
 				<p class="description">
-					Post match results and pending-match alerts to a Slack
-					channel via an
+					Uses an
 					<a
 						href="https://api.slack.com/messaging/webhooks"
 						target="_blank"
 						rel="noopener noreferrer">incoming webhook</a
 					>. You can also set <code>SLACK_WEBHOOK_URL</code> in the environment
-					as a fallback. Save a URL here, then enable or disable notifications
-					without removing it. Clear the field and save to remove a stored
-					webhook.
+					as a fallback. Save a URL here, then toggle notifications on
+					or off without removing it.
 				</p>
 				{#if data.slackWebhookFromEnv && !data.slackWebhookStoredInDb}
 					<p class="hint">
@@ -600,33 +593,6 @@
 				<div class="http-admin-actions notification-admin-actions">
 					<form
 						method="POST"
-						action="?/toggleSlackWebhook"
-						use:enhance={() => {
-							togglingSlack = true;
-							return async (ctx) => {
-								await adminToast()(ctx);
-								togglingSlack = false;
-							};
-						}}
-					>
-						<button
-							type="submit"
-							disabled={togglingSlack ||
-								(!data.slackWebhookEnabled &&
-									!data.slackWebhookConfigured)}
-							class="toggle-btn with-icon"
-							class:danger={data.slackWebhookEnabled}
-						>
-							<ShieldCheck size={15} aria-hidden="true" />
-							{togglingSlack
-								? "Updating…"
-								: data.slackWebhookEnabled
-									? "Disable notifications"
-									: "Enable notifications"}
-						</button>
-					</form>
-					<form
-						method="POST"
 						action="?/testSlackWebhook"
 						use:enhance={() => {
 							testingSlack = true;
@@ -662,32 +628,47 @@
 			</section>
 
 			<section class="card">
-				<div class="section-header">
-					<h2 class="card-title">
-						<DiscordIcon size={18} />
-						Discord
-					</h2>
-					<div
-						class="toggle-status"
-						class:on={data.discordWebhookConfigured &&
-							data.discordWebhookEnabled}
-					>
-						{!data.discordWebhookConfigured
-							? "Not configured"
-							: data.discordWebhookEnabled
-								? "Enabled"
-								: "Disabled"}
+				<div class="setting-row card-setting-row">
+					<div class="setting-info">
+						<h2 class="card-title setting-card-title">
+							<DiscordIcon size={18} />
+							Discord
+						</h2>
+						<p class="setting-description">
+							Post match results and pending-match alerts to a
+							Discord channel.
+						</p>
 					</div>
+					<form
+						method="POST"
+						action="?/toggleDiscordWebhook"
+						class="setting-switch-form"
+						use:enhance={() => {
+							togglingDiscord = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								togglingDiscord = false;
+							};
+						}}
+					>
+						<AdminSettingSwitch
+							checked={data.discordWebhookEnabled &&
+								data.discordWebhookConfigured}
+							disabled={togglingDiscord ||
+								!data.discordWebhookConfigured}
+							ariaLabel="Discord notifications"
+						/>
+					</form>
 				</div>
 				<p class="description">
-					Post match results and pending-match alerts to a Discord
-					channel via a
+					Uses a
 					<a
 						href="https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks"
 						target="_blank"
 						rel="noopener noreferrer">channel webhook</a
 					>. You can also set <code>DISCORD_WEBHOOK_URL</code> in the environment
-					as a fallback. Slack and Discord can both be enabled at the same time.
+					as a fallback. Slack and Discord can both be enabled at the same
+					time.
 				</p>
 				{#if data.discordWebhookFromEnv && !data.discordWebhookStoredInDb}
 					<p class="hint">
@@ -739,33 +720,6 @@
 				<div class="http-admin-actions notification-admin-actions">
 					<form
 						method="POST"
-						action="?/toggleDiscordWebhook"
-						use:enhance={() => {
-							togglingDiscord = true;
-							return async (ctx) => {
-								await adminToast()(ctx);
-								togglingDiscord = false;
-							};
-						}}
-					>
-						<button
-							type="submit"
-							disabled={togglingDiscord ||
-								(!data.discordWebhookEnabled &&
-									!data.discordWebhookConfigured)}
-							class="toggle-btn with-icon"
-							class:danger={data.discordWebhookEnabled}
-						>
-							<ShieldCheck size={15} aria-hidden="true" />
-							{togglingDiscord
-								? "Updating…"
-								: data.discordWebhookEnabled
-									? "Disable notifications"
-									: "Enable notifications"}
-						</button>
-					</form>
-					<form
-						method="POST"
 						action="?/testDiscordWebhook"
 						use:enhance={() => {
 							testingDiscord = true;
@@ -803,23 +757,43 @@
 	{:else if activeTab === "advanced"}
 		<div class="tab-panel" role="tabpanel">
 			<section class="card">
-				<div class="section-header">
-					<h2 class="card-title">
-						<KeyRound size={18} aria-hidden="true" />
-						API Key
-					</h2>
-					<div
-						class="toggle-status"
-						class:on={data.httpSubmitEnabled}
-					>
-						{data.httpSubmitEnabled ? "Enabled" : "Disabled"}
+				<div class="setting-row card-setting-row">
+					<div class="setting-info">
+						<h2 class="card-title setting-card-title">
+							<KeyRound size={18} aria-hidden="true" />
+							HTTP submissions
+						</h2>
+						<p class="setting-description">
+							Allow scripts and smart boards to log matches via
+							the API.
+						</p>
 					</div>
+					<form
+						method="POST"
+						action="?/toggleHttpSubmit"
+						class="setting-switch-form"
+						use:enhance={() => {
+							togglingHttp = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								togglingHttp = false;
+							};
+						}}
+					>
+						<AdminSettingSwitch
+							checked={data.httpSubmitEnabled}
+							disabled={togglingHttp ||
+								(!data.httpSubmitEnabled &&
+									!data.httpSubmitHasKey)}
+							ariaLabel="HTTP submissions"
+						/>
+					</form>
 				</div>
 				<p class="description">
-					When <strong>enabled</strong>, scripts and third-party tools
-					can log matches via
-					<code>POST /api/matches</code> using a bearer token. Off by default
-					— generate a key, then enable when you are ready.
+					When enabled, tools can call <code>POST /api/matches</code>
+					and
+					<code>POST /api/matches/draft</code> using a bearer token. Generate
+					a key below, then turn submissions on when you are ready.
 				</p>
 				<div class="api-key-field">
 					<label>
@@ -890,36 +864,58 @@
 									: "Generate API key"}
 						</button>
 					</form>
-					<form
-						method="POST"
-						action="?/toggleHttpSubmit"
-						use:enhance={() => {
-							togglingHttp = true;
-							return async (ctx) => {
-								await adminToast()(ctx);
-								togglingHttp = false;
-							};
-						}}
-					>
-						<button
-							type="submit"
-							disabled={togglingHttp ||
-								(!data.httpSubmitEnabled &&
-									!data.httpSubmitHasKey)}
-							class="toggle-btn with-icon"
-							class:danger={data.httpSubmitEnabled}
-						>
-							<ShieldCheck size={15} aria-hidden="true" />
-							{togglingHttp
-								? "Updating…"
-								: data.httpSubmitEnabled
-									? "Disable HTTP submissions"
-									: "Enable HTTP submissions"}
-						</button>
-					</form>
 				</div>
 				{#if !data.httpSubmitHasKey}
 					<p class="hint">Generate an API key before enabling.</p>
+				{/if}
+			</section>
+
+			<section class="card">
+				<div class="setting-row card-setting-row">
+					<div class="setting-info">
+						<h2 class="card-title setting-card-title">
+							<ClipboardClock size={18} aria-hidden="true" />
+							Board draft assignment
+						</h2>
+						<p class="setting-description">
+							Who can assign players to games uploaded from a DGT
+							board.
+						</p>
+					</div>
+					<form
+						method="POST"
+						action="?/toggleDraftAssignAdminOnly"
+						class="setting-switch-form"
+						use:enhance={() => {
+							togglingDraftAssign = true;
+							return async (ctx) => {
+								await adminToast()(ctx);
+								togglingDraftAssign = false;
+							};
+						}}
+					>
+						<AdminSettingSwitch
+							checked={!data.draftAssignAdminOnly}
+							disabled={togglingDraftAssign ||
+								!data.httpSubmitEnabled}
+							labelOn="All"
+							labelOff="Admin"
+							ariaLabel="Board draft assignment"
+						/>
+					</form>
+				</div>
+				<p class="description">
+					When HTTP submissions are enabled, a DGT board can upload
+					games as
+					<strong>drafts</strong> via
+					<code>POST /api/matches/draft</code>. Members assign White
+					and Black on the <strong>Board drafts</strong> tab under Submit
+					results.
+				</p>
+				{#if !data.httpSubmitEnabled}
+					<p class="hint">
+						Enable HTTP submissions to use board drafts.
+					</p>
 				{/if}
 			</section>
 
@@ -1368,6 +1364,68 @@
 		color: var(--color-success);
 		border-color: var(--color-badge-win-border);
 		background: var(--color-admin-toggle-on-bg);
+	}
+
+	.setting-switch-form {
+		margin: 0;
+		flex-shrink: 0;
+	}
+
+	.card-setting-row {
+		padding-top: 0;
+		padding-bottom: 0.25rem;
+	}
+
+	.setting-card-title {
+		margin-bottom: 0.3rem;
+	}
+
+	.preferences-card {
+		gap: 1rem;
+	}
+
+	.setting-rows {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+	}
+
+	.setting-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: 1rem 1.25rem;
+		padding: 0.9rem 0;
+	}
+
+	.setting-row:first-child {
+		padding-top: 0;
+	}
+
+	.setting-row:last-child {
+		padding-bottom: 0;
+	}
+
+	.setting-row + .setting-row {
+		border-top: 1px solid var(--color-border);
+	}
+
+	.setting-info {
+		min-width: 0;
+	}
+
+	.setting-title {
+		margin: 0 0 0.3rem;
+		font-size: 0.92rem;
+		font-weight: 600;
+		color: var(--color-text);
+	}
+
+	.setting-description {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--color-text-faint);
+		line-height: 1.5;
 	}
 
 	.description {

@@ -5,6 +5,7 @@ import { getMatches, ObjectId } from '$lib/server/db.js';
 import { deleteMatchById } from '$lib/server/matches/match-delete.js';
 import { updateMatchResultById } from '$lib/server/matches/match-result-update.js';
 import { buildMatchReviewData } from '$lib/server/matches/match-review-data.js';
+import { MATCH_STATUS_DRAFT } from '$lib/server/matches/match-status.js';
 
 /** @param {import('mongodb').ObjectId} whiteId @param {import('mongodb').ObjectId} blackId @param {string} userId */
 const isMatchParticipant = (whiteId, blackId, userId) =>
@@ -32,6 +33,9 @@ export async function load({ params, locals, depends }) {
 	const matchesCol = await getMatches();
 	const match = await matchesCol.findOne({ _id: oid });
 	if (!match) error(404, 'Match not found');
+	if (match.status === MATCH_STATUS_DRAFT) {
+		redirect(303, '/submit?tab=drafts');
+	}
 
 	return buildMatchReviewData(match, locals.user);
 }

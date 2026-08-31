@@ -3,6 +3,7 @@ import { buildEloHistoryFromDocs } from '$lib/chess/elo-history.js';
 import { normalizeTheme } from '$lib/client/theme.js';
 import { hashPassword, verifyPassword } from '$lib/server/auth/password.js';
 import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
+import { PUBLIC_MATCH_FILTER } from '$lib/server/matches/match-status.js';
 import { normalizePlayerIcon } from '$lib/utils/player-icon.js';
 
 /** @param {import('@sveltejs/kit').RequestEvent} event */
@@ -37,6 +38,7 @@ export async function load({ params, locals, depends }) {
 	const [matches, historyDocs] = await Promise.all([
 		matchesCol
 			.find({
+				...PUBLIC_MATCH_FILTER,
 				$or: [{ whitePlayerId: oid }, { blackPlayerId: oid }],
 			})
 			.sort({ playedAt: -1 })

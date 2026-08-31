@@ -106,6 +106,7 @@ export async function load({ locals, depends }) {
 			typeof config?.httpSubmitApiKey === 'string' ? config.httpSubmitApiKey.trim() : '',
 		httpSubmitHasKey:
 			typeof config?.httpSubmitApiKey === 'string' && !!config.httpSubmitApiKey.trim(),
+		draftAssignAdminOnly: config?.draftAssignAdminOnly === true,
 		slackWebhookConfigured: slackWebhook.configured,
 		slackWebhookEnabled: slackWebhook.enabled,
 		slackWebhookStoredInDb: slackWebhook.storedInDb,
@@ -357,6 +358,27 @@ export const actions = {
 		return {
 			success: true,
 			message: 'New API key generated.',
+		};
+	},
+
+	toggleDraftAssignAdminOnly: async ({ locals }) => {
+		if (!locals.user?.isAdmin) return fail(403, { error: 'Forbidden' });
+
+		const cfgCol = await getConfig();
+		const config = await cfgCol.findOne(/** @type {any} */ ({ _id: 'global_settings' }));
+		const current = config?.draftAssignAdminOnly === true;
+
+		await cfgCol.updateOne(
+			/** @type {any} */ ({ _id: 'global_settings' }),
+			{ $set: { draftAssignAdminOnly: !current } },
+			{ upsert: true },
+		);
+
+		return {
+			success: true,
+			message: !current
+				? 'Board draft assignment restricted to admins.'
+				: 'All members can assign board drafts.',
 		};
 	},
 

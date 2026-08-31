@@ -84,6 +84,7 @@ export async function ensureIndexes() {
 				honorSystemEnabled: true,
 				clubName: 'Office',
 				httpSubmitEnabled: false,
+				draftAssignAdminOnly: false,
 				publicViewEnabled: true,
 				slackWebhookEnabled: true,
 				discordWebhookEnabled: true,

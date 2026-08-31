@@ -40,8 +40,9 @@ const serializeMatch = (match) => ({
 			: null,
 	playedAt: match.playedAt,
 	winnerId: match.winnerId?.toString() ?? null,
-	whitePlayerId: match.whitePlayerId.toString(),
-	blackPlayerId: match.blackPlayerId.toString(),
+	whitePlayerId: match.whitePlayerId?.toString() ?? null,
+	blackPlayerId: match.blackPlayerId?.toString() ?? null,
+	draftResult: typeof match.draftResult === 'string' ? match.draftResult : null,
 });
 
 /** @param {import('mongodb').Document | null | undefined} player */
@@ -63,13 +64,16 @@ const serializePlayer = (player) =>
 export const buildMatchReviewData = async (match, user) => {
 	const playersCol = await getPlayers();
 	const [white, black] = await Promise.all([
-		playersCol.findOne({ _id: match.whitePlayerId }),
-		playersCol.findOne({ _id: match.blackPlayerId }),
+		match.whitePlayerId ? playersCol.findOne({ _id: match.whitePlayerId }) : null,
+		match.blackPlayerId ? playersCol.findOne({ _id: match.blackPlayerId }) : null,
 	]);
 
 	const userId = user?._id ?? '';
 	const canEditNotation =
-		!!userId && isMatchParticipant(match.whitePlayerId, match.blackPlayerId, userId);
+		!!match.whitePlayerId &&
+		!!match.blackPlayerId &&
+		!!userId &&
+		isMatchParticipant(match.whitePlayerId, match.blackPlayerId, userId);
 
 	return {
 		match: serializeMatch(match),
@@ -82,16 +86,15 @@ export const buildMatchReviewData = async (match, user) => {
 };
 
 /** @param {import('mongodb').Collection} matchesCol */
-export const pickRandomPgnMatch = async (matchesCol) => {
+export const pickLatestFeaturedMatch = async (matchesCol) => {
 	const candidates = await matchesCol
 		.find({
 			status: 'approved',
 			notation: { $exists: true, $type: 'string', $ne: '' },
 		})
+		.sort({ playedAt: -1 })
+		.limit(25)
 		.toArray();
 
-	const valid = candidates.filter(hasReplayablePgn);
-	if (!valid.length) return null;
-
-	return valid[Math.floor(Math.random() * valid.length)];
+	return candidates.find(hasReplayablePgn) ?? null;
 };

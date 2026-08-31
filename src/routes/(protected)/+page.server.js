@@ -1,20 +1,24 @@
 import { getMatches, getPlayers, ObjectId } from '$lib/server/db.js';
 import { enrichMatches } from '$lib/server/matches/enrich.js';
-import { buildMatchReviewData, pickRandomPgnMatch } from '$lib/server/matches/match-review-data.js';
+import {
+	buildMatchReviewData,
+	pickLatestFeaturedMatch,
+} from '$lib/server/matches/match-review-data.js';
+import { PUBLIC_MATCH_FILTER } from '$lib/server/matches/match-status.js';
 
 /** @type {import('./$types').PageServerLoad} */
 export async function load({ locals }) {
 	const [playersCol, matchesCol] = await Promise.all([getPlayers(), getMatches()]);
 
-	const [leaderboard, recentMatches, randomMatch] = await Promise.all([
+	const [leaderboard, recentMatches, featuredMatch] = await Promise.all([
 		playersCol.find({}).sort({ rating: -1 }).toArray(),
-		matchesCol.find({}).sort({ playedAt: -1 }).limit(3).toArray(),
-		pickRandomPgnMatch(matchesCol),
+		matchesCol.find(PUBLIC_MATCH_FILTER).sort({ playedAt: -1 }).limit(3).toArray(),
+		pickLatestFeaturedMatch(matchesCol),
 	]);
 
 	const [enrichedMatches, showcasedMatch] = await Promise.all([
 		enrichMatches(playersCol, recentMatches, ObjectId),
-		randomMatch ? buildMatchReviewData(randomMatch, locals.user) : null,
+		featuredMatch ? buildMatchReviewData(featuredMatch, locals.user) : null,
 	]);
 
 	return {
