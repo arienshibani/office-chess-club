@@ -80,14 +80,15 @@
 		<div class="chart-row">
 			<div class="y-axis">
 				<span class="y-axis-row" title="White advantage">
-					<PieceColor color="white" size={11} />
 					<span class="y-axis-name">{whiteName}</span>
+					<PieceColor color="white" size={11} />
 				</span>
 				<span class="y-axis-row" title="Black advantage">
-					<PieceColor color="black" size={11} />
 					<span class="y-axis-name">{blackName}</span>
+					<PieceColor color="black" size={11} />
 				</span>
-			</div>			<svg
+			</div>
+			<svg
 				bind:this={svgEl}
 				class="chart"
 				viewBox="0 0 {chart.width} {chart.height}"
@@ -203,8 +204,9 @@
 	}
 
 	.y-axis-row {
-		display: inline-flex;
+		display: flex;
 		align-items: center;
+		justify-content: flex-end;
 		gap: 0.3rem;
 		min-width: 0;
 		line-height: 1.1;
