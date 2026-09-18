@@ -35,6 +35,11 @@
 	--color-error-soft: #f87171;
 	--color-blunder: #c97878;
 	--color-blunder-strong: #e09090;
+	--color-eval-chart-zone-white: #2a2a2a;
+	--color-eval-chart-zone-black: #141414;
+	--color-eval-chart-fill-white: rgba(236, 236, 236, 0.42);
+	--color-eval-chart-fill-black: rgba(8, 8, 8, 0.55);
+	--color-eval-chart-line: #d0d0d0;
 	--color-warning: #e0a020;
 	--color-link-hover: #ffffff;
 	--color-pie-empty: #323232;
@@ -130,6 +135,11 @@
 	--color-notice-border: #fde68a;
 	--color-blunder: #b54e4e;
 	--color-blunder-strong: #9f3a3a;
+	--color-eval-chart-zone-white: #f4f4f5;
+	--color-eval-chart-zone-black: #d4d4d8;
+	--color-eval-chart-fill-white: rgba(255, 255, 255, 0.72);
+	--color-eval-chart-fill-black: rgba(39, 39, 42, 0.38);
+	--color-eval-chart-line: #3f3f46;
 	--color-error-bg: #fef2f2;
 	--color-error-border: #fecaca;
 	--color-error-bg-soft: #fef2f2;
