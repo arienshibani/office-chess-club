@@ -19,6 +19,7 @@ import { withActionToast } from "$lib/client/action-toast.js";
 import ChessBoard from "$lib/components/board/ChessBoard.svelte";
 import { buildSuggestionDisplay } from "$lib/chess/arrows.js";
 import EvalBar from "$lib/components/board/EvalBar.svelte";
+import EvalAdvantageChart from "$lib/components/board/EvalAdvantageChart.svelte";
 import MatchActionsMenu from "$lib/components/matches/MatchActionsMenu.svelte";
 import { detectNotationType } from "$lib/chess/notation.js";
 import PieceColor from "$lib/components/player/PieceColor.svelte";
@@ -638,6 +639,21 @@ const moveRows = $derived.by(() => {
 				{/if}
 			</div>
 
+			{#if !embedded && replayActive && analysisAvailable}
+				<div
+					class="eval-chart-slot"
+					class:with-eval={analysisAvailable}
+				>
+					<EvalAdvantageChart
+						{evals}
+						activeIndex={viewIndex + 1}
+						whiteName={white?.name ?? 'White'}
+						blackName={black?.name ?? 'Black'}
+						onSelectIndex={(index) => goToMove(index - 1)}
+					/>
+				</div>
+			{/if}
+
 			{#if notationType === 'pgn' && history.length > 0}
 				{#if !embedded}
 					<div class="analysis-progress-slot" aria-live="polite">
@@ -999,6 +1015,19 @@ const moveRows = $derived.by(() => {
 		grid-template-columns: minmax(0, 1fr) 2.75rem;
 		gap: 0.5rem;
 		max-width: min(600px, 100%);
+	}
+
+	.eval-chart-slot {
+		width: 100%;
+		max-width: min(480px, 100%);
+	}
+
+	.eval-chart-slot.with-eval {
+		max-width: min(600px, 100%);
+	}
+
+	.eval-chart-slot :global(.eval-chart) {
+		max-width: 100%;
 	}
 
 	.board-wrap {
