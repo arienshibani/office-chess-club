@@ -1,6 +1,7 @@
 import { Chess } from 'chess.js';
 import { detectNotationType } from '$lib/chess/notation.js';
 import { getPlayers } from '$lib/server/db.js';
+import { serializeStoredAnalysis } from '$lib/server/matches/match-analysis.js';
 
 /** @param {import('mongodb').ObjectId} whiteId @param {import('mongodb').ObjectId} blackId @param {string} userId */
 const isMatchParticipant = (whiteId, blackId, userId) =>
@@ -22,28 +23,42 @@ export const hasReplayablePgn = (match) => {
 };
 
 /** @param {import('mongodb').Document} match */
-const serializeMatch = (match) => ({
-	_id: match._id.toString(),
-	isDraw: match.isDraw,
-	status: match.status,
-	eloChange: match.eloChange,
-	notation: match.notation ?? null,
-	timeFormat: typeof match.timeFormat === 'string' ? match.timeFormat : null,
-	timeControl:
-		match.timeControl &&
-		typeof match.timeControl.baseSeconds === 'number' &&
-		typeof match.timeControl.incrementSeconds === 'number'
-			? {
-					baseSeconds: match.timeControl.baseSeconds,
-					incrementSeconds: match.timeControl.incrementSeconds,
-				}
-			: null,
-	playedAt: match.playedAt,
-	winnerId: match.winnerId?.toString() ?? null,
-	whitePlayerId: match.whitePlayerId?.toString() ?? null,
-	blackPlayerId: match.blackPlayerId?.toString() ?? null,
-	draftResult: typeof match.draftResult === 'string' ? match.draftResult : null,
-});
+const serializeMatch = (match) => {
+	let moveCount;
+	if (typeof match.notation === 'string' && detectNotationType(match.notation) === 'pgn') {
+		try {
+			const chess = new Chess();
+			chess.loadPgn(match.notation);
+			moveCount = chess.history().length;
+		} catch {
+			moveCount = undefined;
+		}
+	}
+
+	return {
+		_id: match._id.toString(),
+		isDraw: match.isDraw,
+		status: match.status,
+		eloChange: match.eloChange,
+		notation: match.notation ?? null,
+		timeFormat: typeof match.timeFormat === 'string' ? match.timeFormat : null,
+		timeControl:
+			match.timeControl &&
+			typeof match.timeControl.baseSeconds === 'number' &&
+			typeof match.timeControl.incrementSeconds === 'number'
+				? {
+						baseSeconds: match.timeControl.baseSeconds,
+						incrementSeconds: match.timeControl.incrementSeconds,
+					}
+				: null,
+		playedAt: match.playedAt,
+		winnerId: match.winnerId?.toString() ?? null,
+		whitePlayerId: match.whitePlayerId?.toString() ?? null,
+		blackPlayerId: match.blackPlayerId?.toString() ?? null,
+		draftResult: typeof match.draftResult === 'string' ? match.draftResult : null,
+		analysis: serializeStoredAnalysis(match.analysis, { moveCount }),
+	};
+};
 
 /** @param {import('mongodb').Document | null | undefined} player */
 const serializePlayer = (player) =>

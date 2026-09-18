@@ -64,7 +64,10 @@ export const actions = {
 		const parsed = validateNotation(raw);
 		if (!parsed.ok) return fail(400, { error: parsed.error });
 
-		await matchesCol.updateOne({ _id: oid }, { $set: { notation: parsed.notation } });
+		await matchesCol.updateOne(
+			{ _id: oid },
+			{ $set: { notation: parsed.notation }, $unset: { analysis: '' } },
+		);
 
 		return { notationSuccess: true, message: 'Notation saved.' };
 	},

@@ -33,6 +33,8 @@
 	--color-success: #60c060;
 	--color-error: #f06060;
 	--color-error-soft: #f87171;
+	--color-blunder: #c97878;
+	--color-blunder-strong: #e09090;
 	--color-warning: #e0a020;
 	--color-link-hover: #ffffff;
 	--color-pie-empty: #323232;
@@ -126,6 +128,8 @@
 	--color-pagination-active-border: #d4d4d8;
 	--color-notice-bg: #fffbeb;
 	--color-notice-border: #fde68a;
+	--color-blunder: #b54e4e;
+	--color-blunder-strong: #9f3a3a;
 	--color-error-bg: #fef2f2;
 	--color-error-border: #fecaca;
 	--color-error-bg-soft: #fef2f2;

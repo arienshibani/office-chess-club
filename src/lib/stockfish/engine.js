@@ -1,9 +1,10 @@
 import { browser } from '$app/environment';
 import { parseUciMove } from '$lib/chess/arrows.js';
+import { ANALYSIS_DEPTH_DEFAULT } from '$lib/stockfish/analysis-constants.js';
 import { normalizeEvalForWhite } from './eval-display.js';
 
 const STOCKFISH_URL = '/stockfish.js';
-const DEFAULT_DEPTH = 14;
+const DEFAULT_DEPTH = ANALYSIS_DEPTH_DEFAULT;
 
 /**
  * @typedef {{ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }} AnalysisResult
