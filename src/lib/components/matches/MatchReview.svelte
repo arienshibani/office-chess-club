@@ -9,6 +9,7 @@ import {
 	FileCode2,
 	Lightbulb,
 	Save,
+	Settings,
 } from "@lucide/svelte";
 import { Chess } from "chess.js";
 import { browser } from "$app/environment";
@@ -30,7 +31,14 @@ import {
 import { INITIAL_FEN } from "$lib/chess/pgn-replay.js";
 import { createSlideReplayDriver } from "$lib/chess/pgn-slide-animation.js";
 import ResultBadge from "$lib/components/matches/ResultBadge.svelte";
+import {
+	ANALYSIS_DEPTH_DEFAULT,
+	ANALYSIS_DEPTH_MAX,
+	ANALYSIS_DEPTH_MIN,
+	ANALYSIS_ENGINE_ID,
+} from "$lib/stockfish/analysis-constants.js";
 import { analyzeHistory } from "$lib/stockfish/analyze-timeline.js";
+import { findBlunderPlyIndices } from "$lib/stockfish/classify-moves.js";
 import { stopEngine } from "$lib/stockfish/engine.js";
 import {
 	computeClockStateByPly,
@@ -228,8 +236,38 @@ let analysisAvailable = $state(true);
 let analysisProgress = $state(
 	/** @type {{ done: number, total: number } | null} */ (null),
 );
+let analysisSettingsOpen = $state(false);
+let analysisDepthDraft = $state(ANALYSIS_DEPTH_DEFAULT);
+let analysisMeta = $state(
+	/** @type {{ depth: number, analyzedAt: string | null } | null} */ (null),
+);
+/** @type {{ mode: 'auto' } | { mode: 'force', depth: number, nonce: number }} */
+let analysisRequest = $state({ mode: "auto" });
+/** Local copy so first-save / re-analyze updates hydrate without a full navigation. */
+let localAnalysis = $state(
+	/** @type {{ depth: number, engine?: string, analyzedAt: string | null, positions: { cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }[] } | null} */ (
+		null
+	),
+);
+
+$effect(() => {
+	// Reset cached analysis when switching matches or when notation changes
+	// (notation edits clear analysis in the DB).
+	const syncKey = `${match._id}:${match.notation ?? ""}`;
+	localAnalysis = match.analysis ?? null;
+	analysisRequest = { mode: "auto" };
+	analysisDepthDraft = match.analysis?.depth ?? ANALYSIS_DEPTH_DEFAULT;
+	analysisMeta = match.analysis
+		? {
+				depth: match.analysis.depth,
+				analyzedAt: match.analysis.analyzedAt ?? null,
+			}
+		: null;
+	void syncKey;
+});
 
 const currentEval = $derived(evals[viewIndex + 1] ?? null);
+const blunderPlies = $derived(findBlunderPlyIndices(evals));
 let showSuggestions = $state(false);
 
 const activeSuggestion = $derived(
@@ -314,6 +352,7 @@ const currentClock = $derived.by(() => {
 $effect(() => {
 	if (!browser || embedded) return;
 	const key = lastReplayKey;
+	const request = analysisRequest;
 	const notation = match.notation ?? "";
 	if (!key || detectNotationType(notation) !== "pgn" || !notation) return;
 
@@ -327,14 +366,39 @@ $effect(() => {
 	}
 	if (!moves.length) return;
 
+	const stored = localAnalysis;
+	const canUseStored =
+		request.mode === "auto" &&
+		Array.isArray(stored?.positions) &&
+		stored.positions.length === moves.length + 1;
+
+	if (canUseStored && stored) {
+		evals = stored.positions;
+		analysisLoading = false;
+		analysisAvailable = true;
+		analysisProgress = null;
+		analysisMeta = {
+			depth: stored.depth,
+			analyzedAt: stored.analyzedAt ?? null,
+		};
+		return;
+	}
+
+	const depth =
+		request.mode === "force"
+			? request.depth
+			: (stored?.depth ?? ANALYSIS_DEPTH_DEFAULT);
+	const forcePersist = request.mode === "force";
 	const ac = new AbortController();
 
 	analysisLoading = true;
 	analysisAvailable = true;
 	analysisProgress = null;
 	evals = [];
+	analysisMeta = null;
 
 	analyzeHistory(moves, {
+		depth,
 		signal: ac.signal,
 		/** @param {{ cp?: number, mate?: number, bestMove?: { from: string, to: string } | null }} point @param {number} index @param {number} total */
 		onProgress: (point, index, total) => {
@@ -345,8 +409,47 @@ $effect(() => {
 			analysisProgress = { done: index + 1, total };
 		},
 	})
-		.then((results) => {
-			if (!ac.signal.aborted) evals = results;
+		.then(async (results) => {
+			if (ac.signal.aborted) return;
+			evals = results;
+			const analyzedAt = new Date().toISOString();
+			analysisMeta = { depth, analyzedAt };
+			const fallbackStored = {
+				depth,
+				engine: ANALYSIS_ENGINE_ID,
+				analyzedAt,
+				positions: results,
+			};
+			// Prefer cached hydrate on the next effect pass (avoids force-loop).
+			analysisRequest = { mode: "auto" };
+			localAnalysis = fallbackStored;
+
+			try {
+				const response = await fetch(`/api/matches/${match._id}/analysis`, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({
+						depth,
+						engine: ANALYSIS_ENGINE_ID,
+						positions: results,
+						force: forcePersist,
+					}),
+				});
+				if (!response.ok) {
+					console.error("Failed to persist analysis:", await response.text());
+					return;
+				}
+				const payload = await response.json();
+				if (payload?.analysis?.positions) {
+					localAnalysis = payload.analysis;
+					analysisMeta = {
+						depth: payload.analysis.depth ?? depth,
+						analyzedAt: payload.analysis.analyzedAt ?? analyzedAt,
+					};
+				}
+			} catch (err) {
+				console.error("Failed to persist analysis:", err);
+			}
 		})
 		.catch((err) => {
 			if (err?.name !== "AbortError") {
@@ -367,6 +470,15 @@ $effect(() => {
 	};
 });
 
+const startReanalysis = () => {
+	const depth = Math.min(
+		ANALYSIS_DEPTH_MAX,
+		Math.max(ANALYSIS_DEPTH_MIN, Math.round(Number(analysisDepthDraft)) || ANALYSIS_DEPTH_DEFAULT),
+	);
+	analysisDepthDraft = depth;
+	analysisSettingsOpen = false;
+	analysisRequest = { mode: "force", depth, nonce: Date.now() };
+};
 $effect(() => {
 	if (!browser || !replayActive) return;
 
@@ -533,6 +645,10 @@ const moveRows = $derived.by(() => {
 							<p class="analysis-progress">
 								Analyzing {analysisProgress.done}/{analysisProgress.total}…
 							</p>
+						{:else if analysisMeta && !analysisLoading}
+							<p class="analysis-progress muted">
+								Engine depth {analysisMeta.depth}
+							</p>
 						{:else if showSuggestions && activeSuggestion}
 							<p class="suggestion-hint">
 								Gray arrow and faded piece = engine suggestion (not played in this game).
@@ -625,6 +741,55 @@ const moveRows = $derived.by(() => {
 						<Lightbulb size={15} aria-hidden="true" />
 						<span class="suggestion-toggle-label">Toggle suggested move</span>
 					</button>
+					<div class="analysis-toolbar">
+						<details
+							class="analysis-settings"
+							bind:open={analysisSettingsOpen}
+						>
+							<summary
+								class="analysis-settings-toggle with-icon"
+								title="Analysis settings"
+								aria-label="Analysis settings"
+							>
+								<Settings size={15} aria-hidden="true" />
+								<span>Analysis</span>
+							</summary>
+							<div class="analysis-settings-panel">
+								{#if analysisMeta}
+									<p class="analysis-meta">
+										Saved at depth {analysisMeta.depth}
+										{#if analysisMeta.analyzedAt}
+											· {new Date(analysisMeta.analyzedAt).toLocaleString()}
+										{/if}
+									</p>
+								{:else if analysisLoading}
+									<p class="analysis-meta">Running engine…</p>
+								{:else}
+									<p class="analysis-meta">No saved analysis yet.</p>
+								{/if}
+								<label class="analysis-depth-label">
+									<span>Depth ({ANALYSIS_DEPTH_MIN}–{ANALYSIS_DEPTH_MAX})</span>
+									<input
+										type="number"
+										min={ANALYSIS_DEPTH_MIN}
+										max={ANALYSIS_DEPTH_MAX}
+										step="1"
+										bind:value={analysisDepthDraft}
+										disabled={analysisLoading}
+									/>
+								</label>
+								<button
+									type="button"
+									class="analysis-rerun-btn with-icon"
+									onclick={startReanalysis}
+									disabled={analysisLoading}
+								>
+									<Settings size={14} aria-hidden="true" />
+									{localAnalysis ? 'Re-analyze & overwrite' : 'Analyze & save'}
+								</button>
+							</div>
+						</details>
+					</div>
 					{#if currentClock}
 						<div class="clock-strip clock-strip-sidebar">
 							<div class="clock-item">
@@ -652,6 +817,7 @@ const moveRows = $derived.by(() => {
 									id={moveAnchorId(row.whiteIndex)}
 									class="move-btn"
 									class:active={row.whiteIndex === viewIndex}
+									class:blunder={blunderPlies.has(row.whiteIndex)}
 									onclick={() => goToMove(row.whiteIndex)}
 								>
 									<span>{row.white}</span>
@@ -665,6 +831,7 @@ const moveRows = $derived.by(() => {
 										id={row.blackIndex != null ? moveAnchorId(row.blackIndex) : undefined}
 										class="move-btn"
 										class:active={row.blackIndex === viewIndex}
+										class:blunder={row.blackIndex != null && blunderPlies.has(row.blackIndex)}
 										onclick={() => row.blackIndex != null && goToMove(row.blackIndex)}
 									>
 										<span>{row.black}</span>
@@ -970,9 +1137,115 @@ const moveRows = $derived.by(() => {
 	}
 	.move-btn:hover { background: var(--color-match-move-bg); color: var(--color-link-hover); }
 	.move-btn.active { background: var(--color-match-move-active-bg); color: var(--color-link-hover); font-weight: 600; }
+	.move-btn.blunder {
+		color: var(--color-blunder);
+	}
+	.move-btn.blunder:hover,
+	.move-btn.blunder.active {
+		color: var(--color-blunder-strong);
+	}
 	.move-time {
 		font-size: 0.72rem;
 		opacity: 0.8;
+	}
+
+	.analysis-toolbar {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+
+	.analysis-settings {
+		border: 1px solid var(--color-border);
+		border-radius: 8px;
+		background: var(--color-surface);
+		padding: 0;
+	}
+
+	.analysis-settings-toggle {
+		list-style: none;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		width: 100%;
+		padding: 8px 12px;
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: var(--color-text-soft);
+		box-sizing: border-box;
+	}
+
+	.analysis-settings-toggle::-webkit-details-marker {
+		display: none;
+	}
+
+	.analysis-settings[open] .analysis-settings-toggle {
+		border-bottom: 1px solid var(--color-border);
+		color: var(--color-text);
+	}
+
+	.analysis-settings-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		padding: 10px 12px 12px;
+	}
+
+	.analysis-meta {
+		margin: 0;
+		font-size: 0.75rem;
+		color: var(--color-text-subtle);
+		line-height: 1.4;
+	}
+
+	.analysis-depth-label {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		font-size: 0.75rem;
+		color: var(--color-text-subtle);
+	}
+
+	.analysis-depth-label input {
+		background: var(--color-input-bg);
+		border: 1px solid var(--color-border-strong);
+		border-radius: 6px;
+		color: var(--color-text);
+		padding: 6px 8px;
+		font-size: 0.85rem;
+		font-family: inherit;
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.analysis-rerun-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		background: var(--color-btn-secondary-bg);
+		color: var(--color-btn-secondary-text);
+		border: 1px solid var(--color-border);
+		border-radius: 6px;
+		padding: 8px 10px;
+		font-size: 0.8rem;
+		font-weight: 600;
+		cursor: pointer;
+	}
+
+	.analysis-rerun-btn:hover:not(:disabled) {
+		opacity: 0.9;
+	}
+
+	.analysis-rerun-btn:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
+	}
+
+	.analysis-progress.muted {
+		color: var(--color-text-faint);
 	}
 
 	.move-row {
