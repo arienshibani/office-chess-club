@@ -1,3 +1,15 @@
+# [1.3.0](https://github.com/arienshibani/office-chess-club/compare/v1.2.0...v1.3.0) (2026-09-18)
+
+
+### Bug Fixes
+
+* **analysis:** put eval chart names left of the piece icons ([f4eb385](https://github.com/arienshibani/office-chess-club/commit/f4eb385c3bdc90b1e6b4911745dd4013cbf3c023))
+
+
+### Features
+
+* **analysis:** show stored-eval advantage chart on match review ([abed9ec](https://github.com/arienshibani/office-chess-club/commit/abed9ec79593322925cfc12eeabcca4fa2a7e2cf)), closes [#7](https://github.com/arienshibani/office-chess-club/issues/7)
+
 # [1.2.0](https://github.com/arienshibani/office-chess-club/compare/v1.1.0...v1.2.0) (2026-09-18)
 
 
