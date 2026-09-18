@@ -1,3 +1,11 @@
+# [1.2.0](https://github.com/arienshibani/office-chess-club/compare/v1.1.0...v1.2.0) (2026-09-18)
+
+
+### Features
+
+* **analysis:** persist Stockfish evals and highlight blunders ([867ad98](https://github.com/arienshibani/office-chess-club/commit/867ad989a3f45f4240eecfcf6afe04782f3fa9ba)), closes [#5](https://github.com/arienshibani/office-chess-club/issues/5)
+* **issue-templates:** add multiple issue templates for better categorization ([481106a](https://github.com/arienshibani/office-chess-club/commit/481106ac062c7eedcc062959ba30e5ee772b71c0))
+
 # [1.1.0](https://github.com/arienshibani/office-chess-club/compare/v1.0.0...v1.1.0) (2026-08-31)
 
 
