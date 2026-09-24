@@ -10,8 +10,9 @@ import { MATCH_STATUS_DRAFT } from '$lib/server/matches/match-status.js';
 /**
  * @param {number} status
  * @param {string} message
+ * @param {Record<string, unknown>} [fields]
  */
-const createHttpError = (status, message) => ({ status, message });
+const createHttpError = (status, message, fields = {}) => ({ status, message, ...fields });
 
 /**
  * @param {string} value
@@ -89,7 +90,9 @@ export const createMatch = async ({
 
 	const parsedNotation = validateNotation(notation ?? '');
 	if (!parsedNotation.ok) {
-		throw createHttpError(400, parsedNotation.error ?? 'Invalid notation');
+		throw createHttpError(400, parsedNotation.error ?? 'Invalid notation', {
+			...(parsedNotation.notationError ? { notationError: parsedNotation.notationError } : {}),
+		});
 	}
 	if (requireNotation && !parsedNotation.notation) {
 		throw createHttpError(400, 'Notation is required');
@@ -210,7 +213,9 @@ export const createDraftMatch = async ({ result, notation, timeFormat }) => {
 
 	const parsedNotation = validateNotation(notation);
 	if (!parsedNotation.ok) {
-		throw createHttpError(400, parsedNotation.error ?? 'Invalid notation');
+		throw createHttpError(400, parsedNotation.error ?? 'Invalid notation', {
+			...(parsedNotation.notationError ? { notationError: parsedNotation.notationError } : {}),
+		});
 	}
 	if (!parsedNotation.notation) {
 		throw createHttpError(400, 'Notation is required');
