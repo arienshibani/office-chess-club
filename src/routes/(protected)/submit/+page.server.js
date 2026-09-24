@@ -67,10 +67,11 @@ export async function load({ url, locals }) {
 /** @type {import('./$types').Actions} */
 export const actions = {
 	logMatch: async ({ request, locals }) => {
-		if (!locals.user) return fail(401, { error: 'Not authenticated' });
+		if (!locals.user) return fail(401, { error: 'Not authenticated', notationError: null });
 		if (!canSubmitMatches(locals.user)) {
 			return fail(403, {
 				error: 'Your account is pending admin approval. You cannot submit matches yet.',
+				notationError: null,
 			});
 		}
 
@@ -83,16 +84,16 @@ export const actions = {
 		const timeFormat = typeof timeFormatRaw === 'string' ? timeFormatRaw.trim() : '';
 
 		if (!whiteId || !blackId || !resultRaw) {
-			return fail(400, { error: 'Missing required fields' });
+			return fail(400, { error: 'Missing required fields', notationError: null });
 		}
 		if (whiteId === blackId) {
-			return fail(400, { error: 'Players must be different' });
+			return fail(400, { error: 'Players must be different', notationError: null });
 		}
 		if (!['white', 'black', 'draw'].includes(resultRaw)) {
-			return fail(400, { error: 'Invalid result' });
+			return fail(400, { error: 'Invalid result', notationError: null });
 		}
 		if (!parseTimeFormatValue(timeFormat)) {
-			return fail(400, { error: 'Select a valid time format' });
+			return fail(400, { error: 'Select a valid time format', notationError: null });
 		}
 		const result = /** @type {'white' | 'black' | 'draw'} */ (resultRaw);
 
@@ -118,8 +119,19 @@ export const actions = {
 			};
 		} catch (err) {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+				/** @type {import('$lib/chess/notation.js').NotationErrorDetail | null} */
+				const notationError =
+					'notationError' in err &&
+					/** @type {{ notationError?: import('$lib/chess/notation.js').NotationErrorDetail | null }} */ (
+						err
+					).notationError
+						? /** @type {{ notationError: import('$lib/chess/notation.js').NotationErrorDetail }} */ (
+								err
+							).notationError
+						: null;
 				return fail(/** @type {number} */ (err.status), {
 					error: /** @type {string} */ (err.message),
+					notationError,
 				});
 			}
 			throw err;
@@ -127,11 +139,11 @@ export const actions = {
 	},
 
 	finalizeDraft: async ({ request, locals }) => {
-		if (!locals.user) return fail(401, { error: 'Not authenticated' });
+		if (!locals.user) return fail(401, { error: 'Not authenticated', notationError: null });
 
 		const draftConfig = await getDraftConfig();
 		if (!canFinalizeDrafts(locals.user, draftConfig)) {
-			return fail(403, { error: 'You cannot finalize board drafts.' });
+			return fail(403, { error: 'You cannot finalize board drafts.', notationError: null });
 		}
 
 		const data = await request.formData();
@@ -140,10 +152,10 @@ export const actions = {
 		const blackId = data.get('blackId')?.toString();
 
 		if (!draftId || !whiteId || !blackId) {
-			return fail(400, { error: 'Missing required fields' });
+			return fail(400, { error: 'Missing required fields', notationError: null });
 		}
 		if (whiteId === blackId) {
-			return fail(400, { error: 'Players must be different' });
+			return fail(400, { error: 'Players must be different', notationError: null });
 		}
 
 		try {
@@ -168,6 +180,7 @@ export const actions = {
 			if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
 				return fail(/** @type {number} */ (err.status), {
 					error: /** @type {string} */ (err.message),
+					notationError: null,
 				});
 			}
 			throw err;
