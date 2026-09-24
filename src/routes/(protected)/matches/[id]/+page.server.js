@@ -62,7 +62,12 @@ export const actions = {
 
 		const raw = String((await request.formData()).get('notation') ?? '');
 		const parsed = validateNotation(raw);
-		if (!parsed.ok) return fail(400, { error: parsed.error });
+		if (!parsed.ok) {
+			return fail(400, {
+				error: parsed.error,
+				notationError: parsed.notationError ?? null,
+			});
+		}
 
 		await matchesCol.updateOne(
 			{ _id: oid },

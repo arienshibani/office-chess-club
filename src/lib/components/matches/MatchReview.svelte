@@ -21,6 +21,7 @@ import { buildSuggestionDisplay } from "$lib/chess/arrows.js";
 import EvalBar from "$lib/components/board/EvalBar.svelte";
 import EvalAdvantageChart from "$lib/components/board/EvalAdvantageChart.svelte";
 import MatchActionsMenu from "$lib/components/matches/MatchActionsMenu.svelte";
+import NotationError from "$lib/components/matches/NotationError.svelte";
 import { detectNotationType } from "$lib/chess/notation.js";
 import PieceColor from "$lib/components/player/PieceColor.svelte";
 import {
@@ -865,7 +866,7 @@ const moveRows = $derived.by(() => {
 			{/if}
 
 			{#if isAdmin && form?.error && !canEditNotation}
-				<p class="err admin-err">{form.error}</p>
+				<NotationError error={form.error} detail={form.notationError ?? null} />
 			{/if}
 
 			{#if canEditNotation}
@@ -879,7 +880,7 @@ const moveRows = $derived.by(() => {
 					<div class="notation-form-body">
 					<p class="notation-hint">Only you and your opponent can edit this. Paste PGN moves or a FEN position.</p>
 					{#if form?.error}
-						<p class="err">{form.error}</p>
+						<NotationError error={form.error} detail={form.notationError ?? null} />
 					{/if}
 					{#if notationSaveFeedback}
 						<p class="success">{notationSaveFeedback}</p>

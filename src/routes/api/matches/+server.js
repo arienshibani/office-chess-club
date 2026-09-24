@@ -83,8 +83,15 @@ export const POST = async ({ request }) => {
 		return json({ ok: true, matchId, status }, { status: 201 });
 	} catch (err) {
 		if (err && typeof err === 'object' && 'status' in err && 'message' in err) {
+			const notationError =
+				'notationError' in err
+					? /** @type {{ notationError?: unknown }} */ (err).notationError
+					: undefined;
 			return json(
-				{ error: /** @type {string} */ (err.message) },
+				{
+					error: /** @type {string} */ (err.message),
+					...(notationError ? { notationError } : {}),
+				},
 				{ status: /** @type {number} */ (err.status) },
 			);
 		}

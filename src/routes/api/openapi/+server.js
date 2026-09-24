@@ -71,7 +71,40 @@ export const GET = async ({ url }) => {
 								},
 							},
 						},
-						400: { description: 'Validation error' },
+						400: {
+							description:
+								'Validation error. Invalid PGN responses include notationError with the illegal move or the line and column that failed to parse.',
+							content: {
+								'application/json': {
+									schema: {
+										type: 'object',
+										properties: {
+											error: { type: 'string' },
+											notationError: {
+												type: 'object',
+												description:
+													'Present when notation is invalid. kind is illegal-move, syntax, or fen.',
+												properties: {
+													kind: { type: 'string', enum: ['illegal-move', 'syntax', 'fen'] },
+													move: { type: 'string' },
+													moveNumber: { type: 'integer' },
+													side: { type: 'string', enum: ['white', 'black'] },
+													label: { type: 'string', example: '38... Ka5' },
+													inCheck: { type: 'boolean' },
+													legalMoves: { type: 'array', items: { type: 'string' } },
+													context: { type: 'string' },
+													line: { type: 'integer' },
+													column: { type: 'integer' },
+													snippet: { type: 'string' },
+													found: { type: ['string', 'null'] },
+													message: { type: 'string' },
+												},
+											},
+										},
+									},
+								},
+							},
+						},
 						401: { description: 'Invalid API key' },
 						503: { description: 'HTTP submission API is disabled or not configured' },
 					},

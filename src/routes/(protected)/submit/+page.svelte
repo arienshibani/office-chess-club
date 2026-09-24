@@ -5,6 +5,7 @@ import { page } from "$app/stores";
 import { AlertTriangle, ClipboardPlus, Copy, Minus, Radio, Trophy } from "@lucide/svelte";
 import { withActionToast } from "$lib/client/action-toast.js";
 import DraftMatchCard from "$lib/components/matches/DraftMatchCard.svelte";
+import NotationError from "$lib/components/matches/NotationError.svelte";
 import PieceColor from "$lib/components/player/PieceColor.svelte";
 
 const { data, form } = $props();
@@ -180,7 +181,10 @@ const copyCurl = async (/** @type {string} */ text) => {
 					</p>
 				{/if}
 				{#if form?.error}
-					<p class="error">{form.error}</p>
+					<NotationError
+						error={form.error}
+						detail={form.notationError ?? null}
+					/>
 				{/if}
 				<form
 					method="POST"
@@ -488,7 +492,6 @@ const copyCurl = async (/** @type {string} */ text) => {
 	button:hover:not(:disabled) { opacity: 0.88; }
 	button:disabled { opacity: 0.4; cursor: not-allowed; }
 	.notice { font-size: 0.82rem; color: var(--color-warning); background: var(--color-notice-bg); border: 1px solid var(--color-notice-border); border-radius: 6px; padding: 8px 10px; margin: 0; align-items: flex-start; }
-	.error { font-size: 0.82rem; color: var(--color-error); background: var(--color-error-bg); border: 1px solid var(--color-error-border); border-radius: 6px; padding: 8px 10px; margin: 0; }
 	.http-submit {
 		background: var(--color-surface);
 		border: 1px solid var(--color-border);
