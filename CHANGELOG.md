@@ -1,3 +1,12 @@
+# [1.4.0](https://github.com/arienshibani/office-chess-club/compare/v1.3.0...v1.4.0) (2026-09-24)
+
+
+### Features
+
+* **api:** return notation error details on invalid PGN ([10e2e5a](https://github.com/arienshibani/office-chess-club/commit/10e2e5a50d78634a9f7667fe217c2fb21d98c674))
+* **notation:** explain which move makes a PGN invalid ([dab9389](https://github.com/arienshibani/office-chess-club/commit/dab93897e48d04ce3dfdabc73dbb281b2f74aed5))
+* **submit:** show the illegal move when PGN validation fails ([26b40b4](https://github.com/arienshibani/office-chess-club/commit/26b40b462800f949eb22ab2b97f7883328e4916f))
+
 # [1.3.0](https://github.com/arienshibani/office-chess-club/compare/v1.2.0...v1.3.0) (2026-09-18)
 
 
